@@ -2,15 +2,20 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { HashRouter } from 'react-router-dom'
 import './index.css'
+import Store from './store/index.store'
+import { Provider } from 'mobx-react'
 import App from './App'
 import * as serviceWorker from './serviceWorker'
 
+const appstate = new Store().getAllStore
 const rootNode = document.getElementById('root')
 const render = Component => {
     ReactDOM.render(
-        <HashRouter>
-            <Component/>
-        </HashRouter>,
+        <Provider appstate={appstate}>
+            <HashRouter>
+                <Component/>
+            </HashRouter>
+        </Provider>,
         rootNode
     )
 }

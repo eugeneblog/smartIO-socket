@@ -1,10 +1,17 @@
 /* eslint-disable no-script-url */
 /* eslint-disable jsx-a11y/anchor-is-valid */
-/* global d3 */
 import React from 'react'
 import './index.menu.css'
-import {Menu, Dropdown, message } from 'antd'
-const SubMenu = Menu.SubMenu;
+import { observer, inject } from 'mobx-react'
+import {Menu, Dropdown } from 'antd'
+const SubMenu = Menu.SubMenu
+
+// 菜单点击事件
+const menuOnClick = function({item, key}) {
+    // const { handle } = item.props
+    // // 在当前对象Menu中找到 handle方法并执行对应的事件回调, 事件回调接收一个参数, self: MenuItem
+    // this[handle](item)
+}
 
 class MenuController extends React.Component {
   constructor() {
@@ -15,7 +22,33 @@ class MenuController extends React.Component {
   }
 }
 
+@inject(allStore => {
+    return allStore.appstate
+}) @observer 
 class Menus extends MenuController{
+  // 递归调用菜单
+  recursionMenu = (list) => {
+    return list.map((item) => {
+      if(!item.children) {
+        return (
+          <Menu.Item className="smartIO-menu" key={ item.text } handle={ item.handle }>
+            <a target="_blank" rel="noopener noreferrer" >
+              { item.text }
+              <span>{ item.shortcutKey || '' }</span>
+            </a>
+          </Menu.Item>
+        )
+      } else {
+        return (
+          <SubMenu title={ item.text } key={ item.text }>
+            {
+              this.recursionMenu(item.children)
+            }
+          </SubMenu>
+        )
+      }
+    })
+  }
   render() {
     return (
         <React.Fragment>
@@ -23,18 +56,31 @@ class Menus extends MenuController{
             <Menu
                 theme="dark"
                 mode="horizontal"
-                defaultSelectedKeys={['2']}
-                style={{ lineHeight: '64px' }}
+                style={{ lineHeight: '40px' }}
             >
-                <Menu.Item key="1">nav 1</Menu.Item>
-                <Menu.Item key="2">nav 2</Menu.Item>
-                <Menu.Item key="3">nav 3</Menu.Item>
+                {
+                    this.props.menustate.menuList.map((e, i) => {
+                        return (
+                            <Dropdown
+                            overlay={
+                            <Menu onClick={ (k) => menuOnClick.bind(this)(k) }>
+                                {
+                                this.recursionMenu(e.children)
+                                }
+                            </Menu>
+                            }
+                            key={i}
+                            >
+                                <a className="ant-dropdown-link" href="javascript:void(0);">
+                                    {e.text}
+                                </a>
+                            </Dropdown> 
+                        )
+                    })
+                }
             </Menu>
         </React.Fragment>
     )
-  }
-  componentDidUpdate() {
-    console.log('update')
   }
 }
 
