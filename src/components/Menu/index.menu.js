@@ -28,24 +28,34 @@ class MenuController extends React.Component {
 class Menus extends MenuController{
   // 递归调用菜单
   recursionMenu = (list) => {
-    return list.map((item) => {
-      if(!item.children) {
+    return list.map((item, index) => {
+      if (item === '-') {
         return (
-          <Menu.Item className="smartIO-menu" key={ item.text } handle={ item.handle }>
-            <a target="_blank" rel="noopener noreferrer" >
-              { item.text }
-              <span>{ item.shortcutKey || '' }</span>
-            </a>
-          </Menu.Item>
+          <Menu.Divider key={ `divider${index}` } /> 
         )
       } else {
-        return (
-          <SubMenu title={ item.text } key={ item.text }>
-            {
-              this.recursionMenu(item.children)
-            }
-          </SubMenu>
-        )
+        if(!item.children) {
+          return (
+            <Menu.Item 
+            className="smartIO-menu" 
+            key={ item.text }
+            handle={ item.handle }
+            disabled={ item.disabled ? true : false }>
+              <a target="_blank" rel="noopener noreferrer" >
+                { item.text }
+                <span>{ item.shortcutKey || '' }</span>
+              </a>
+            </Menu.Item>
+          )
+        } else {
+          return (
+            <SubMenu title={ item.text } key={ item.text }>
+              {
+                this.recursionMenu(item.children)
+              }
+            </SubMenu>
+          )
+        }
       }
     })
   }
@@ -65,7 +75,7 @@ class Menus extends MenuController{
                             overlay={
                             <Menu onClick={ (k) => menuOnClick.bind(this)(k) }>
                                 {
-                                this.recursionMenu(e.children)
+                                  this.recursionMenu(e.children)
                                 }
                             </Menu>
                             }

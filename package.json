@@ -45,6 +45,8 @@
     "postcss-safe-parser": "4.0.1",
     "react": "^16.8.6",
     "react-app-polyfill": "^1.0.1",
+    "react-contexify": "^4.1.1",
+    "react-contextmenu": "^2.11.0",
     "react-dev-utils": "^9.0.1",
     "react-dom": "^16.8.6",
     "react-router": "^5.0.1",
@@ -72,7 +74,7 @@
   "eslintConfig": {
     "extends": "react-app"
   },
-  "main": "./server/www.js",
+  "main": "./server/config/electron.conf.js",
   "browserslist": {
     "production": [
       ">0.2%",

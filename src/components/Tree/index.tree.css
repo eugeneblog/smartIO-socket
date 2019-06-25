@@ -1,0 +1,10 @@
+/* 禁止文本选择 */
+.ant-tree-title > div {
+    display: inline-block !important;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

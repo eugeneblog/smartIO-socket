@@ -6,7 +6,20 @@
     float: left;
   }
 .ant-dropdown-link {
+  display: unset;
   color: #fff;
   font-weight: 500;
   padding: 10px;
+}
+.smartIO-menu {
+  /* 禁止选择文本 */
+  -moz-user-select:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.smartIO-menu  span {
+  float: right;
+  color: rgba(0,0,0,0.4);
+  padding-left: 40px;
+  text-align: right;
 }
