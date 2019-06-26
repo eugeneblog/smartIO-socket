@@ -55,7 +55,6 @@ class TreePanel extends TreePanelController{
                 defaultSelectedKeys={['0-0']}
                 onSelect={this.onSelect}
                 defaultExpandAll
-                blockNode
                 >
                     {
                         this.createNode(this.props.treestate.treeData)
@@ -71,11 +70,11 @@ class TreePanel extends TreePanelController{
         return treeData.map((item) => {
             return (
                 <TreeNode
-                    treeData = {item}
+                    treeData = { item }
                     title = {
                         <div onContextMenu={ (e) => handleEvent(e, item, this) }>
-                            <Icon type={ item.icon } style={{'paddingRight': "5px"}} /> 
-                            {item.title}
+                            <Icon type={ item.icon } style={ {'paddingRight': "5px"} } /> 
+                            { item.title }
                         </div> 
                     }
                     key = { item.key }
@@ -90,10 +89,14 @@ class TreePanel extends TreePanelController{
 
     // tree 选中事件
     onSelect = (selectedKeys, info) => {
+        // eslint-disable-next-line eqeqeq
+        if(selectedKeys == false) {
+            return
+        }
         let selfState = info.node.props.treeData
-        console.log('selected', selectedKeys)
-        console.log(info)
-        console.log(selfState)
+        // 路由切换
+        let name = selfState.name
+        window.location.href = `#/${name}`
     }
 
     // 右键点击事件

@@ -44,6 +44,7 @@ class TreeState extends BaseState {
           title: 'Facillty',
           key: '0-0',
           icon: 'bank',
+          name: 'facillty',
           menu: {
             copy: true,
             cut: true
@@ -52,6 +53,7 @@ class TreeState extends BaseState {
             {
               title: 'GroupName',
               icon: 'branches',
+              name: 'groupName',
               key: '0-0-0',
               menu: {
                 copy: true
@@ -62,21 +64,23 @@ class TreeState extends BaseState {
         {
           title: 'System Components',
           key: '0-1',
+          name: 'system',
           icon: 'hdd',
           menu: {
               copy: true
           },
           children: [
-            { title: 'Channel', key: '0-1-0-0', icon: 'rocket', menu: { rname: true } },
-            { title: 'Controller', key: '0-1-0-1', icon: 'control', menu: { rname: true } },
-            { title: 'Printer', key: '0-1-0-2', icon: 'printer', menu: { rname: true } },
-            { title: 'Server', key: '0-1-0-3', icon: 'cloud-server', menu: { rname: true } },
-            { title: 'Station', key: '0-1-0-4', icon: 'bulb', menu: {} },
-            { title: 'Trend/Group', key: '0-1-0-5', icon: 'usergroup-add', menu: {} },
+            { title: 'Channel', key: '0-1-0-0', icon: 'rocket', name: 'channel', menu: { rname: true } },
+            { title: 'Controller', key: '0-1-0-1', icon: 'control', name: 'controller', menu: { rname: true } },
+            { title: 'Printer', key: '0-1-0-2', icon: 'printer', name: 'printer', menu: { rname: true } },
+            { title: 'Server', key: '0-1-0-3', icon: 'cloud-server', name: 'server', menu: { rname: true } },
+            { title: 'Station', key: '0-1-0-4', icon: 'bulb', name: 'station', menu: {} },
+            { title: 'Trend/Group', key: '0-1-0-5', name: 'trend', icon: 'usergroup-add', menu: {} },
           ],
         },
         {
           title: 'Alam Groups',
+          name: 'alam',
           key: '0-2',
           icon: 'team',
           menu: {
@@ -85,6 +89,7 @@ class TreeState extends BaseState {
         },
         {
             title: 'Recycle Bin',
+            name: 'bin',
             key: '0-3',
             icon: 'api',
             menu: {
