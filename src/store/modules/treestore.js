@@ -45,7 +45,8 @@ class TreeState extends BaseState {
           key: '0-0',
           icon: 'bank',
           menu: {
-            copy: true
+            copy: true,
+            cut: true
           },
           children: [
             {
@@ -66,12 +67,12 @@ class TreeState extends BaseState {
               copy: true
           },
           children: [
-            { title: 'Channel', key: '0-1-0-0', icon: 'rocket' },
-            { title: 'Controller', key: '0-1-0-1', icon: 'control' },
-            { title: 'Printer', key: '0-1-0-2', icon: 'printer' },
-            { title: 'Server', key: '0-1-0-3', icon: 'cloud-server' },
-            { title: 'Station', key: '0-1-0-4', icon: 'bulb' },
-            { title: 'Trend/Group', key: '0-1-0-5', icon: 'usergroup-add' },
+            { title: 'Channel', key: '0-1-0-0', icon: 'rocket', menu: { rname: true } },
+            { title: 'Controller', key: '0-1-0-1', icon: 'control', menu: { rname: true } },
+            { title: 'Printer', key: '0-1-0-2', icon: 'printer', menu: { rname: true } },
+            { title: 'Server', key: '0-1-0-3', icon: 'cloud-server', menu: { rname: true } },
+            { title: 'Station', key: '0-1-0-4', icon: 'bulb', menu: {} },
+            { title: 'Trend/Group', key: '0-1-0-5', icon: 'usergroup-add', menu: {} },
           ],
         },
         {
@@ -94,6 +95,13 @@ class TreeState extends BaseState {
     
     // 更改tree菜单数据
     @action setTreeMenu = (node) => {
+        // 先关闭所有tree菜单
+        this.treeMenuModel.forEach(item => {
+            if(typeof(item) === 'object') {
+                item.disabled = true
+            }
+        })
+        // 遍历开关，循环菜单然后开启功能
         for (const key in node) {
             this.treeMenuModel.forEach(item => {
                 if(typeof(item) === 'object') {
@@ -103,7 +111,7 @@ class TreeState extends BaseState {
                 }
             })
         }
-    }
+    } 
 }
 
 let treestate = new TreeState()

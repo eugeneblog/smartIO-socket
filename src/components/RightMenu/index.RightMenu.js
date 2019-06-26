@@ -3,7 +3,9 @@ import { Menu, Item, Separator, Submenu, MenuProvider, contextMenu } from 'react
 import { observer, inject } from 'mobx-react'
 import 'react-contexify/dist/ReactContexify.min.css'
 
-const onClick = ({ event, props }) => console.log(event,props);
+const onClick = function({event, props}, item) {
+    this[item.handle](item, event)
+}
 // create your menu first
 
 class RightMenuController extends React.Component {
@@ -13,6 +15,32 @@ class RightMenuController extends React.Component {
             
         }
     }
+
+    addItemHandle = (self, event) => {
+        console.log(self)
+    }
+
+    duplicateHandle = (self, event) => {
+        console.log('duplicateHandle')
+    }
+
+    cutHandle = (self, event) => {
+        console.log('cut')
+    }
+
+    copyHandle = (self, event) => {
+        console.log(this)
+        console.log('copy')
+    }
+
+    rnameHandle = (self, event) => {
+        console.log('rname')
+    }
+
+    emptyHandle = (self, event) => {
+        console.log('empty')
+    }
+
 }
 
 const menuId = 'thisIsAnId';
@@ -39,7 +67,7 @@ class MyAwesomeMenu extends RightMenuController {
                 if (!item.children) {
                     return (
                         <Item 
-                        onClick={onClick} 
+                        onClick={ ({event, props}) => onClick.bind(this)({event, props}, item) } 
                         key={ item.key }
                         disabled={ item.disabled }
                         >
@@ -59,8 +87,9 @@ class MyAwesomeMenu extends RightMenuController {
         })
     }
 }
+
 const handleEvent = (e) => {
-    e.preventDefault();
+    e.preventDefault()
     contextMenu.show({
         id: menuId,
         event: e,

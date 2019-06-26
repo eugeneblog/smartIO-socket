@@ -10,17 +10,19 @@ const menuId = 'thisIsAnId'
 
 // 显示tree菜单，根据treenode启用禁用菜单功能
 const handleEvent = (e, item, main) => {
+    e.persist()
     e.preventDefault();
     let menuEnable = item.menu
     main.props.treestate.setTreeMenu(menuEnable)
-    console.log(menuEnable)
-    contextMenu.show({
-      id: menuId,
-      event: e,
-      props: {
-        foo: 'bar'
-      }
-    })
+    setTimeout(() => {
+        contextMenu.show({
+            id: menuId,
+            event: e,
+            props: {
+              foo: 'bar'
+            }
+        })
+    },10)
 }
 
 class TreePanelController extends React.Component {
@@ -52,8 +54,8 @@ class TreePanel extends TreePanelController{
                 defaultExpandedKeys={['0-0']} 
                 defaultSelectedKeys={['0-0']}
                 onSelect={this.onSelect}
-                showIcon
                 defaultExpandAll
+                blockNode
                 >
                     {
                         this.createNode(this.props.treestate.treeData)
@@ -69,13 +71,14 @@ class TreePanel extends TreePanelController{
         return treeData.map((item) => {
             return (
                 <TreeNode
-                    title={ 
-                        <div onContextMenu={(e) => handleEvent(e, item, this)}>
+                    treeData = {item}
+                    title = {
+                        <div onContextMenu={ (e) => handleEvent(e, item, this) }>
+                            <Icon type={ item.icon } style={{'paddingRight': "5px"}} /> 
                             {item.title}
                         </div> 
                     }
-                    key={ item.key }
-                    icon={ <Icon type={ item.icon } /> }
+                    key = { item.key }
                 >
                     {
                         item.children ? this.createNode(item.children) : null
@@ -87,8 +90,10 @@ class TreePanel extends TreePanelController{
 
     // tree 选中事件
     onSelect = (selectedKeys, info) => {
-        console.log('selected', selectedKeys, info);
-
+        let selfState = info.node.props.treeData
+        console.log('selected', selectedKeys)
+        console.log(info)
+        console.log(selfState)
     }
 
     // 右键点击事件
