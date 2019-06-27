@@ -7,15 +7,7 @@ import {
 } from 'react-router-dom'
 import HLayout from '../views/layout/index.layout.js'
 import NotFoundPage from '../components/404/index.notfound'
-import TablePane from '../components/Table/index.table'
-
-const Facillty = () => {
-    return (
-        <HLayout>
-            <TablePane/>
-        </HLayout>
-    )
-}
+import Facillty from '../views/facillty/index.facillty.js'
 
 class MainRoute extends React.Component {
     render() {

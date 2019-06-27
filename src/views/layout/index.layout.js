@@ -2,7 +2,7 @@ import React from 'react';
 import './index.layout.css'
 import Menus from '../../components/Menu/index.menu'
 import TreePane from '../../components/Tree/index.tree'
-import BreadcrumbNav from '../../components/BreadCrumb/index.breadcrumb'
+// import BreadcrumbNav from '../../components/BreadCrumb/index.breadcrumb'
 import { Layout } from 'antd'
 
 const { Header, Content, Sider } = Layout
@@ -19,7 +19,6 @@ class HLayout extends React.Component {
                         <TreePane/>
                     </Sider>
                     <Content style={{ padding: '20px 50px' }}>
-                        <BreadcrumbNav/>
                         <div style={{ background: '#fff', padding: 24, minHeight: 280, height: "100%" }}>
                             {
                                 this.props.children
