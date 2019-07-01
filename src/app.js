@@ -1,16 +1,16 @@
 import React from 'react';
 import MainRoute from './route/index.route'
-
+import { HLayout } from './views/layout/index.layout'
 import './App.css';
 
-class App extends React.Component {
-  render() {
-    return (
-      <div className="App">
+const App: React.FC = () => {
+  return (
+    <div className="App">
+      <HLayout>
         <MainRoute></MainRoute>
-      </div>
-    )
-  }
+      </HLayout>
+    </div>
+  )
 }
 
 export default App;

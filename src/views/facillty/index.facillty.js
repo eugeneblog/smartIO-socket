@@ -1,7 +1,6 @@
 /* eslint-disable no-script-url */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react"
-import HLayout from '../layout/index.layout.js'
 import TablePane from '../../components/Table/index.table'
 import { Tag, Divider } from 'antd'
 
@@ -82,9 +81,7 @@ const data = [
 class Facillty extends React.Component{
     render() {
         return (
-            <HLayout>
-                <TablePane columns={ columns } data={ data }/>
-            </HLayout>
+          <TablePane columns={ columns } data={ data }/>
         )
     }
 }

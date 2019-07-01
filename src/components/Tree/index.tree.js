@@ -2,6 +2,7 @@ import React from 'react'
 import { Tree, Icon } from 'antd'
 import './index.tree.css'
 import { observer, inject } from 'mobx-react'
+import { Link } from 'react-router-dom'
 import { MyAwesomeMenu } from '../RightMenu/index.RightMenu'
 import { contextMenu } from 'react-contexify'
 
@@ -19,10 +20,10 @@ const handleEvent = (e, item, main) => {
             id: menuId,
             event: e,
             props: {
-              foo: 'bar'
+                foo: 'bar'
             }
         })
-    },10)
+    }, 10)
 }
 
 class TreePanelController extends React.Component {
@@ -36,8 +37,8 @@ class TreePanelController extends React.Component {
 
 @inject(allStore => {
     return allStore.appstate
-}) @observer 
-class TreePanel extends TreePanelController{
+}) @observer
+class TreePanel extends TreePanelController {
     constructor() {
         super()
         // trigger： 触发menu的tree对象是谁？
@@ -49,12 +50,11 @@ class TreePanel extends TreePanelController{
         // 使用递归创建tree，无限级children创建，一劳永逸
         return (
             <React.Fragment>
-                <Tree 
-                showLine
-                defaultExpandedKeys={['0-0']} 
-                defaultSelectedKeys={['0-0']}
-                onSelect={this.onSelect}
-                defaultExpandAll
+                <Tree
+                    showLine
+                    defaultSelectedKeys={this.props.treestate.defaultSelectedKeys}
+                    onSelect={this.onSelect}
+                    defaultExpandAll
                 >
                     {
                         this.createNode(this.props.treestate.treeData)
@@ -70,14 +70,14 @@ class TreePanel extends TreePanelController{
         return treeData.map((item) => {
             return (
                 <TreeNode
-                    treeData = { item }
-                    title = {
-                        <div onContextMenu={ (e) => handleEvent(e, item, this) }>
-                            <Icon type={ item.icon } style={ {'paddingRight': "5px"} } /> 
-                            { item.title }
-                        </div> 
+                    treeData={item}
+                    title={
+                        <div onContextMenu={(e) => handleEvent(e, item, this)}>
+                            <Icon type={item.icon} style={{ 'paddingRight': "5px" }} />
+                            {item.title}
+                        </div>
                     }
-                    key = { item.key }
+                    key={item.key}
                 >
                     {
                         item.children ? this.createNode(item.children) : null
@@ -90,13 +90,13 @@ class TreePanel extends TreePanelController{
     // tree 选中事件
     onSelect = (selectedKeys, info) => {
         // eslint-disable-next-line eqeqeq
-        if(selectedKeys == false) {
+        if (selectedKeys == false) {
             return
         }
         let selfState = info.node.props.treeData
         // 路由切换
         let name = selfState.name
-        window.location.href = `#/${name}`
+        window.location.href = `#/index/${name}`
     }
 
     // 右键点击事件

@@ -2,33 +2,28 @@ import React from 'react';
 import './index.layout.css'
 import Menus from '../../components/Menu/index.menu'
 import TreePane from '../../components/Tree/index.tree'
-// import BreadcrumbNav from '../../components/BreadCrumb/index.breadcrumb'
 import { Layout } from 'antd'
 
 const { Header, Content, Sider } = Layout
 
-class HLayout extends React.Component {
-    render() {
-        return(
+export const HLayout = (props) => {
+    return (
+        <Layout>
+            <Header className="header">
+                <Menus />
+            </Header>
             <Layout>
-                <Header className="header">
-                    <Menus/>
-                </Header>
-                <Layout>
-                    <Sider width={240} style={{ background: '#fff' }}>
-                        <TreePane/>
-                    </Sider>
-                    <Content style={{ padding: '20px 50px' }}>
-                        <div style={{ background: '#fff', padding: 24, minHeight: 280, height: "100%" }}>
-                            {
-                                this.props.children
-                            }
-                        </div>
-                    </Content>
-                </Layout>
+                <Sider width={240} style={{ background: '#fff' }}>
+                    <TreePane />
+                </Sider>
+                <Content style={{ padding: '20px 50px' }}>
+                    <div style={{ background: '#fff', padding: 24, minHeight: 280, height: "100%" }}>
+                        {
+                            props.children
+                        }
+                    </div>
+                </Content>
             </Layout>
-        )
-    }
+        </Layout>
+    )
 }
-
-export default HLayout

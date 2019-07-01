@@ -8,9 +8,8 @@ const SubMenu = Menu.SubMenu
 
 // 菜单点击事件
 const menuOnClick = function({item, key}) {
-    // const { handle } = item.props
-    // // 在当前对象Menu中找到 handle方法并执行对应的事件回调, 事件回调接收一个参数, self: MenuItem
-    // this[handle](item)
+    // 执行对应的callback
+    this[item.props.handle]()
 }
 
 class MenuController extends React.Component {
@@ -19,6 +18,12 @@ class MenuController extends React.Component {
     this.state = {
 
     }
+  }
+
+  // 获取udp广播消息
+  bacnetDisHandle = (me) => {
+    // 发送后台请求
+    console.log('click')
   }
 }
 

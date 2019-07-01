@@ -1,9 +1,10 @@
 import request from "../utils/request"
 
-// 获取udp广播消息
-export function getUdpRadio(params) {
+// 发送udp广播消息
+export function sendUdpMes(mes) {
     return request({
-        url: '/api/udp/getradio',
+        mes,
+        url: '/api/udp/send',
         method: 'post'
     })
 }

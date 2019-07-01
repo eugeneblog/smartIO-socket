@@ -28,13 +28,7 @@ class ErrorModel extends BaseModel {
     }
 }
 
-class BACnetModel extends BaseModel {
-    constructor(data, message) {
-        super(data, message)
-    }
-}
 module.exports = {
     SuccessModel,
-    ErrorModel,
-    BACnetModel
+    ErrorModel
 }
