@@ -2,9 +2,9 @@ import React from 'react'
 import { Tree, Icon } from 'antd'
 import './index.tree.css'
 import { observer, inject } from 'mobx-react'
-import { Link } from 'react-router-dom'
 import { MyAwesomeMenu } from '../RightMenu/index.RightMenu'
 import { contextMenu } from 'react-contexify'
+import { Link } from "react-router-dom"
 
 const { TreeNode } = Tree
 const menuId = 'thisIsAnId'
@@ -53,7 +53,6 @@ class TreePanel extends TreePanelController {
                 <Tree
                     showLine
                     defaultSelectedKeys={this.props.treestate.defaultSelectedKeys}
-                    onSelect={this.onSelect}
                     defaultExpandAll
                 >
                     {
@@ -70,12 +69,12 @@ class TreePanel extends TreePanelController {
         return treeData.map((item) => {
             return (
                 <TreeNode
-                    treeData={item}
+                    treeData={ item }
                     title={
-                        <div onContextMenu={(e) => handleEvent(e, item, this)}>
-                            <Icon type={item.icon} style={{ 'paddingRight': "5px" }} />
-                            {item.title}
-                        </div>
+                        <Link className='tree-treelink' onContextMenu={(e) => handleEvent(e, item, this)} to={`/${item.name}`}>
+                            <Icon type={ item.icon } style={{ 'paddingRight': "5px" }}/>
+                            { item.title }
+                        </Link>
                     }
                     key={item.key}
                 >
@@ -85,18 +84,6 @@ class TreePanel extends TreePanelController {
                 </TreeNode>
             )
         })
-    }
-
-    // tree 选中事件
-    onSelect = (selectedKeys, info) => {
-        // eslint-disable-next-line eqeqeq
-        if (selectedKeys == false) {
-            return
-        }
-        let selfState = info.node.props.treeData
-        // 路由切换
-        let name = selfState.name
-        window.location.href = `#/index/${name}`
     }
 
     // 右键点击事件

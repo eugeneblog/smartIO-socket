@@ -8,6 +8,7 @@ class UdpClient {
         // 组播ip地址
         this.multicastAddr = '224.100.100.100'
         this.client = dgram.createSocket('udp4')
+        this.timeout = 5000
     }
     sendMsg(msg, isListen = false) {
         // 发送16进制ASCIL码
@@ -27,15 +28,18 @@ class UdpClient {
                 // 接收的数据做个转换
                 let data = new Buffer(msg, 'ascii').toString('hex')
                 console.log(`接收到来自${rinfo.address}:${rinfo.port}数据: ${data}`)
+                if (!data) {
+                    return {
+                        msg: '没有接收到udp消息'
+                    }
+                }
+                return {
+                    data
+                }
             })
         }
     }
 }
-
-let udpclient = new UdpClient('192.168.153.110', 47808)
-let msg = "\x81\x0B\x00\x0C\x01\x20\xFF\xFF\x00\xFF\x10\x08"
-udpclient.sendMsg(msg, true)
-// udpclient.addListen()
 
 module.exports = {
     UdpClient

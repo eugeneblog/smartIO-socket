@@ -1,5 +1,6 @@
 /* 禁止文本选择 */
-.ant-tree-title > div {
+
+.tree-treelink {
     display: inline-block !important;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -7,4 +8,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    padding: 0;
+    width: 100%;
+    color: rgba(0,0,0,0.65);
 }
