@@ -5,8 +5,6 @@ class UdpClient {
     constructor(ip, port) {
         this.IP = ip
         this.PORT = port
-        // 组播ip地址
-        this.multicastAddr = '224.100.100.100'
         this.client = dgram.createSocket('udp4')
         this.timeout = 5000
     }
@@ -33,9 +31,13 @@ class UdpClient {
                         msg: '没有接收到udp消息'
                     }
                 }
-                return {
-                    data
-                }
+                // 关闭socket连接
+                setTimeout(() => {
+                    this.client.close()
+                    return {
+                        data
+                    }
+                }, this.timeout)
             })
         }
     }

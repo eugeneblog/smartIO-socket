@@ -11,7 +11,6 @@ const udpRouteHandle = (req, res) => {
         let ip = '192.168.153.110'
         let port = 47808
         const data = sendUdpRadio(ip, port, msg)
-        console.log(data)
         return new SuccessModel(data, '获取成功')
     }
 }

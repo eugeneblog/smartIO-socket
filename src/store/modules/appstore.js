@@ -6,7 +6,9 @@ class BaseState {
 
 class AppState extends BaseState {
     @observable showView = {
-        editor: true
+        editor: true,
+        modalVisible: false,
+        modalLoading: false
     }
     // 当前活动的视图, 默认是Facility
     @observable actionView = 'Facility'

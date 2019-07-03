@@ -3,8 +3,8 @@ const { UdpClient } = require('../conf/UdpClient')
 const sendUdpRadio = (ip, port, msg) => {
     const udpclient = new UdpClient(ip, port)
     const serverMsg = udpclient.sendMsg(msg, true)
-    console.log(serverMsg)
-    // return serverMsg
+    // console.log(serverMsg)
+    return serverMsg
 }
 
 module.exports = {

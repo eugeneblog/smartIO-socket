@@ -77,7 +77,7 @@ const data = [
       tags: ['cool', 'teacher'],
     },
 ];
-// 利用组合
+
 class Facillty extends React.Component{
     render() {
         return (

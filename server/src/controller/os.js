@@ -1,6 +1,10 @@
+const os = require('os')
 const getOsNetConfig = () => {
     return {
-        data: 'xxx'
+        system: os.platform(),
+        systemVsersion: os.release(),
+        hostName: os.hostname(),
+        net: os.networkInterfaces()
     }
 }
 

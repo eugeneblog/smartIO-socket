@@ -1,5 +1,6 @@
 const querystring = require('querystring')
 const udpRouteHandle = require('./route/udp')
+const osRouteHandle = require('./route/os')
 // 解析post数据
 const getPostData = (req) => {
     const promise = new Promise((resolve) => {
@@ -49,6 +50,16 @@ const serverHandle = (req, res) => {
             )
             return
         }
+
+        // 处理os路由
+        const osData = osRouteHandle(req, res)
+        if (osData) {
+            res.end(
+                JSON.stringify(osData)
+            )
+            return
+        }
+
         // 未命中路由
         res.writeHead(404, {"Content-type": "text/plain"})
         res.write('404 Not Found')

@@ -2,13 +2,14 @@ import React from 'react';
 import './index.layout.css'
 import Menus from '../../components/Menu/index.menu'
 import TreePane from '../../components/Tree/index.tree'
+import ModalPanel from '../../components/Modal/index.modal'
 import { Layout } from 'antd'
 
 const { Header, Content, Sider } = Layout
 
 export const HLayout = (props) => {
-    return (
-        <Layout>
+    return [
+        <Layout key="layout">
             <Header className="header">
                 <Menus />
             </Header>
@@ -24,6 +25,7 @@ export const HLayout = (props) => {
                     </div>
                 </Content>
             </Layout>
-        </Layout>
-    )
+        </Layout>,
+        <ModalPanel key="modalpane"/>
+    ]
 }

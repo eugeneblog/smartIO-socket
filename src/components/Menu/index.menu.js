@@ -9,6 +9,9 @@ const SubMenu = Menu.SubMenu
 // 菜单点击事件
 const menuOnClick = function({item, key}) {
     // 执行对应的callback
+    if (!this[item.props.handle]) {
+      return
+    }
     this[item.props.handle]()
 }
 

@@ -7,7 +7,7 @@ const osRouteHandle = (req, res) => {
     // 获取网卡配置信息
     if (method && path === '/api/net/getnet') {
         const result = getOsNetConfig()
-        return new SuccessModel(result)
+        return new SuccessModel(result, '成功获取')
     }
 }
 

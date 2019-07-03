@@ -12,12 +12,11 @@ class RightMenuController extends React.Component {
     constructor() {
         super()
         this.state = {
-            
         }
     }
 
     addItemHandle = (self, event) => {
-        console.log(self)
+        // console.log(self)
     }
 
     duplicateHandle = (self, event) => {
