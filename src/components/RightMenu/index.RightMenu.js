@@ -1,113 +1,112 @@
-import React from 'react'
-import { Menu, Item, Separator, Submenu, MenuProvider, contextMenu } from 'react-contexify'
-import { observer, inject } from 'mobx-react'
-import 'react-contexify/dist/ReactContexify.min.css'
+import React from "react";
+import {
+  Menu,
+  Item,
+  Separator,
+  Submenu,
+  MenuProvider
+} from "react-contexify";
+import { observer, inject } from "mobx-react";
+import TreeModal from '../Modal/components/tree.modal'
+import "react-contexify/dist/ReactContexify.min.css";
 
-const onClick = function({event, props}, item) {
-    this[item.handle](item, event)
-}
+const onClick = function({ event, props }, item) {
+  if (!this[item.handle]) {
+      throw new Error(`undefined ${this[item.handle]}`)
+  }
+  this[item.handle](item, event, props);
+};
 // create your menu first
 
 class RightMenuController extends React.Component {
-    constructor() {
-        super()
-        this.state = {
-        }
-    }
+  constructor() {
+    super();
+    this.state = {};
+  }
+  //
+  addItemHandle = (self, event, caster) => {
+    // 获取tree触发者name
+    const triggerName = caster['trigger'].name
+    // 显示modalPanel
+    this.props.appstate.setView('modalVisible', true)
+    // 设置Title
+    this.props.appstate.modalPanelTitle = triggerName
+    // 给modalPanel设置要加载的组件
+    this.props.appstate.setModalComponent(
+        <TreeModal formData={caster['trigger']}/>
+    )
+  };
 
-    addItemHandle = (self, event) => {
-        // console.log(self)
-    }
+  duplicateHandle = (self, event) => {
+    console.log("duplicateHandle");
+  };
 
-    duplicateHandle = (self, event) => {
-        console.log('duplicateHandle')
-    }
+  cutHandle = (self, event, caster) => {
+    console.log("cut", caster);
+  };
 
-    cutHandle = (self, event) => {
-        console.log('cut')
-    }
+  copyHandle = (self, event) => {
+    console.log(this);
+    console.log("copy");
+  };
 
-    copyHandle = (self, event) => {
-        console.log(this)
-        console.log('copy')
-    }
+  rnameHandle = (self, event) => {
+    console.log("rname");
+  };
 
-    rnameHandle = (self, event) => {
-        console.log('rname')
-    }
-
-    emptyHandle = (self, event) => {
-        console.log('empty')
-    }
-
+  emptyHandle = (self, event) => {
+    console.log("empty");
+  };
 }
 
-const menuId = 'thisIsAnId';
+const menuId = "thisIsAnId";
 
-@inject(allStore => allStore.appstate) @observer
+@inject(allStore => allStore.appstate)
+@observer
 class MyAwesomeMenu extends RightMenuController {
-    render() {
-        return (
-            <Menu id={menuId}>
-                {
-                    this.createMenu(this.props.treestate.treeMenuModel)
-                }
-            </Menu>
-        )
-    }
+  render() {
+    return (
+      <Menu id={menuId}>
+        {this.createMenu(this.props.treestate.treeMenuModel)}
+      </Menu>
+    );
+  }
 
-    createMenu = (treeMenu) => {
-        return treeMenu.map((item, index) => {
-            if (item === '-') {
-                return (
-                    <Separator key={ `div${index}` } />
-                )
-            }else {
-                if (!item.children) {
-                    return (
-                        <Item 
-                        onClick={ ({event, props}) => onClick.bind(this)({event, props}, item) } 
-                        key={ item.key }
-                        disabled={ item.disabled }
-                        >
-                        { item.title }
-                        </Item>
-                    )
-                } else {
-                    return (
-                        <Submenu>
-                            {
-                                this.createMenu(this.children)
-                            }
-                        </Submenu>
-                    )
-                }
-            }
-        })
-    }
-}
-
-const handleEvent = (e) => {
-    e.preventDefault()
-    contextMenu.show({
-        id: menuId,
-        event: e,
-        props: {
-            foo: 'bar'
+  createMenu = treeMenu => {
+    return treeMenu.map((item, index) => {
+      if (item === "-") {
+        return <Separator key={`div${index}`} />;
+      } else {
+        if (!item.children) {
+          return (
+            <Item
+              onClick={({ event, props }) =>
+                onClick.bind(this)({ event, props }, item)
+              }
+              key={item.key}
+              disabled={item.disabled}
+            >
+              {item.title}
+            </Item>
+          );
+        } else {
+          return <Submenu>{this.createMenu(this.children)}</Submenu>;
         }
-    })
+      }
+    });
+  };
 }
 
 class RightMenu extends React.Component {
-    render() {
-        return(
-            <React.Fragment>
-                <MenuProvider id="menu_id" onContextMenu={handleEvent} style={{display: 'inline-block' }}>
-                    { this.props.title }
-                </MenuProvider>
-            </React.Fragment>
-        )
-    }
+  render() {
+    return (
+      <React.Fragment>
+        <MenuProvider id="menu_id" style={{ display: "inline-block" }}>
+          {this.props.title}
+        </MenuProvider>
+      </React.Fragment>
+    );
+  }
 }
 
-export { RightMenu, MyAwesomeMenu }
+export { RightMenu, MyAwesomeMenu };
