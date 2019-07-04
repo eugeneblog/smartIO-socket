@@ -100,7 +100,6 @@ class TreeModalForm extends React.Component {
                         character field width
                       </Radio>
                       <Radio value="c">letter</Radio>
-                      
                     </Radio.Group>
                   </Form.Item>
                   <Form.Item label="Suiffix">
