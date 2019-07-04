@@ -71,11 +71,11 @@ class TreeState extends BaseState {
             },
             children: [
                 { title: 'Channel', key: '0-1-0-0', icon: 'rocket', name: 'channel', menu: { rname: true, addItem: true } },
-                { title: 'Controller', key: '0-1-0-1', icon: 'control', name: 'controller', menu: { rname: true } },
-                { title: 'Printer', key: '0-1-0-2', icon: 'printer', name: 'printer', menu: { rname: true } },
-                { title: 'Server', key: '0-1-0-3', icon: 'cloud-server', name: 'server', menu: { rname: true } },
-                { title: 'Station', key: '0-1-0-4', icon: 'bulb', name: 'station', menu: {} },
-                { title: 'Trend/Group', key: '0-1-0-5', name: 'trend', icon: 'usergroup-add', menu: {} },
+                { title: 'Controller', key: '0-1-0-1', icon: 'control', name: 'controller', menu: { rname: true, addItem: true  } },
+                { title: 'Printer', key: '0-1-0-2', icon: 'printer', name: 'printer', menu: { rname: true, addItem: true  } },
+                { title: 'Server', key: '0-1-0-3', icon: 'cloud-server', name: 'server', menu: { rname: true, addItem: true  } },
+                { title: 'Station', key: '0-1-0-4', icon: 'bulb', name: 'station', menu: { addItem: true } },
+                { title: 'Trend/Group', key: '0-1-0-5', name: 'trend', icon: 'usergroup-add', menu: { addItem: true } },
             ],
         },
         {
@@ -84,7 +84,8 @@ class TreeState extends BaseState {
             key: '0-2',
             icon: 'team',
             menu: {
-                copy: true
+                copy: true,
+                addItem: true 
             }
         },
         {

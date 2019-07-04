@@ -29,6 +29,7 @@ class ModalPanel extends React.Component {
     return (
       <div>
         <Modal
+          width={800}
           visible={modalVisible}
           title={modalTitle}
           onOk={this.handleOk}

@@ -65,7 +65,8 @@ class ChannelPanel extends React.Component {
   }
 
   componentDidMount() {
-    console.log('aa')
+    // 加载数据
+    console.log('加载channel数据')
   }
 }
 

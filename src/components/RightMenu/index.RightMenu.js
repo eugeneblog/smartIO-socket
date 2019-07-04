@@ -27,13 +27,14 @@ class RightMenuController extends React.Component {
   addItemHandle = (self, event, caster) => {
     // 获取tree触发者name
     const triggerName = caster['trigger'].name
+    console.log(triggerName)
     // 显示modalPanel
     this.props.appstate.setView('modalVisible', true)
     // 设置Title
     this.props.appstate.modalPanelTitle = triggerName
     // 给modalPanel设置要加载的组件
     this.props.appstate.setModalComponent(
-        <TreeModal formData={caster['trigger']}/>
+        <TreeModal triggerName={triggerName} formData={caster['trigger']}/>
     )
   };
 
