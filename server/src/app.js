@@ -1,6 +1,7 @@
 const querystring = require('querystring')
 const udpRouteHandle = require('./route/udp')
 const osRouteHandle = require('./route/os')
+const xmlRouteHandle = require('./route/xml.route')
 // 解析post数据
 const getPostData = (req) => {
     const promise = new Promise((resolve) => {
@@ -57,6 +58,17 @@ const serverHandle = (req, res) => {
             res.end(
                 JSON.stringify(osData)
             )
+            return
+        }
+
+        // 处理xml操作相关路由
+        const xmlData = xmlRouteHandle(req, res)
+        if (xmlData) {
+            xmlData.then(data => {
+                res.end(
+                    JSON.stringify(data)
+                )
+            })
             return
         }
 
