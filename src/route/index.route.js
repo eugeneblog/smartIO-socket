@@ -3,14 +3,15 @@ import {
   BrowserRouter as Router,
   Route,
   Switch,
-  Redirect
+  Redirect,
+  withRouter
 } from "react-router-dom";
 import { HLayout } from "../views/layout/index.layout";
 import Facillty from "../views/facillty/index.facillty.js";
 import ChannelPanel from "../views/channel/index.channel";
 import NotFoundPage from "../components/404/index.notfound";
 
-const routes = [
+let routes = [
   {
     path: "/",
     exact: true,
@@ -51,27 +52,43 @@ const routes = [
   }
 ];
 
-function MainRoute() {
-  return (
-    <Router>
-      <div className="App">
-        <Switch>
-            <Route exact path="/login" component={() => <div>login</div>}/>
+class MainRoute extends React.Component {
+  constructor() {
+    super()
+    this.state={
+      route: routes
+    }
+  }
+  render() {
+    return (
+      <Router>
+        <div className="App">
+          <Switch>
+            <Route exact path="/login" component={() => <div>login</div>} />
             <HLayout>
-                <Switch>
-                    {routes.map((route, index) => (
-                    <Route
-                        key={index}
-                        {...route}
-                        component={route.sidebar ? route.sidebar : route.main}
-                    />
-                    ))}
-                </Switch>
+              <Switch>
+                {this.state.route.map((route, index) => (
+                  <Route
+                    key={index}
+                    {...route}
+                    component={route.sidebar ? route.sidebar : route.main}
+                  />
+                ))}
+              </Switch>
             </HLayout>
-        </Switch>
-      </div>
-    </Router>
-  );
+          </Switch>
+        </div>
+      </Router>
+    );
+  }
 }
+// 预留身份验证，待以后开发
+const fakeAuth = {
+  isLogin: true
+};
 
-export default MainRoute;
+const ShowTheLocationWithRouter = withRouter(({ history }) => {
+  return fakeAuth.isLogin ? <MainRoute /> : <p>You are not logged in.</p>;
+});
+
+export default ShowTheLocationWithRouter;

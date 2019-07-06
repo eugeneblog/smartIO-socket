@@ -21,7 +21,7 @@ class HLayout extends React.Component {
                         <TreePane />
                     </Sider>
                     <Content style={{ padding: '20px 50px' }}>
-                        <div style={{ background: '#fff', padding: 24, minHeight: 280, height: "100%" }}>
+                        <div style={{ background: '#fff', padding: 24, minHeight: 640}}>
                             {
                                 this.props.children
                             }
@@ -31,6 +31,11 @@ class HLayout extends React.Component {
             </Layout>,
             <ModalPanel key="modalpane" Component={this.props.appstate.modalComponent}/>
         ]
+    }
+    componentDidUpdate() {
+        // 路由切换触发
+        let pathName = this.props.location.pathname
+        console.log('当前路由是', pathName)
     }
 }
 
