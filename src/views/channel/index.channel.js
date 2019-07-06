@@ -3,6 +3,7 @@
 import React from "react";
 import TablePanel from "../../components/Table/index.table";
 import PropertyPanel from "../../components/Property/index.property";
+import { getChannel } from '../../api/index.api'
 
 const columns = [{
   title: 'Item Name',
@@ -65,8 +66,16 @@ class ChannelPanel extends React.Component {
   }
 
   componentDidMount() {
-    // 加载数据
     console.log('加载channel数据')
+    // 加载通道信息
+    let params = {
+      fileName: 'channel'
+    }
+    getChannel(params).then(channelData => {
+      let result = channelData.data
+      let json = result.data.xmlJson
+      console.log(JSON.parse(json))
+    })
   }
 }
 

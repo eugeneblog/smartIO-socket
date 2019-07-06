@@ -1,4 +1,4 @@
-const { UdpClient } = require('../conf/UdpClient')
+const { UdpClient } = require('../utils/UdpClient')
 // 获取udp广播消息
 const sendUdpRadio = (ip, port, msg) => {
     const udpclient = new UdpClient(ip, port)

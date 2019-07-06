@@ -2,7 +2,7 @@ import axios from "axios"
 import { message } from 'antd'
 
 const service = axios.create({
-    baseURL: process.env.BASE_API,
+    baseURL: 'http://localhost:9100',
     timeout: 5000
 })
 

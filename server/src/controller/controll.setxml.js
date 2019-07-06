@@ -1,20 +1,5 @@
-const path = require('path')
-const fs = require('fs')
-const { XmlToJson } = require('../conf/xmlConJson')
-// 解析post数据
-const getfsData = (file) => {
-    const promise = new Promise((resolve, reject) => {
-        let xmlStr = ''
-        file.on("data", (chunk) => {
-            xmlStr += chunk.toString()
-        })
-    
-        file.on('end', () => {
-            resolve(xmlStr)
-        })
-    })
-    return promise
-}
+const { XmlToJson } = require('../utils/xmlConJson')
+const { getFileContent } = require('../utils/fs')
 
 // 增加channel xml节点
 const addChannelXml = () => {
@@ -33,11 +18,8 @@ const delchannelXml = (id) => {
 
 // 获取channel XML节点
 const getchannelXml = (filename) => {
-    const dir = '../../xmlResources/channel.xml'
-    // 读取目标文件, 创建读写流
-    let file = fs.createReadStream(path.join(__dirname, dir), { encoding: "utf8", start: 0 })
-
-    return getfsData(file).then((xmlResult) => {
+    const dir = `../../xmlResources/${filename}.xml`
+    return getFileContent(dir).then((xmlResult) => {
         return {
             xmlStr: xmlResult,
             xmlJson: XmlToJson(xmlResult)

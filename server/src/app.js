@@ -32,6 +32,8 @@ const getPostData = (req) => {
 const serverHandle = (req, res) => {
     // 设置返回格式
     res.setHeader('Content-type', 'application/json')
+    // 允许跨域访问
+    res.setHeader('Access-Control-Allow-Origin', '*')
     // 获取url
     const url = req.url
     const path = url.split('?')[0]

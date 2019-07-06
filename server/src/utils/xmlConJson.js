@@ -1,7 +1,7 @@
 const convert = require('xml-js')
+// xml 转json格式
 const XmlToJson = function(xml) {
     let result = convert.xml2json(xml, {compact: true, spaces: 4})
-    console.log(result, '\n',);
     return result
 }
 

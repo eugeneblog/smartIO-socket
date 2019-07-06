@@ -38,8 +38,9 @@ const xmlRouteHandle = (req, res) => {
     
     // 获取channel xml 节点
     if (method === 'GET' && path === '/api/config/getchannel') {
-        const { fileName } = req.query['fileName']
-        return getchannelXml(fileName).then(data => {
+        const { fileName } = req.query
+        const result = getchannelXml(fileName)
+        return result.then(data => {
             return new SuccessModel(data, 'true')
         })
     }
