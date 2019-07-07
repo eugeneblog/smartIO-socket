@@ -1,18 +1,13 @@
 import React from "react";
-import {
-  Menu,
-  Item,
-  Separator,
-  Submenu,
-  MenuProvider
-} from "react-contexify";
+import { Menu, Item, Separator, Submenu, MenuProvider } from "react-contexify";
 import { observer, inject } from "mobx-react";
-import TreeModal from '../Modal/components/tree.modal'
+import CollectionCreateForm from "../Modal/components/tree.modal.form";
 import "react-contexify/dist/ReactContexify.min.css";
+// import ModalPanel from '../Modal/index.modal'
 
 const onClick = function({ event, props }, item) {
   if (!this[item.handle]) {
-      throw new Error(`undefined ${this[item.handle]}`)
+    throw new Error(`undefined ${this[item.handle]}`);
   }
   this[item.handle](item, event, props);
 };
@@ -23,19 +18,19 @@ class RightMenuController extends React.Component {
     super();
     this.state = {};
   }
+
+  saveFormRef = formRef => {
+    this.formRef = formRef;
+  };
   //
   addItemHandle = (self, event, caster) => {
     // 获取tree触发者name
-    const triggerName = caster['trigger'].name
-    console.log(triggerName)
+    const triggerName = caster["trigger"].name;
+    console.log(triggerName);
     // 显示modalPanel
-    this.props.appstate.setView('modalVisible', true)
+    this.props.appstate.setView("modalVisible", true);
     // 设置Title
-    this.props.appstate.modalPanelTitle = triggerName
-    // 给modalPanel设置要加载的组件
-    this.props.appstate.setModalComponent(
-        <TreeModal triggerName={triggerName} formData={caster['trigger']}/>
-    )
+    this.props.appstate.modalPanelTitle = triggerName;
   };
 
   duplicateHandle = (self, event) => {
