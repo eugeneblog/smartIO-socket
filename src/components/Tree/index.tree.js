@@ -56,8 +56,9 @@ class TreePanel extends TreePanelController {
       <React.Fragment>
         <Tree
           showLine
-          defaultSelectedKeys={this.props.treestate.defaultSelectedKeys}
+          defaultSelectedKeys={this.props.treestate.currentKeys}
           defaultExpandAll
+          selectedKeys={this.props.treestate.currentKeys}
         >
           {this.createNode(this.props.treestate.treeData)}
         </Tree>

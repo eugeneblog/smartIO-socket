@@ -15,7 +15,20 @@ function getFileContent(dir) {
   });
   return promise;
 }
-
+// 统一写入文件内容
+function writeFileContent(data, dir) {
+  const file = fs.createWriteStream(path.join(__dirname, dir), { encoding: "utf8", start: 0 })
+  const promise = new Promise((resolve, reject) => {
+    file.on('finish', () => {
+      resolve(true)
+    })
+    file.on('error', () => {
+      reject(false)
+    })
+  })
+  return promise
+}
 module.exports = {
-  getFileContent
+  getFileContent,
+  writeFileContent
 };

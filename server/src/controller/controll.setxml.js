@@ -1,9 +1,10 @@
 const { XmlToJson } = require('../utils/xmlConJson')
-const { getFileContent } = require('../utils/fs')
+const { getFileContent, writeFileContent } = require('../utils/fs')
 
-// 增加channel xml节点
-const addChannelXml = () => {
-    return true
+// 增加channel xml节点 data: 要写入的数据 filename: 要写入数据的配置文件
+const addChannelXml = (data = {}, filename) => {
+    const dir = `../../xmlResources/${filename}.xml`
+    return Promise.resolve(true)
 }
 
 // 修改channel XML节点

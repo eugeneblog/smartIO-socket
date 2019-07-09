@@ -31,7 +31,7 @@ export function updateChannel(data) {
     return request({
         data,
         url: '/api/config/updatechannel',
-        method: 'POST'
+        method: 'post'
     })
 }
 

@@ -1,5 +1,6 @@
 import { observable, action } from "mobx";
 import { BaseState } from "../modules/appstore";
+import cookie from 'react-cookies'
 
 class TreeState extends BaseState {
   @observable treeMenuModel = [
@@ -143,7 +144,24 @@ class TreeState extends BaseState {
       }
     }
   ];
-  @observable defaultSelectedKeys = ["0-0"];
+  @observable currentKeys = cookie.load('currentKeys') ? [cookie.load('currentKeys')] : ['0-0']
+
+  // 根据路由计算tree节点应该选中哪一个
+  @action defaultSelectedKey(currentRouter) {
+    const findNode = arr => {
+      arr.forEach(item => {
+        if (item.name === (currentRouter || 'facillty')) {
+          this.currentKeys = [item.key]
+          cookie.save('currentKeys', item.key, { path: '/' })
+        }
+        if (item.children) {
+          findNode(item.children);
+        }
+        return;
+      });
+    };
+    findNode(this.treeData);
+  }
   // 更改tree菜单数据
   @action setTreeMenu = node => {
     // 先关闭所有tree菜单

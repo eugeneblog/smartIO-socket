@@ -1,7 +1,6 @@
 import React from "react";
 import { Menu, Item, Separator, Submenu, MenuProvider } from "react-contexify";
 import { observer, inject } from "mobx-react";
-import CollectionCreateForm from "../Modal/components/tree.modal.form";
 import "react-contexify/dist/ReactContexify.min.css";
 // import ModalPanel from '../Modal/index.modal'
 

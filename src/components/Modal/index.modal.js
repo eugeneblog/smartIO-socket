@@ -121,10 +121,20 @@ class ModalPanel extends React.Component {
                 })(
                   <Radio.Group onChange={this.radioHandle}>
                     <Radio value="name">Use Name</Radio>
-                    <Input disabled={this.state.selectRadio !== "name"} />
+                    <Form.Item>
+                      {
+                        getFieldDecorator('radio-name', {
+                          initialValue: 'null'
+                        })(<Input disabled={this.state.selectRadio !== "name"} />)
+                      }
+                    </Form.Item>
                     <Radio value="format">Format</Radio>
                     <Form.Item label="Prefix">
-                      <Input disabled={this.state.selectRadio !== "format"} />
+                      {
+                        getFieldDecorator('radio-input', {
+                          initialValue: 'null'
+                        })(<Input disabled={this.state.selectRadio !== "format"} />)
+                      }
                     </Form.Item>
                     <Form.Item label="Prefix">
                       <Radio.Group

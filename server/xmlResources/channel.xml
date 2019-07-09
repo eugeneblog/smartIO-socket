@@ -1,9 +1,22 @@
 <?xml version="1.0" standalone="yes"?>
 <!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
 <ROOT>
-    <CHANNEL>
+    <CHANNEL key='1'>
         <ITEM_NAME>CHANNEL5</ITEM_NAME>
         <ITEM_NUMBER>John</ITEM_NUMBER>
+        <TYPE>BACnet Client</TYPE>
+        <PORT>47808</PORT>
+        <DESCRIPTION>this is channel</DESCRIPTION>
+        <LAST_MODIFIED>2019-7-4 15:30:33</LAST_MODIFIED>
+        <NET>
+            <NAME>eth</NAME>
+            <IP>127.0.0.1</IP>
+            <MAC>00:00:00:00:00:00</MAC>
+        </NET>
+    </CHANNEL>
+    <CHANNEL key='2'>
+        <ITEM_NAME>CHANNEL6</ITEM_NAME>
+        <ITEM_NUMBER>aa</ITEM_NUMBER>
         <TYPE>BACnet Client</TYPE>
         <PORT>47808</PORT>
         <DESCRIPTION>this is channel</DESCRIPTION>

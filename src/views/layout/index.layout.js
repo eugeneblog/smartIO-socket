@@ -1,8 +1,10 @@
 import React from "react";
 import "./index.layout.css";
+import axios from  'axios'
 import Menus from "../../components/Menu/index.menu";
 import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
+import { newChannel } from '../../api/index.api'
 import { observer, inject } from "mobx-react";
 import { Layout } from "antd";
 
@@ -19,7 +21,11 @@ class HLayout extends React.Component {
       }
 
       console.log("Received values of form: ", values);
-      form.resetFields();
+      // form.resetFields();
+      // 通道信息写入xml
+      newChannel(values).then(result => {
+        console.log(result)
+      })
       this.setState({ visible: false });
     });
   };
@@ -53,7 +59,8 @@ class HLayout extends React.Component {
   componentDidUpdate() {
     // 路由切换触发
     let pathName = this.props.location.pathname;
-    console.log("当前路由是", pathName);
+    this.props.treestate.defaultSelectedKey(pathName.split('/')[1])
+    // console.log("当前路由是", pathName);
   }
 }
 

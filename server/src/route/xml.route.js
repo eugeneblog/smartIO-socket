@@ -8,11 +8,11 @@ const xmlRouteHandle = (req, res) => {
     // 增加channel xml 节点
     if (method === 'POST' && path === '/api/config/newchannel') {
         const result = addChannelXml(req.body)
-        if (result) {
-            return new SuccessModel('修改成功')
-        } else {
-            return new ErrorModel()
-        }
+        return result.then(data => {
+            if (data) {
+                return new SuccessModel('写入成功')
+            }
+        })
     }
 
     // 修改channel xml 节点

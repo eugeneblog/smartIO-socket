@@ -30,10 +30,21 @@ const getPostData = (req) => {
 }
 // 后端httpAPI入口函数
 const serverHandle = (req, res) => {
-    // 设置返回格式
-    res.setHeader('Content-type', 'application/json')
     // 允许跨域访问
-    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000')
+    // 允许的header类型
+    res.setHeader("Access-Control-Allow-Headers","content-type")
+    res.setHeader("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS")
+    console.log(`收到来自${req.url}的请求，请求方式是${req.method}`)
+    // 处理CORS发送过来OPTIONS预检请求
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200, {"Content-type": "text/plain"})
+        res.write('200')
+        res.end()
+        return
+    }
+    // 设置返回格式
+    res.setHeader('Content-type', 'application/json;charset=utf-8')
     // 获取url
     const url = req.url
     const path = url.split('?')[0]

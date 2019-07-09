@@ -16,6 +16,17 @@ class AppState extends BaseState {
     // 当前活动的视图, 默认是Facility
     @observable actionView = 'Facility'
 
+    // channel Tab数据
+    @observable channelTabData = [
+        {
+            key: "1",
+            name: "CHANNEL1",
+            desc: 32,
+            inumber: "New York No. 1 Lake Park",
+            chaname: ["nice", "developer"]
+        }
+    ]
+
     // 更改当前活动视图
     @action setActionView = (name, value) => {
         this[name] = value
@@ -28,6 +39,7 @@ class AppState extends BaseState {
         this.modalComponent = com
     }
 }
+
 
 let appstate = new AppState()
 
