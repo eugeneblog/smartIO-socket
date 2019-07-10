@@ -1,6 +1,5 @@
 import React from "react";
 import "./index.layout.css";
-import axios from  'axios'
 import Menus from "../../components/Menu/index.menu";
 import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
@@ -19,11 +18,24 @@ class HLayout extends React.Component {
       if (err) {
         return;
       }
-
       console.log("Received values of form: ", values);
+      // 将要插入的数据以json形式传送给后端
+      let formData = {
+        "itemName": values.select,
+        "itemType": values.type || "localhost",
+        "itemNumber": "xxx",
+        "port": 1234,
+        "desc": "",
+        "time": Date.now(),
+        "net": {
+          "name": "eth",
+          "ip": "127.0.0.1",
+          "mac": "00:00:00:00:00:00"
+        }
+      }
       // form.resetFields();
       // 通道信息写入xml
-      newChannel(values).then(result => {
+      newChannel(formData).then(result => {
         console.log(result)
       })
       this.setState({ visible: false });

@@ -1,0 +1,8 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
+<ROOT>
+    <NET>
+        <IP>124.1.1.1</IP>
+        <PORT>1234</PORT>
+    </NET>
+</ROOT>

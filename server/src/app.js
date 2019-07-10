@@ -4,13 +4,13 @@ const osRouteHandle = require('./route/os')
 const xmlRouteHandle = require('./route/xml.route')
 // 解析post数据
 const getPostData = (req) => {
-    const promise = new Promise((resolve) => {
+    const promise = new Promise((resolve,reject) => {
         if(req.method !== 'POST') {
             resolve({})
             return
         }
-        if(req.headers['content-type'] !== 'application/json') {
-            resolve({})
+        if(req.headers['content-type'] !== 'application/json;charset=UTF-8') {
+            reject(new Error('content-type not application/json;charset=UTF-8'))
             return
         }
         let postData = ''
@@ -35,7 +35,6 @@ const serverHandle = (req, res) => {
     // 允许的header类型
     res.setHeader("Access-Control-Allow-Headers","content-type")
     res.setHeader("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS")
-    console.log(`收到来自${req.url}的请求，请求方式是${req.method}`)
     // 处理CORS发送过来OPTIONS预检请求
     if (req.method === 'OPTIONS') {
         res.writeHead(200, {"Content-type": "text/plain"})
@@ -55,7 +54,7 @@ const serverHandle = (req, res) => {
 
     getPostData(req).then((postData) => {
         req.body = postData
-
+        console.log(`收到来自${req.url}的请求，请求方式是${req.method}, 请求的数据:`, postData)
         // 处理udp路由
         const udpData = udpRouteHandle(req, res)
         if (udpData) {
@@ -89,6 +88,8 @@ const serverHandle = (req, res) => {
         res.writeHead(404, {"Content-type": "text/plain"})
         res.write('404 Not Found')
         res.end()
+    }).catch(error => {
+        console.log(error)
     })
 }
 
