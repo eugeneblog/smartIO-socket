@@ -45,8 +45,9 @@ export function delChannel(id) {
 }
 
 // 增加通道信息
-export function newChannel(data) {
+export function newChannel(data, filename) {
     return request({
+        params: filename,
         data,
         url: '/api/config/newchannel',
         method: 'POST'

@@ -12,10 +12,12 @@ const xmlRouteHandle = (req, res) => {
 
   // 增加channel xml 节点
   if (method === "POST" && path === "/api/config/newchannel") {
-    const result = addChannelXml(req.body);
+    const { filename } = req.query
+    const { xmlData } = req.body
+    const result = addChannelXml(xmlData, filename);
     return result.then(data => {
       if (data) {
-        return new SuccessModel("写入成功");
+        return new SuccessModel(data, '写入成功');
       } else {
         return new ErrorModel("写入失败");
       }

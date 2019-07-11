@@ -4,7 +4,7 @@ import './App.css'
 
 const App: React.FC = () => {
   return (
-    <MainRoute/>
+    <MainRoute key="main"/>
   )
 }
 

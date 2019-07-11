@@ -15,18 +15,32 @@ function getFileContent(dir) {
   });
   return promise;
 }
-// 统一写入文件内容
+// 统一写入XML文件内容, 写入方式：删除末尾根节点然后拼接
 function writeFileContent(data, dir) {
-  const file = fs.createWriteStream(path.join(__dirname, dir), { encoding: "utf8", start: 0 })
-  const promise = new Promise((resolve, reject) => {
-    file.on('finish', () => {
-      resolve(true)
+  let opaction = {
+    flags: 'a',
+    encoding: 'utf8',
+    autoClose: true,
+    start: 0
+  }
+  const writeStream = fs.createWriteStream(path.join(__dirname, dir), opaction)
+  const result = getFileContent(dir).then(redayData => {
+    return new Promise((resolve, reject) => {
+      // 替换内容
+      let xml = redayData.replace(/<\/ROOT>/gm, '').trim()
+      writeStream.write(`${xml}${data}\n</ROOT>`)
+      writeStream.end()
+      writeStream.on('error', err => {
+        reject(err)
+      })
+      writeStream.on('finish', () => {
+        resolve({xmlStr: `${xml}${data}\n</ROOT>`})
+      })
     })
-    file.on('error', () => {
-      reject(false)
-    })
+  }).catch(error => {
+    console.log(error)
   })
-  return promise
+  return result
 }
 module.exports = {
   getFileContent,

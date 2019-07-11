@@ -2,7 +2,9 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import { Table } from "antd";
+import { observer } from 'mobx-react'
 
+@observer
 class TableController extends React.Component {
   constructor() {
     super();
