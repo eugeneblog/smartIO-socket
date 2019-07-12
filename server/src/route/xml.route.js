@@ -36,13 +36,15 @@ const xmlRouteHandle = (req, res) => {
 
   // 删除channel xml 节点
   if (method === "GET" && path === "/api/config/delchannel") {
-    const id = req.query["id"];
-    const result = delchannelXml(id);
-    if (result) {
-      return new SuccessModel("删除成功");
-    } else {
-      return new ErrorModel("删除失败");
-    }
+    const { id, filename } = req.query;
+    const result = delchannelXml(id, filename);
+    return result.then(result => {
+      if (result) {
+        return new SuccessModel('删除成功')
+      } else {
+        return new ErrorModel('删除失败')
+      }
+    })
   }
 
   // 获取channel xml 节点

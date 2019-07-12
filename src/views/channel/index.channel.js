@@ -2,9 +2,11 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import PropertyPanel from "../../components/Property/index.property";
-import { getChannel } from "../../api/index.api";
+import { getChannel, delChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Table } from 'antd'
+import { Table, message, Modal } from 'antd'
+
+const { confirm } = Modal;
 
 let propertyData = [
   {
@@ -92,7 +94,24 @@ class ChannelPanel extends React.Component {
 
   // 删除通道
   deleteRow = (record) => {
-    this.props.appstate.channelTabData.remove(record)
+    confirm({
+      title: `Are you sure delete this ${record.name}`,
+      content: 'Some descriptions',
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: () => {
+        delChannel({id: Number(record.key), filename: 'channel'}).then(delData => {
+          let result = delData['data']
+          if (result.errno === 0) {
+            this.props.appstate.channelTabData.remove(record)
+            message.success(`Delete ${record.name} successed`)
+          } else {
+            message.error(`Delete ${record.name} failed`)
+          }
+        })
+      }
+    })
   }
 
   rowSelectionConfig = {

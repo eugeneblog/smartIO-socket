@@ -1,56 +1,67 @@
-<?xml version="1.0" standalone="yes"?>
-<!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
 <ROOT>
-    <CHANNEL key='1'>
-        <ITEM_NAME>CHANNEL5</ITEM_NAME>
-        <ITEM_NUMBER>John</ITEM_NUMBER>
-        <TYPE>BACnet Client</TYPE>
-        <PORT>47808</PORT>
-        <DESCRIPTION>this is channel</DESCRIPTION>
-        <LAST_MODIFIED>2019-7-4 15:30:33</LAST_MODIFIED>
-        <NET>
-            <NAME>eth</NAME>
-            <IP>127.0.0.1</IP>
-            <MAC>00:00:00:00:00:00</MAC>
-        </NET>
-    </CHANNEL>
-    <CHANNEL key='2'>
-        <ITEM_NAME>CHANNEL6</ITEM_NAME>
-        <ITEM_NUMBER>aa</ITEM_NUMBER>
-        <TYPE>BACnet Client</TYPE>
-        <PORT>47808</PORT>
-        <DESCRIPTION>this is channel</DESCRIPTION>
-        <LAST_MODIFIED>2019-7-4 15:30:33</LAST_MODIFIED>
-        <NET>
-            <NAME>eth</NAME>
-            <IP>127.0.0.1</IP>
-            <MAC>00:00:00:00:00:00</MAC>
-        </NET>
-    </CHANNEL>
-    <CHANNEL key='3'>
-      <ITEM_NAME>facillty</ITEM_NAME>
-      <ITEM_NUMBER>xxx</ITEM_NUMBER>
-      <TYPE>localhost</TYPE>
-      <PORT>1234</PORT>
-      <DESCRIPTION>null</DESCRIPTION>
-      <LAST_MODIFIED>1562845009345</LAST_MODIFIED>
-      <NET>
-          <NAME>eth</NAME>
-          <IP>127.0.0.1</IP>
-          <MAC>00:00:00:00:00:00</MAC>
-      </NET>
-    </CHANNEL>
-    <CHANNEL key='4'>
-      <ITEM_NAME>alam</ITEM_NAME>
-      <ITEM_NUMBER>xxx</ITEM_NUMBER>
-      <TYPE>localhost</TYPE>
-      <PORT>1234</PORT>
-      <DESCRIPTION>null</DESCRIPTION>
-      <LAST_MODIFIED>1562845021801</LAST_MODIFIED>
-      <NET>
-          <NAME>eth</NAME>
-          <IP>127.0.0.1</IP>
-          <MAC>00:00:00:00:00:00</MAC>
-      </NET>
-    </CHANNEL>
+  <CHANNEL key="2">
+    <ITEM_NAME>CHANNEL6</ITEM_NAME>
+    <ITEM_NUMBER>aa</ITEM_NUMBER>
+    <TYPE>BACnet Client</TYPE>
+    <PORT>47808</PORT>
+    <DESCRIPTION>this is channel</DESCRIPTION>
+    <LAST_MODIFIED>2019-7-4 15:30:33</LAST_MODIFIED>
+    <NET>
+      <NAME>eth</NAME>
+      <IP>127.0.0.1</IP>
+      <MAC>00:00:00:00:00:00</MAC>
+    </NET>
+  </CHANNEL>
+  <CHANNEL key="3">
+    <ITEM_NAME>facillty</ITEM_NAME>
+    <ITEM_NUMBER>xxx</ITEM_NUMBER>
+    <TYPE>localhost</TYPE>
+    <PORT>1234</PORT>
+    <DESCRIPTION>null</DESCRIPTION>
+    <LAST_MODIFIED>1562845009345</LAST_MODIFIED>
+    <NET>
+      <NAME>eth</NAME>
+      <IP>127.0.0.1</IP>
+      <MAC>00:00:00:00:00:00</MAC>
+    </NET>
+  </CHANNEL>
+  <CHANNEL key="4">
+    <ITEM_NAME>alam</ITEM_NAME>
+    <ITEM_NUMBER>xxx</ITEM_NUMBER>
+    <TYPE>localhost</TYPE>
+    <PORT>1234</PORT>
+    <DESCRIPTION>null</DESCRIPTION>
+    <LAST_MODIFIED>1562845021801</LAST_MODIFIED>
+    <NET>
+      <NAME>eth</NAME>
+      <IP>127.0.0.1</IP>
+      <MAC>00:00:00:00:00:00</MAC>
+    </NET>
+  </CHANNEL>
+  <CHANNEL key="5">
+    <ITEM_NAME>system</ITEM_NAME>
+    <ITEM_NUMBER>xxx</ITEM_NUMBER>
+    <TYPE>localhost</TYPE>
+    <PORT>1234</PORT>
+    <DESCRIPTION>null</DESCRIPTION>
+    <LAST_MODIFIED>1562916439533</LAST_MODIFIED>
+    <NET>
+      <NAME>eth</NAME>
+      <IP>127.0.0.1</IP>
+      <MAC>00:00:00:00:00:00</MAC>
+    </NET>
+  </CHANNEL>
+  <CHANNEL key='6'>
+    <ITEM_NAME>system</ITEM_NAME>
+    <ITEM_NUMBER>xxx</ITEM_NUMBER>
+    <TYPE>localhost</TYPE>
+    <PORT>1234</PORT>
+    <DESCRIPTION>null</DESCRIPTION>
+    <LAST_MODIFIED>1562916452918</LAST_MODIFIED>
+    <NET>
+        <NAME>eth</NAME>
+        <IP>127.0.0.1</IP>
+        <MAC>00:00:00:00:00:00</MAC>
+    </NET>
+  </CHANNEL>
 </ROOT>

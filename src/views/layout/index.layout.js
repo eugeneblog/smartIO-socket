@@ -19,21 +19,22 @@ class HLayout extends React.Component {
         return;
       }
       console.log("Received values of form: ", values);
-      let key = this.props.appstate.channelTabData.length + 1
+      let len = this.props.appstate.channelTabData.length
+      let key = Number(this.props.appstate.channelTabData[len - 1].key) + 1
       let xmlStr = `
-    <CHANNEL key='${key}'>
-      <ITEM_NAME>${values.select}</ITEM_NAME>
-      <ITEM_NUMBER>xxx</ITEM_NUMBER>
-      <TYPE>${values.type || "localhost"}</TYPE>
-      <PORT>1234</PORT>
-      <DESCRIPTION>null</DESCRIPTION>
-      <LAST_MODIFIED>${Date.now()}</LAST_MODIFIED>
-      <NET>
-          <NAME>eth</NAME>
-          <IP>127.0.0.1</IP>
-          <MAC>00:00:00:00:00:00</MAC>
-      </NET>
-    </CHANNEL>`;
+  <CHANNEL key='${key}'>
+    <ITEM_NAME>${values.select}</ITEM_NAME>
+    <ITEM_NUMBER>xxx</ITEM_NUMBER>
+    <TYPE>${values.type || "localhost"}</TYPE>
+    <PORT>1234</PORT>
+    <DESCRIPTION>null</DESCRIPTION>
+    <LAST_MODIFIED>${Date.now()}</LAST_MODIFIED>
+    <NET>
+        <NAME>eth</NAME>
+        <IP>127.0.0.1</IP>
+        <MAC>00:00:00:00:00:00</MAC>
+    </NET>
+  </CHANNEL>`;
       // 将要插入的数据以json形式传送给后端
       let formData = {
         xmlData: xmlStr

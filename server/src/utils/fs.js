@@ -15,26 +15,26 @@ function getFileContent(dir) {
   });
   return promise;
 }
-// 统一写入XML文件内容, 写入方式：删除末尾根节点然后拼接
-function writeFileContent(data, dir) {
-  let opaction = {
-    flags: 'a',
-    encoding: 'utf8',
-    autoClose: true,
-    start: 0
-  }
-  const writeStream = fs.createWriteStream(path.join(__dirname, dir), opaction)
+
+function writeFileContent(data, dir, opt) {
+  const writeStream = fs.createWriteStream(path.join(__dirname, dir), opt)
   const result = getFileContent(dir).then(redayData => {
     return new Promise((resolve, reject) => {
-      // 替换内容
-      let xml = redayData.replace(/<\/ROOT>/gm, '').trim()
-      writeStream.write(`${xml}${data}\n</ROOT>`)
+      // 判断是追加还是重写
+      if (opt.flags === 'a') {
+        // 统一写入XML文件内容, 写入方式：删除末尾根节点然后拼接
+        let xml = redayData.replace(/<\/ROOT>/gm, '').trim()
+        writeStream.write(`${xml}${data}\n</ROOT>`)
+      } else {
+        // 否则覆盖写入
+        writeStream.write(data)
+      }
       writeStream.end()
       writeStream.on('error', err => {
         reject(err)
       })
       writeStream.on('finish', () => {
-        resolve({xmlStr: `${xml}${data}\n</ROOT>`})
+        resolve({xmlStr: data})
       })
     })
   }).catch(error => {

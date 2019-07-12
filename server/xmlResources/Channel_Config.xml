@@ -1,0 +1,9 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
+<ROOT>
+    <NET>
+        <NOTE name="name">Channel_Config</NOTE>
+        <NOTE name="ip">124.1.1.1</NOTE>
+        <NOTE name="port">1234</NOTE>
+    </NET>
+</ROOT>

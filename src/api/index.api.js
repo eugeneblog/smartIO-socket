@@ -40,7 +40,7 @@ export function delChannel(id) {
     return request({
         params: id,
         url: '/api/config/delchannel',
-        method: 'POST'
+        method: 'GET'
     })
 }
 
