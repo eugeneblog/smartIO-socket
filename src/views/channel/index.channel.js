@@ -4,7 +4,7 @@ import React from "react";
 import PropertyPanel from "../../components/Property/index.property";
 import { getChannel, delChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Table, message, Modal } from 'antd'
+import { Table, message, Modal } from "antd";
 
 const { confirm } = Modal;
 
@@ -82,37 +82,41 @@ class ChannelPanel extends React.Component {
       key: "chaname"
     },
     {
-      title: 'Action',
-      key: 'action',
+      title: "Action",
+      key: "action",
       render: (text, record) => (
         <span>
-          <a onClick={() => this.deleteRow(record)} href="javascript:;">Delete</a>
+          <a onClick={() => this.deleteRow(record)} href="javascript:;">
+            Delete
+          </a>
         </span>
-      ),
-    },
+      )
+    }
   ];
 
   // 删除通道
-  deleteRow = (record) => {
+  deleteRow = record => {
     confirm({
       title: `Are you sure delete this ${record.name}`,
-      content: 'Some descriptions',
-      okText: 'Yes',
-      okType: 'danger',
-      cancelText: 'No',
+      content: "Some descriptions",
+      okText: "Yes",
+      okType: "danger",
+      cancelText: "No",
       onOk: () => {
-        delChannel({id: Number(record.key), filename: 'channel'}).then(delData => {
-          let result = delData['data']
-          if (result.errno === 0) {
-            this.props.appstate.channelTabData.remove(record)
-            message.success(`Delete ${record.name} successed`)
-          } else {
-            message.error(`Delete ${record.name} failed`)
+        delChannel({ id: Number(record.key), filename: "channel" }).then(
+          delData => {
+            let result = delData["data"];
+            if (result.errno === 0) {
+              this.props.appstate.channelTabData.remove(record);
+              message.success(`Delete ${record.name} successed`);
+            } else {
+              message.error(`Delete ${record.name} failed`);
+            }
           }
-        })
+        );
       }
-    })
-  }
+    });
+  };
 
   rowSelectionConfig = {
     selections: {
@@ -120,17 +124,49 @@ class ChannelPanel extends React.Component {
       text: "aa"
     },
     onChange: (selectedRowKeys, selectedRows) => {
-      console.log(selectedRowKeys)
-      this.setState({
-        isPropertyShow: true
-      });
+      let config = [];
+      let NET_CONFIG = selectedRows[0].netConfig;
+      let index = 0;
+      // 动态生成属性面板数据
+      for (const key in NET_CONFIG) {
+        if (NET_CONFIG.hasOwnProperty(key)) {
+          const element = NET_CONFIG[key];
+          config.push({
+            title: key.toLocaleLowerCase(),
+            key: (index += 1),
+            main: Array.from(
+              { length: Object.keys(element).length },
+              (v, id) => {
+                return {
+                  id,
+                  label: Object.keys(element)[id],
+                  value: element[Object.keys(element)[id]]._text,
+                  type: "input"
+                };
+              }
+            )
+          });
+        }
+      }
+      // let propertyData = config.map(item => item)
+      this.setState(
+        {
+          isPropertyShow: false,
+          propertyData: config
+        },
+        () => {
+          this.setState({
+            isPropertyShow: true
+          });
+        }
+      );
     },
     getCheckboxProps: function(record) {
       //选择框默认属性配置
       // console.log('props', record)
     },
     type: "radio"
-  }
+  };
 
   render() {
     return (
@@ -165,15 +201,14 @@ class ChannelPanel extends React.Component {
         if (Root.CHANNEL.length) {
           return Root.CHANNEL;
         } else {
-          this.props.appstate.channelTabData.set(0, 
-            {
-              key: "1",
-              name: Root.CHANNEL.ITEM_NAME._text,
-              desc: 1231,
-              inumber: "New York No. 1 Lake Park",
-              chaname: ["nice", "developer"]
-            }
-          );
+          this.props.appstate.channelTabData.set(0, {
+            key: "1",
+            name: Root.CHANNEL.ITEM_NAME._text,
+            desc: 1231,
+            inumber: "New York No. 1 Lake Park",
+            chaname: ["nice", "developer"],
+            netConfig: Root.CHANNEL.NET_CONFIG
+          });
         }
       })
       .then(channel => {
@@ -184,10 +219,11 @@ class ChannelPanel extends React.Component {
               name: item.ITEM_NAME._text,
               desc: 1231,
               inumber: item.ITEM_NUMBER._text,
-              chaname: ["nice", "developer"]
+              chaname: ["nice", "developer"],
+              netConfig: item.NET_CONFIG
             };
           });
-          this.props.appstate.channelTabData = tableData
+          this.props.appstate.channelTabData = tableData;
         }
       })
       .catch(error => {

@@ -12,6 +12,7 @@ const { Header, Content, Sider } = Layout;
 @inject(allStore => allStore.appstate)
 @observer
 class HLayout extends React.Component {
+  // 创建通道
   handleCreate = () => {
     const { form } = this.formRef.props;
     form.validateFields((err, values) => {
@@ -64,9 +65,11 @@ class HLayout extends React.Component {
       });
     });
   };
+
   saveFormRef = formRef => {
     this.formRef = formRef;
   };
+
   render() {
     return [
       <Layout key="layout">
@@ -91,6 +94,12 @@ class HLayout extends React.Component {
       />
     ];
   }
+
+  componentDidMount() {
+    // 初始化一些参数： 网络配置。。。
+    
+  }
+
   componentDidUpdate() {
     // 路由切换触发
     let pathName = this.props.location.pathname;
