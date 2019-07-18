@@ -12,6 +12,7 @@ const addChannelXml = (data = {}, filename) => {
     start: 0
   }
   const dir = `../../xmlResources/${filename}.xml`;
+  console.log(data)
   return writeFileContent(data, dir, opaction).then(result => {
     return {
       xmlJson: XmlToJson(result.xmlStr)
@@ -37,14 +38,18 @@ const delchannelXml = (id, filename) => {
         return {key}
       },
     })
-    // 删除不需要的节点
-    xmlJson.ROOT.CHANNEL.splice(id - 1, 1)
+    // 过滤被删除的节点
+    xmlJson.ROOT.CHANNEL =  xmlJson.ROOT.CHANNEL.filter(ele => {
+      return ele['@_key'].key !== id
+    })
     return xmlJson
-  }).then(xmlJson => {
+  })
+  .then(xmlJson => {
     // json转xml
     const xml = new fxp.j2xParser({
       format: true,
       attrNodeName: "@_key", //default is false
+      tagValueProcessor: a => a
     }).parse(xmlJson)
     return xml
   }).then(xmlData => {

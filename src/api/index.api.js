@@ -9,11 +9,12 @@ export function sendUdpMes(mes) {
     })
 }
 
-// 获取网卡信息
-export function getNetConfig() {
+// 获取Net_Config
+export function getNetConfig(params) {
     return request({
+        params,
         url: '/api/net/getnet',
-        method: 'POST'
+        method: 'GET'
     })
 }
 

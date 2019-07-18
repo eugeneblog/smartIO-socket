@@ -8,45 +8,6 @@ import { Table, message, Modal } from "antd";
 
 const { confirm } = Modal;
 
-let propertyData = [
-  {
-    title: "Main",
-    key: "1",
-    main: [
-      {
-        id: "1",
-        label: "Name",
-        type: "input",
-        value: "xxx"
-      },
-      {
-        id: "2",
-        label: "Descripiton",
-        type: "input",
-        value: "xxx"
-      },
-      {
-        id: "3",
-        label: "Instance Number",
-        type: "input",
-        value: "xxx"
-      }
-    ]
-  },
-  {
-    title: "Display",
-    key: "2",
-    main: [
-      {
-        id: "1",
-        label: "Associated Display",
-        type: "input",
-        value: "xxx"
-      }
-    ]
-  }
-];
-
 // 利用组合
 @inject(allStore => allStore.appstate)
 @observer
@@ -54,7 +15,7 @@ class ChannelPanel extends React.Component {
   constructor() {
     super();
     this.state = {
-      propertyData: propertyData,
+      propertyData: [],
       isPropertyShow: false
     };
   }
@@ -126,6 +87,7 @@ class ChannelPanel extends React.Component {
     onChange: (selectedRowKeys, selectedRows) => {
       let config = [];
       let NET_CONFIG = selectedRows[0].netConfig;
+      console.log(selectedRows[0])
       let index = 0;
       // 动态生成属性面板数据
       for (const key in NET_CONFIG) {

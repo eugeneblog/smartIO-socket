@@ -9,9 +9,11 @@ import {
   Select,
   Radio,
   InputNumber,
-  Divider
+  Divider,
+  message
 } from "antd";
 import { observer, inject } from "mobx-react";
+import { getNetConfig } from '../../api/index.api'
 const { Option } = Select;
 
 @inject(allStore => allStore.appstate)
@@ -38,6 +40,31 @@ class ModalPanel extends React.Component {
 
   handleCancel = e => {
     this.props.appstate.setView("modalVisible", false);
+  };
+  // 创建Items 子节点
+  createItemNode = list => {
+    // 如果addItem启用了就返回该节点，否则返回null , item.children是递归退出条件,否则一直递归调用
+    return list.map(item => {
+      if (!item.children) {
+        return item.menu.addItem ? (
+          <Option key={item.key} value={item.name}>
+            {item.title}
+          </Option>
+        ) : null;
+      }
+      return this.createItemNode(item.children);
+    });
+  };
+
+  // 加载net_config
+  createConfigType = node => {
+    return node.map(item => {
+      return (
+        <Option key={item.key} value={item.name}>
+          {item.title}
+        </Option>
+      );
+    });
   };
 
   render() {
@@ -82,13 +109,7 @@ class ModalPanel extends React.Component {
                   initialValue: this.props.triggerName
                 })(
                   <Select placeholder="Please select item">
-                    {this.props.treestate.treeData.map(item => {
-                      return (
-                        <Option key={item.key} value={item.name}>
-                          {item.title}
-                        </Option>
-                      );
-                    })}
+                    {this.createItemNode(this.props.treestate.treeData)}
                   </Select>
                 )}
               </Form.Item>
@@ -122,19 +143,19 @@ class ModalPanel extends React.Component {
                   <Radio.Group onChange={this.radioHandle}>
                     <Radio value="name">Use Name</Radio>
                     <Form.Item>
-                      {
-                        getFieldDecorator('radio-name', {
-                          initialValue: 'null'
-                        })(<Input disabled={this.state.selectRadio !== "name"} />)
-                      }
+                      {getFieldDecorator("radio-name", {
+                        initialValue: "null"
+                      })(
+                        <Input disabled={this.state.selectRadio !== "name"} />
+                      )}
                     </Form.Item>
                     <Radio value="format">Format</Radio>
                     <Form.Item label="Prefix">
-                      {
-                        getFieldDecorator('radio-input', {
-                          initialValue: 'null'
-                        })(<Input disabled={this.state.selectRadio !== "format"} />)
-                      }
+                      {getFieldDecorator("radio-input", {
+                        initialValue: "null"
+                      })(
+                        <Input disabled={this.state.selectRadio !== "format"} />
+                      )}
                     </Form.Item>
                     <Form.Item label="Prefix">
                       <Radio.Group
@@ -163,6 +184,22 @@ class ModalPanel extends React.Component {
       </Modal>
     );
   }
+
+  componentDidMount() {
+    // 获取网络系统的网络配置
+    getNetConfig().then(result => {
+      if(result['data'].errno === 0) {
+        let data = result['data'].data
+        this.props.appstate.netConfig = data.net
+        console.log(data)
+        return
+      }
+      console.error('获取网络配置失败')
+    }).catch(err => {
+      message.error(err)
+    })
+  }
+
 }
 
 const CollectionCreateForm = Form.create({ name: "form_in_modal" })(ModalPanel);

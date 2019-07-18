@@ -67,9 +67,11 @@ const serverHandle = (req, res) => {
         // 处理os路由
         const osData = osRouteHandle(req, res)
         if (osData) {
-            res.end(
-                JSON.stringify(osData)
-            )
+            osData.then(osResult => {
+                res.end(
+                    JSON.stringify(osResult)
+                )
+            })
             return
         }
 

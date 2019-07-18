@@ -12,8 +12,6 @@
         <IP>1234</IP>
         <MAC>00:00:00:00:00:00</MAC>
       </MAIN>
-      <DISPLAY>
-      </DISPLAY>
     </NET_CONFIG>
   </CHANNEL>
   <CHANNEL key="3">
@@ -29,8 +27,22 @@
         <IP>127.0.0.1</IP>
         <MAC>00:00:00:00:00:00</MAC>
       </MAIN>
-      <DISPLAY>
-      </DISPLAY>
+      <DISPLAY></DISPLAY>
+    </NET_CONFIG>
+  </CHANNEL>
+  <CHANNEL key='4'>
+    <ITEM_NAME>printer</ITEM_NAME>
+    <ITEM_NUMBER>xxx</ITEM_NUMBER>
+    <TYPE>localhost</TYPE>
+    <PORT>1234</PORT>
+    <DESCRIPTION>null</DESCRIPTION>
+    <LAST_MODIFIED>1563419120645</LAST_MODIFIED>
+    <NET_CONFIG>
+      <MAIN>
+        <NAME>eth</NAME>
+        <IP>1234</IP>
+        <MAC>00:00:00:00:00:00</MAC>
+      </MAIN>
     </NET_CONFIG>
   </CHANNEL>
 </ROOT>

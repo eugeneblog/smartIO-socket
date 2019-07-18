@@ -5,7 +5,7 @@ import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
 import { newChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Layout, notification, Icon } from "antd";
+import { Layout, notification, Icon, message } from "antd";
 
 const { Header, Content, Sider } = Layout;
 
@@ -30,11 +30,13 @@ class HLayout extends React.Component {
     <PORT>1234</PORT>
     <DESCRIPTION>null</DESCRIPTION>
     <LAST_MODIFIED>${Date.now()}</LAST_MODIFIED>
-    <NET>
+    <NET_CONFIG>
+      <MAIN>
         <NAME>eth</NAME>
-        <IP>127.0.0.1</IP>
+        <IP>1234</IP>
         <MAC>00:00:00:00:00:00</MAC>
-    </NET>
+      </MAIN>
+    </NET_CONFIG>
   </CHANNEL>`;
       // 将要插入的数据以json形式传送给后端
       let formData = {
@@ -52,15 +54,20 @@ class HLayout extends React.Component {
             icon: <Icon type="smile" style={{ color: "#108ee9" }} />
           });
           // 更新数据
-          let newXmlJson = JSON.parse(data['data'].xmlJson)
-          console.log(newXmlJson)
           this.props.appstate.channelTabData.push({
               key: key,
               name: values.select,
               desc: 1231,
               inumber: "New York No. 1 Lake Park",
-              chaname: ["nice", "developer"]
+              chaname: ["nice", "developer"],
+              netConfig: {
+                MAIN: {
+                  IP: 'xxx'
+                }
+              }
           })
+        } else {
+          message.error('Increase the failure')
         }
       });
     });
