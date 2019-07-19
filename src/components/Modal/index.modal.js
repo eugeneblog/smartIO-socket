@@ -58,10 +58,10 @@ class ModalPanel extends React.Component {
 
   // 加载net_config
   createConfigType = node => {
-    return node.map(item => {
+    return node.map((item,index) => {
       return (
-        <Option key={item.key} value={item.name}>
-          {item.title}
+        <Option key={index} value={item.netConfig}>
+          {item.netName}
         </Option>
       );
     });
@@ -69,9 +69,11 @@ class ModalPanel extends React.Component {
 
   render() {
     const { modalVisible, modalLoading } = this.props.appstate.showView;
+    const { modalPaneltriggerName, channelTabData } = this.props.appstate
+    const channelTabDataLen = channelTabData.length
     // 给字符首字母转大写
-    const modalTitle = this.props.appstate.modalPanelTitle
-      ? this.props.appstate.modalPanelTitle.replace(/(^\S)/, math =>
+    const modalTitle = modalPaneltriggerName
+      ? modalPaneltriggerName.replace(/(^\S)/, math =>
           math.toLocaleUpperCase()
         )
       : "Not Set Title";
@@ -102,32 +104,28 @@ class ModalPanel extends React.Component {
           <Row gutter={18}>
             <Col span={10}>
               <Form.Item label="Add Items" hasFeedback>
-                {getFieldDecorator("select", {
+                {getFieldDecorator("selectItem", {
                   rules: [
                     { required: true, message: "Please select your country!" }
                   ],
-                  initialValue: this.props.triggerName
+                  initialValue: modalPaneltriggerName
                 })(
                   <Select placeholder="Please select item">
                     {this.createItemNode(this.props.treestate.treeData)}
                   </Select>
                 )}
               </Form.Item>
-              <Form.Item label="Type" hasFeedback>
-                {getFieldDecorator("type", {
+              <Form.Item label="Net Type" hasFeedback>
+                {getFieldDecorator("selectConfig", {
                   rules: [
                     { required: false, message: "Please select your country!" }
                   ],
                   initialValue: this.props.triggerName
                 })(
                   <Select placeholder="Please select item">
-                    {this.props.treestate.treeData.map(item => {
-                      return (
-                        <Option key={item.key} value={item.name}>
-                          {item.title}
-                        </Option>
-                      );
-                    })}
+                    {
+                      this.createConfigType(this.props.appstate.netConfig)
+                    }
                   </Select>
                 )}
               </Form.Item>
@@ -144,7 +142,7 @@ class ModalPanel extends React.Component {
                     <Radio value="name">Use Name</Radio>
                     <Form.Item>
                       {getFieldDecorator("radio-name", {
-                        initialValue: "null"
+                        initialValue: `${modalTitle || 'CHANNEL DEFAULTNAME'}${channelTabDataLen + 1}`
                       })(
                         <Input disabled={this.state.selectRadio !== "name"} />
                       )}
@@ -190,11 +188,10 @@ class ModalPanel extends React.Component {
     getNetConfig().then(result => {
       if(result['data'].errno === 0) {
         let data = result['data'].data
-        this.props.appstate.netConfig = data.net
-        console.log(data)
+        this.props.appstate.netConfig = data.sysNetConfig
+        console.log("%c获取Net_Config配置... done", "color:green;font-weight:bold;");
         return
       }
-      console.error('获取网络配置失败')
     }).catch(err => {
       message.error(err)
     })

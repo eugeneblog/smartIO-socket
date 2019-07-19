@@ -68,7 +68,11 @@
     "dev:server": "cross-env NODE_ENV=dev nodemon ./server/www.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
-    "estart": "electron ."
+    "estart": "electron .",
+    "package": "rm -rf ./dist && npm-run-all package:*",
+    "package:mac": "electron-packager . 'SmartIO-graph' --platform=darwin --arch=x64 --out=./dist --asar --app-version=2.0.1 --ignore=node_modules --ignore=src",
+    "package:win": "electron-packager . 'SmartIO-graph' --platform=win32 --arch=x64 --out=./dist --asar --app-version=2.0.1 --ignore=node_modules --ignore=src",
+    "package:linux": "electron-packager . 'SmartIO-graph' --platform=linux --arch=x64 --out=./dist --app-version=2.0.1 --ignore=node_modules --ignore=src"
   },
   "homepage": ".",
   "eslintConfig": {
@@ -150,12 +154,14 @@
     "babel-plugin-transform-decorators-legacy": "^1.3.5",
     "cross-env": "^5.2.0",
     "electron": "^5.0.4",
+    "electron-packager": "^14.0.2",
     "fast-xml-parser": "^3.12.16",
     "getmac": "^1.4.6",
     "mobx": "^5.10.1",
     "mobx-react": "^6.1.1",
     "mobx-react-devtools": "^6.1.1",
     "nodemon": "^1.19.1",
+    "npm-run-all": "^4.1.5",
     "react-cookies": "^0.1.1",
     "xml-js": "^1.6.11",
     "xml2js": "^0.4.19"

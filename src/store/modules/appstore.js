@@ -11,7 +11,7 @@ class AppState extends BaseState {
         modalVisible: false,
         modalLoading: false
     }
-    @observable modalPanelTitle
+    @observable modalPaneltriggerName
     @observable modalComponent = <div>404 Not Found</div>
     // 当前活动的视图, 默认是Facility
     @observable actionView = 'Facility'

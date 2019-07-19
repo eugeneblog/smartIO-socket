@@ -24,7 +24,7 @@ class HLayout extends React.Component {
       let key = Number(this.props.appstate.channelTabData[len - 1].key) + 1
       let xmlStr = `
   <CHANNEL key='${key}'>
-    <ITEM_NAME>${values.select}</ITEM_NAME>
+    <ITEM_NAME>${values['radio-name']}</ITEM_NAME>
     <ITEM_NUMBER>xxx</ITEM_NUMBER>
     <TYPE>${values.type || "localhost"}</TYPE>
     <PORT>1234</PORT>
@@ -56,8 +56,7 @@ class HLayout extends React.Component {
           // 更新数据
           this.props.appstate.channelTabData.push({
               key: key,
-              name: values.select,
-              desc: 1231,
+              name: values['radio-name'],
               inumber: "New York No. 1 Lake Park",
               chaname: ["nice", "developer"],
               netConfig: {

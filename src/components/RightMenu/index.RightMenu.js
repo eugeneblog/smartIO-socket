@@ -29,7 +29,7 @@ class RightMenuController extends React.Component {
     // 显示modalPanel
     this.props.appstate.setView("modalVisible", true);
     // 设置Title
-    this.props.appstate.modalPanelTitle = triggerName;
+    this.props.appstate.modalPaneltriggerName = triggerName;
   };
 
   duplicateHandle = (self, event) => {

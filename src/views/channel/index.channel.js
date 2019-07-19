@@ -87,7 +87,7 @@ class ChannelPanel extends React.Component {
     onChange: (selectedRowKeys, selectedRows) => {
       let config = [];
       let NET_CONFIG = selectedRows[0].netConfig;
-      console.log(selectedRows[0])
+      // console.log(selectedRows[0])
       let index = 0;
       // 动态生成属性面板数据
       for (const key in NET_CONFIG) {
