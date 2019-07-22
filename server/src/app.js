@@ -1,7 +1,8 @@
 const querystring = require('querystring')
-const udpRouteHandle = require('./route/udp')
-const osRouteHandle = require('./route/os')
-const xmlRouteHandle = require('./route/xml.route')
+const path = require('path')
+const udpRouteHandle = require(path.join(__dirname, './route/udp'))
+const osRouteHandle = require(path.join(__dirname, './route/os'))
+const xmlRouteHandle = require(path.join(__dirname, './route/xml.route'))
 // 解析post数据
 const getPostData = (req) => {
     const promise = new Promise((resolve,reject) => {
@@ -71,6 +72,8 @@ const serverHandle = (req, res) => {
                 res.end(
                     JSON.stringify(osResult)
                 )
+            }).catch(err => {
+                console.log(err)
             })
             return
         }
@@ -82,6 +85,8 @@ const serverHandle = (req, res) => {
                 res.end(
                     JSON.stringify(data)
                 )
+            }).catch(err => {
+                console.log(err)
             })
             return
         }

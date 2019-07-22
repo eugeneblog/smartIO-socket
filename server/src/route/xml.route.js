@@ -1,4 +1,5 @@
-const { SuccessModel, ErrorModel } = require("../model/resModel");
+const path = require('path')
+const { SuccessModel, ErrorModel } = require(path.join(__dirname, "../model/resModel"));
 const {
   addChannelXml,
   updateChannelXml,

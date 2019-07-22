@@ -1,4 +1,5 @@
-const { XmlToJson } = require("../utils/xmlConJson");
+const path = require('path')
+const { XmlToJson } = require(path.join(__dirname, "../utils/xmlConJson"));
 const fxp = require('fast-xml-parser')
 
 const { getFileContent, writeFileContent } = require("../utils/fs");

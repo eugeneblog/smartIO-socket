@@ -1,7 +1,10 @@
 const { app, BrowserWindow } = require('electron')
-
+// 服务端入口文件
+const path = require('path')
+require(path.join(__dirname, '../www.js'))
 let win
 function createWindow() {
+    // runDevServer("npm run dev:server")
     // 创建浏览器窗口。
     win = new BrowserWindow({ width: 800, height: 600 })
 
@@ -9,7 +12,7 @@ function createWindow() {
     win.loadFile('build/index.html')
 
     // 打开开发者工具
-    // win.webContents.openDevTools()
+    win.webContents.openDevTools()
 
     // 当 window 被关闭，这个事件会被触发。
     win.on('closed', () => {

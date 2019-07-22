@@ -1,5 +1,6 @@
-const { SuccessModel } = require('../model/resModel')
-const { sendUdpRadio } = require('../controller/udp')
+const path = require('path')
+const { SuccessModel } = require(path.join(__dirname, '../model/resModel'))
+const { sendUdpRadio } = require(path.join(__dirname, '../controller/udp'))
 const udpRouteHandle = (req, res) => {
     const method = req.method
     const path = req.path

@@ -188,7 +188,7 @@ class ModalPanel extends React.Component {
     getNetConfig().then(result => {
       if(result['data'].errno === 0) {
         let data = result['data'].data
-        this.props.appstate.netConfig = data.sysNetConfig
+        this.props.appstate.netConfig = data.sysNetConfig || data.net.en0
         console.log("%c获取Net_Config配置... done", "color:green;font-weight:bold;");
         return
       }

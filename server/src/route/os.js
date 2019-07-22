@@ -1,5 +1,6 @@
-const { SuccessModel } = require('../model/resModel')
-const { getOsNetConfig } = require('../controller/os')
+const path = require('path')
+const { SuccessModel } = require(path.join(__dirname, '../model/resModel'))
+const { getOsNetConfig } = require(path.join(__dirname, '../controller/os'))
 const osRouteHandle = (req, res) => {
     const method = req.method
     const path = req.path
