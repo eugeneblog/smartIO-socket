@@ -103,7 +103,9 @@ class ChannelPanel extends React.Component {
                   id,
                   label: Object.keys(element)[id],
                   value: element[Object.keys(element)[id]]._text,
-                  type: "input"
+                  type: element[Object.keys(element)[id]]._attributes
+                    ? element[Object.keys(element)[id]]._attributes["type"]
+                    : "input"
                 };
               }
             )
@@ -164,7 +166,7 @@ class ChannelPanel extends React.Component {
           return Root.CHANNEL;
         } else {
           this.props.appstate.channelTabData.set(0, {
-            key: "1",
+            key: Root.CHANNEL._attributes.key,
             name: Root.CHANNEL.ITEM_NAME._text,
             desc: 1231,
             inumber: "New York No. 1 Lake Park",

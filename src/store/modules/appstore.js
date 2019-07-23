@@ -16,16 +16,12 @@ class AppState extends BaseState {
     // 当前活动的视图, 默认是Facility
     @observable actionView = 'Facility'
 
+    // 所有type数据
+    @observable allType = []
+    @observable allTypeData = []
+
     // channel Tab数据
-    @observable channelTabData = [
-        {
-            key: "1",
-            name: "CHANNEL1",
-            desc: 32,
-            inumber: "New York No. 1 Lake Park",
-            chaname: ["nice", "developer"]
-        }
-    ]
+    @observable channelTabData = []
 
     // 网络配置
     @observable netConfig = []

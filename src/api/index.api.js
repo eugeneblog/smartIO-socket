@@ -18,6 +18,24 @@ export function getNetConfig(params) {
     })
 }
 
+// 获取type
+export function getAllType(params) {
+    return request({
+        params,
+        url: '/api/config/alltype',
+        method: 'GET'
+    })
+}
+
+// 获取串口信息
+export function getSerialPort(params) {
+    return request({
+        params,
+        url: '/api/serial/list',
+        method: 'GET'
+    })
+}
+
 // 获取通道信息
 export function getChannel(params) {
     return request({

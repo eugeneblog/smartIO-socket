@@ -4,8 +4,9 @@ const {
   addChannelXml,
   updateChannelXml,
   delchannelXml,
-  getchannelXml
-} = require("../controller/controll.setxml");
+  getchannelXml,
+  getAllType
+} = require("../controller/config");
 
 const xmlRouteHandle = (req, res) => {
   const method = req.method;
@@ -55,6 +56,14 @@ const xmlRouteHandle = (req, res) => {
     return result.then(data => {
       return new SuccessModel(data, "true");
     });
+  }
+
+  // 获取所有type
+  if (method === 'GET' && path === "/api/config/alltype") {
+    const result = getAllType()
+    return result.then(data => {
+      return new SuccessModel(data, '获取成功')
+    })
   }
 };
 

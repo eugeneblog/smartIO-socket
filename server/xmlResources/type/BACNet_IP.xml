@@ -2,7 +2,7 @@
 <!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
 <ROOT>
     <NET>
-        <IP>124.1.1.1</IP>
-        <PORT>1234</PORT>
+        <IP>127.0.0.1</IP>
+        <PORT>47808</PORT>
     </NET>
 </ROOT>

@@ -1,9 +1,8 @@
 <ROOT>
   <CHANNEL key="2">
     <ITEM_NAME>CHANNEL6</ITEM_NAME>
-    <ITEM_NUMBER>aa</ITEM_NUMBER>
+    <ITEM_NUMBER>1</ITEM_NUMBER>
     <TYPE>BACnet Client</TYPE>
-    <PORT>47808</PORT>
     <DESCRIPTION>this is channel</DESCRIPTION>
     <LAST_MODIFIED>2019-7-4 15:30:33</LAST_MODIFIED>
     <NET_CONFIG>
@@ -11,38 +10,12 @@
         <NAME>eth</NAME>
         <IP>1234</IP>
         <MAC>00:00:00:00:00:00</MAC>
+        <PORT type="number">47808</PORT>
       </MAIN>
-    </NET_CONFIG>
-  </CHANNEL>
-  <CHANNEL key="3">
-    <ITEM_NAME>facillty</ITEM_NAME>
-    <ITEM_NUMBER>xxx</ITEM_NUMBER>
-    <TYPE>localhost</TYPE>
-    <PORT>1234</PORT>
-    <DESCRIPTION>null</DESCRIPTION>
-    <LAST_MODIFIED>1562845009345</LAST_MODIFIED>
-    <NET_CONFIG>
-      <MAIN>
-        <NAME>eth</NAME>
-        <IP>127.0.0.1</IP>
-        <MAC>00:00:00:00:00:00</MAC>
-      </MAIN>
-      <DISPLAY></DISPLAY>
-    </NET_CONFIG>
-  </CHANNEL>
-  <CHANNEL key="4">
-    <ITEM_NAME>channel</ITEM_NAME>
-    <ITEM_NUMBER>xxx</ITEM_NUMBER>
-    <TYPE>localhost</TYPE>
-    <PORT>1234</PORT>
-    <DESCRIPTION>null</DESCRIPTION>
-    <LAST_MODIFIED>1563507316656</LAST_MODIFIED>
-    <NET_CONFIG>
-      <MAIN>
-        <NAME>eth</NAME>
-        <IP>1234</IP>
-        <MAC>00:00:00:00:00:00</MAC>
-      </MAIN>
+      <PORT>
+        <UDPTIMEOUT>1000</UDPTIMEOUT>
+        <TYPE type="netconfig">wifi</TYPE>
+      </PORT>
     </NET_CONFIG>
   </CHANNEL>
 </ROOT>

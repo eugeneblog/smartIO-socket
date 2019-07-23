@@ -2,8 +2,7 @@
 <!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
 <ROOT>
     <NET>
-        <NOTE name="name">Channel_Config</NOTE>
-        <NOTE name="ip">124.1.1.1</NOTE>
-        <NOTE name="port">1234</NOTE>
+        <IP>127.0.0.1</IP>
+        <PORT>47808</PORT>
     </NET>
 </ROOT>

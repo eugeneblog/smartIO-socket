@@ -9,11 +9,9 @@ import {
   Select,
   Radio,
   InputNumber,
-  Divider,
-  message
+  Divider
 } from "antd";
 import { observer, inject } from "mobx-react";
-import { getNetConfig } from '../../api/index.api'
 const { Option } = Select;
 
 @inject(allStore => allStore.appstate)
@@ -57,11 +55,11 @@ class ModalPanel extends React.Component {
   };
 
   // 加载net_config
-  createConfigType = node => {
+  createAllType = node => {
     return node.map((item,index) => {
       return (
-        <Option key={index} value={item.netConfig}>
-          {item.netName}
+        <Option key={index} value={item}>
+          {item.replace(/.xml$/g, '')}
         </Option>
       );
     });
@@ -124,7 +122,7 @@ class ModalPanel extends React.Component {
                 })(
                   <Select placeholder="Please select item">
                     {
-                      this.createConfigType(this.props.appstate.netConfig)
+                      this.createAllType(this.props.appstate.allType)
                     }
                   </Select>
                 )}
@@ -181,20 +179,6 @@ class ModalPanel extends React.Component {
         </Form>
       </Modal>
     );
-  }
-
-  componentDidMount() {
-    // 获取网络系统的网络配置
-    getNetConfig().then(result => {
-      if(result['data'].errno === 0) {
-        let data = result['data'].data
-        this.props.appstate.netConfig = data.sysNetConfig || data.net.en0
-        console.log("%c获取Net_Config配置... done", "color:green;font-weight:bold;");
-        return
-      }
-    }).catch(err => {
-      message.error(err)
-    })
   }
 
 }
