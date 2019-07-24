@@ -25,27 +25,16 @@ class HLayout extends React.Component {
       let key = len
         ? Number(this.props.appstate.channelTabData[len - 1].key) + 1
         : 1;
-      let typeStr = 
-    `<NET_CONFIG>
-      <MAIN>
-        <NAME>eth</NAME>
-        <IP>1234</IP>
-        <MAC>00:00:00:00:00:00</MAC>
-      </MAIN>
-      <PORT>
-        <TYPE type="select">wifi</TYPE>
-      </PORT>
-    </NET_CONFIG>`;
+      let typeName = values.selectConfig.replace(/.xml$/, "");
       let xmlStr = `
   <CHANNEL key='${key}'>
     <ITEM_NAME>${values["radio-name"]}</ITEM_NAME>
     <ITEM_NUMBER>${key}</ITEM_NUMBER>
-    <TYPE>${values.selectConfig.replace(/.xml$/, "") || "localhost"}</TYPE>
+    <TYPE>${typeName || "localhost"}</TYPE>
     <DESCRIPTION>null</DESCRIPTION>
     <LAST_MODIFIED>${Date.now()}</LAST_MODIFIED>
-    ${typeStr}
+    ${this.getTypeStr(typeName)}
   </CHANNEL>`;
-
       // 将要插入的数据以json形式传送给后端
       let formData = {
         xmlData: xmlStr
@@ -63,23 +52,41 @@ class HLayout extends React.Component {
             }`,
             icon: <Icon type="smile" style={{ color: "#108ee9" }} />
           });
+          let newData = JSON.parse(data["data"].xmlJson).CHANNEL;
           // 更新数据
           this.props.appstate.channelTabData.push({
             key: key,
-            name: values["radio-name"],
-            inumber: "New York No. 1 Lake Park",
+            name: newData.ITEM_NAME._text,
+            inumber: newData.ITEM_NUMBER._text,
             chaname: ["nice", "developer"],
-            netConfig: {
-              MAIN: {
-                IP: "xxx"
-              }
-            }
+            netConfig: newData.NET_CONFIG
           });
         } else {
           message.error("Increase the failure");
         }
       });
     });
+  };
+
+  getTypeStr = typeName => {
+    let typeStr;
+    this.props.appstate.allTypeData.forEach(item => {
+      if (item.ROOT.NAME === typeName) {
+        let net = item.ROOT.NET;
+        typeStr = `<NET_CONFIG>
+        <MAIN>
+          <NAME>${item.ROOT.NAME}</NAME>
+          <IP>${net.IP}</IP>
+          <MAC>00:00:00:00:00:00</MAC>
+          <PORT type="number">${net.PORT}</PORT>
+        </MAIN>
+        <PORT>
+          <TYPE type="netconfig">wifi</TYPE>
+        </PORT>
+      </NET_CONFIG>`;
+      }
+    });
+    return typeStr;
   };
 
   saveFormRef = formRef => {
@@ -116,8 +123,8 @@ class HLayout extends React.Component {
     getAllType()
       .then(typeResult => {
         let data = typeResult.data["data"];
-        this.props.appstate.allType = data['allFiles'];
-        this.props.appstate.allTypeData = data['allFileData']
+        this.props.appstate.allType = data["allFiles"];
+        this.props.appstate.allTypeData = data["allFileData"];
         console.log("%cgetAlltype...", "color:green;font-weight:bold;");
       })
       .catch(err => {
@@ -129,6 +136,26 @@ class HLayout extends React.Component {
         if (result["data"].errno === 0) {
           let data = result["data"].data;
           this.props.appstate.netConfig = data.sysNetConfig || data.net.en0;
+          let netArr = [];
+          // 处理net数据，转换为数组，并分离ipv4地址和ipv6地址
+          for (const key in data.net) {
+            if (data.net.hasOwnProperty(key)) {
+              const element = data.net[key];
+              const ipv4 = element.filter(item => {
+                return item.family !== "IPv6";
+              });
+              const ipv6 = element.filter(item => {
+                return item.family !== "IPv4";
+              });
+              netArr.push({
+                [key]: { ...element },
+                name: key,
+                ipv4: { ...ipv4 },
+                ipv6: { ...ipv6 }
+              });
+            }
+          }
+          this.props.appstate.net = netArr;
           console.log(
             "%cgetAllNet_Config配置...",
             "color:green;font-weight:bold;"

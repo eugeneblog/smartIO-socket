@@ -1,6 +1,7 @@
 <?xml version="1.0" standalone="yes"?>
 <!DOCTYPE ROOT PUBLIC "PublicIdentifier" "URIreference">
 <ROOT>
+    <NAME>BACNet_IP</NAME>
     <NET>
         <IP>127.0.0.1</IP>
         <PORT>47808</PORT>

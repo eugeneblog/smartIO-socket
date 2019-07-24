@@ -25,6 +25,7 @@ class AppState extends BaseState {
 
     // 网络配置
     @observable netConfig = []
+    @observable net = []
 
     // 更改当前活动视图
     @action setActionView = (name, value) => {

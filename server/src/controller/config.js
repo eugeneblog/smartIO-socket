@@ -39,17 +39,17 @@ const delchannelXml = (id, filename) => {
     .then(xmlResult => {
       // xml转json
       let xmlJson = fxp.parse(xmlResult, {
+        attributeNamePrefix: "",
+        attrNodeName: "attr", //default is 'false'
+        textNodeName: "#text",
         ignoreAttributes: false,
-        textNodeName: "_text",
-        attrValueProcessor: key => {
-          return { key };
-        }
       });
       // 过滤被删除的节点
       if (xmlJson.ROOT.CHANNEL.length) {
         xmlJson.ROOT.CHANNEL = xmlJson.ROOT.CHANNEL.filter(ele => {
-          return ele["@_key"].key !== id;
+          return ele.attr["key"] !== id;
         });
+        console.log(xmlJson.ROOT.CHANNEL)
         return xmlJson;
       } else {
         return {
@@ -60,10 +60,13 @@ const delchannelXml = (id, filename) => {
     .then(xmlJson => {
       // json转xml
       const xml = new fxp.j2xParser({
-        format: true,
-        attrNodeName: "@_key", //default is false
-        tagValueProcessor: a => a
+        attributeNamePrefix: "",
+        attrNodeName: "attr", //default is false
+        textNodeName: "#text",
+        ignoreAttributes: true,
+        format: true, // 格式化
       }).parse(xmlJson);
+      // console.log(xml)
       return xml;
     })
     .then(xmlData => {
@@ -111,13 +114,13 @@ const getAllType = () => {
         attrValueProcessor: key => {
           return { key };
         }
-      })
-    })
+      });
+    });
     return {
       allFiles: newArr,
       allFileData: jsonDatas
-    }
-  })
+    };
+  });
 };
 
 module.exports = {

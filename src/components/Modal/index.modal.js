@@ -9,7 +9,8 @@ import {
   Select,
   Radio,
   InputNumber,
-  Divider
+  Divider,
+  Descriptions
 } from "antd";
 import { observer, inject } from "mobx-react";
 const { Option } = Select;
@@ -104,7 +105,7 @@ class ModalPanel extends React.Component {
               <Form.Item label="Add Items" hasFeedback>
                 {getFieldDecorator("selectItem", {
                   rules: [
-                    { required: true, message: "Please select your country!" }
+                    { required: true, message: "Please select Item!" }
                   ],
                   initialValue: modalPaneltriggerName
                 })(
@@ -116,17 +117,27 @@ class ModalPanel extends React.Component {
               <Form.Item label="Net Type" hasFeedback>
                 {getFieldDecorator("selectConfig", {
                   rules: [
-                    { required: false, message: "Please select your country!" }
+                    { required: true, message: "Please select Type!" }
                   ],
                   initialValue: this.props.triggerName
                 })(
-                  <Select placeholder="Please select item">
+                  <Select onSelect={this.typeSelectHandle} placeholder="Please select item">
                     {
                       this.createAllType(this.props.appstate.allType)
                     }
                   </Select>
                 )}
               </Form.Item>
+              {
+                this.state.selectTypeContent 
+                ? <Form.Item>
+                  <Descriptions title={this.state.selectTypeContent.NAME.toLocaleUpperCase()}>
+                    <Descriptions.Item label="Ip">{this.state.selectTypeContent.NET.IP}</Descriptions.Item>
+                    <Descriptions.Item label="PORT">{this.state.selectTypeContent.NET.PORT}</Descriptions.Item>
+                  </Descriptions>
+                </Form.Item>
+                : null
+              }
             </Col>
             <Col span={1}>
               <Divider dashed style={{ height: "540px" }} type="vertical" />
@@ -159,10 +170,10 @@ class ModalPanel extends React.Component {
                       >
                         <Radio value="a">numeric</Radio>
                         <Radio value="b">
-                          numeric with a{" "}
+                          numeric with a
                           <InputNumber
                             disabled={this.state.selectRadio !== "format"}
-                          />{" "}
+                          />
                           character field width
                         </Radio>
                         <Radio value="c">letter</Radio>
@@ -181,6 +192,17 @@ class ModalPanel extends React.Component {
     );
   }
 
+  typeSelectHandle = (opt) => {
+    let typeName = opt.replace(/.xml$/, '')
+    this.props.appstate.allTypeData.forEach(item => {
+      if(item.ROOT.NAME === typeName) {
+        // 显示该类型的具体信息
+        this.setState({
+          selectTypeContent: item.ROOT
+        })
+      }
+    })
+  }
 }
 
 const CollectionCreateForm = Form.create({ name: "form_in_modal" })(ModalPanel);

@@ -22,11 +22,17 @@ class PropertyPanel extends React.Component {
     );
   }
 
+  // 更改main配置
+  onNetChangeHandle = (parameter) => {
+    console.log(this.props.tabData)
+    console.log(parameter)
+  }
+
   createTabPanes(panes) {
     return panes.map(item => {
       return (
         <TabPane tab={item.title} key={item.key}>
-          <WrappedApp formData={item.main} />
+          <WrappedApp formData={item.main} onNetChange={this.onNetChangeHandle}/>
         </TabPane>
       );
     });

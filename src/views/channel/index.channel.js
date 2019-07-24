@@ -105,7 +105,7 @@ class ChannelPanel extends React.Component {
                   value: element[Object.keys(element)[id]]._text,
                   type: element[Object.keys(element)[id]]._attributes
                     ? element[Object.keys(element)[id]]._attributes["type"]
-                    : "input"
+                    : "span"
                 };
               }
             )
