@@ -23,18 +23,18 @@ class ChannelPanel extends React.Component {
   columns = [
     {
       title: "Item Name",
-      dataIndex: "name",
+      dataIndex: "ITEM_NAME",
       key: "name",
       render: text => <a href="javascript:;">{text}</a>
     },
     {
       title: "Item Description",
-      dataIndex: "desc",
+      dataIndex: "DESCRIPTION",
       key: "desc"
     },
     {
       title: "Item Number",
-      dataIndex: "inumber",
+      dataIndex: "ITEM_NUMBER",
       key: "inumber"
     },
     {
@@ -64,11 +64,17 @@ class ChannelPanel extends React.Component {
       okType: "danger",
       cancelText: "No",
       onOk: () => {
-        delChannel({ id: Number(record.key), filename: "channel" }).then(
+        delChannel({ id: Number(record.attr.key), filename: "channel" }).then(
           delData => {
             let result = delData["data"];
             if (result.errno === 0) {
-              this.props.appstate.channelTabData.remove(record);
+              // this.props.appstate.channelTabData.remove(record);
+              getChannel({fileName: "channel"}).then(channelData => {
+                // 获取路由返回结果
+                let result = channelData.data;
+                let fxpJsonData = JSON.parse(result.data.fxpXmlJson);
+                this.props.appstate.channelDataSource = fxpJsonData;
+              });
               message.success(`Delete ${record.name} successed`);
             } else {
               message.error(`Delete ${record.name} failed`);
@@ -85,45 +91,10 @@ class ChannelPanel extends React.Component {
       text: "aa"
     },
     onChange: (selectedRowKeys, selectedRows) => {
-      let config = [];
-      let NET_CONFIG = selectedRows[0].netConfig;
-      // console.log(selectedRows[0])
-      let index = 0;
-      // 动态生成属性面板数据
-      for (const key in NET_CONFIG) {
-        if (NET_CONFIG.hasOwnProperty(key)) {
-          const element = NET_CONFIG[key];
-          config.push({
-            title: key.toLocaleLowerCase(),
-            key: (index += 1),
-            main: Array.from(
-              { length: Object.keys(element).length },
-              (v, id) => {
-                return {
-                  id,
-                  label: Object.keys(element)[id],
-                  value: element[Object.keys(element)[id]]._text,
-                  type: element[Object.keys(element)[id]]._attributes
-                    ? element[Object.keys(element)[id]]._attributes["type"]
-                    : "span"
-                };
-              }
-            )
-          });
-        }
-      }
-      // let propertyData = config.map(item => item)
-      this.setState(
-        {
-          isPropertyShow: false,
-          propertyData: config
-        },
-        () => {
-          this.setState({
-            isPropertyShow: true
-          });
-        }
-      );
+      this.props.appstate.selectedChannel = selectedRowKeys[0];
+      this.setState({
+        isPropertyShow: true
+      });
     },
     getCheckboxProps: function(record) {
       //选择框默认属性配置
@@ -137,13 +108,14 @@ class ChannelPanel extends React.Component {
       <div>
         <Table
           columns={this.columns}
+          rowKey="ITEM_NUMBER"
           dataSource={this.props.appstate.channelTabData.slice()}
           onChange={this.onChange}
           bordered={true}
           rowSelection={this.rowSelectionConfig}
         />
         {this.state.isPropertyShow ? (
-          <PropertyPanel tabData={this.state.propertyData} />
+          <PropertyPanel tabData={this.props.appstate.propertyData} />
         ) : null}
       </div>
     );
@@ -155,44 +127,13 @@ class ChannelPanel extends React.Component {
     let params = {
       fileName: "channel"
     };
-    getChannel(params)
-      .then(channelData => {
-        // 获取路由返回结果
-        let result = channelData.data;
-        // 解析json字符串
-        let channelVal = JSON.parse(result.data.xmlJson);
-        let Root = channelVal["ROOT"];
-        if (Root.CHANNEL.length) {
-          return Root.CHANNEL;
-        } else {
-          this.props.appstate.channelTabData.set(0, {
-            key: Root.CHANNEL._attributes.key,
-            name: Root.CHANNEL.ITEM_NAME._text,
-            desc: 1231,
-            inumber: "New York No. 1 Lake Park",
-            chaname: ["nice", "developer"],
-            netConfig: Root.CHANNEL.NET_CONFIG
-          });
-        }
-      })
-      .then(channel => {
-        if (channel) {
-          let tableData = channel.map(item => {
-            return {
-              key: item._attributes.key,
-              name: item.ITEM_NAME._text,
-              desc: 1231,
-              inumber: item.ITEM_NUMBER._text,
-              chaname: ["nice", "developer"],
-              netConfig: item.NET_CONFIG
-            };
-          });
-          this.props.appstate.channelTabData = tableData;
-        }
-      })
-      .catch(error => {
-        console.log(error);
-      });
+    getChannel(params).then(channelData => {
+      // 获取路由返回结果
+      let result = channelData.data;
+      let fxpJsonData = JSON.parse(result.data.fxpXmlJson);
+      console.log(fxpJsonData);
+      this.props.appstate.channelDataSource = fxpJsonData;
+    });
   }
 }
 

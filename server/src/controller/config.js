@@ -6,7 +6,8 @@ const {
   getFileContent,
   writeFileContent,
   findSync,
-  readFiles
+  readFiles,
+  writeFileContent2
 } = require("../utils/fs");
 
 // 增加channel xml节点 data: 要写入的数据 filename: 要写入数据的配置文件
@@ -18,17 +19,40 @@ const addChannelXml = (data = {}, filename) => {
     start: 0
   };
   const dir = `../../xmlResources/${filename}.xml`;
-  console.log(data);
   return writeFileContent(data, dir, opaction).then(result => {
+    const jsonData = fxp.parse(result.xmlStr, {
+      attributeNamePrefix: "",
+      attrNodeName: "attr", //default is 'false'
+      textNodeName: "#text",
+      ignoreAttributes: false
+    });
     return {
-      xmlJson: XmlToJson(result.xmlStr)
+      xmlJson: JSON.stringify(jsonData)
     };
   });
 };
 
 // 修改channel XML节点
-const updateChannelXml = () => {
-  return true;
+const updateChannelXml = (data, filename) => {
+  // json to xml
+  let Root = {
+    ROOT: { CHANNEL: data }
+  };
+  const dir = `../../xmlResources/${filename}.xml`;
+  const xml = new fxp.j2xParser({
+    attributeNamePrefix: "",
+    attrNodeName: "attr", //default is false
+    textNodeName: "#text",
+    ignoreAttributes: true,
+    format: true, // 格式化
+    tagValueProcessor: val => val.toLocaleUpperCase()
+  }).parse(Root);
+
+  return writeFileContent2(xml, dir, {encoding:'utf8'}).then(wResult => {
+    console.log(xml)
+    console.log(wResult)
+    return true
+  });
 };
 
 // 删除delchannel XML 节点
@@ -42,14 +66,13 @@ const delchannelXml = (id, filename) => {
         attributeNamePrefix: "",
         attrNodeName: "attr", //default is 'false'
         textNodeName: "#text",
-        ignoreAttributes: false,
+        ignoreAttributes: false
       });
       // 过滤被删除的节点
       if (xmlJson.ROOT.CHANNEL.length) {
         xmlJson.ROOT.CHANNEL = xmlJson.ROOT.CHANNEL.filter(ele => {
           return ele.attr["key"] !== id;
         });
-        console.log(xmlJson.ROOT.CHANNEL)
         return xmlJson;
       } else {
         return {
@@ -64,7 +87,7 @@ const delchannelXml = (id, filename) => {
         attrNodeName: "attr", //default is false
         textNodeName: "#text",
         ignoreAttributes: true,
-        format: true, // 格式化
+        format: true // 格式化
       }).parse(xmlJson);
       // console.log(xml)
       return xml;
@@ -85,9 +108,16 @@ const delchannelXml = (id, filename) => {
 const getchannelXml = filename => {
   const dir = `../../xmlResources/${filename}.xml`;
   return getFileContent(dir).then(xmlResult => {
+    const jsonData = fxp.parse(xmlResult, {
+      attributeNamePrefix: "",
+      attrNodeName: "attr", //default is 'false'
+      textNodeName: "#text",
+      ignoreAttributes: false
+    });
     return {
       xmlStr: xmlResult,
-      xmlJson: XmlToJson(xmlResult)
+      xmlJson: XmlToJson(xmlResult),
+      fxpXmlJson: JSON.stringify(jsonData)
     };
   });
 };

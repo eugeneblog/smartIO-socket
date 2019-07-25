@@ -22,7 +22,7 @@ function getFileContent(dir) {
 
 // 写入文件内容
 function writeFileContent(data, dir, opt) {
-  const writeStream = fs.createWriteStream(path.join(__dirname, dir), opt);
+  let writeStream = fs.createWriteStream(path.join(__dirname, dir), opt);
   const result = getFileContent(dir)
     .then(redayData => {
       return new Promise((resolve, reject) => {
@@ -44,10 +44,36 @@ function writeFileContent(data, dir, opt) {
         });
       });
     })
-    .catch(error => {
-      console.log(error);
-    });
   return result;
+}
+function writeFileContent2(data, dir, opt) {
+  let writeStream = fs.createWriteStream(path.join(__dirname, dir), opt);
+  let promise = new Promise((resolve, reject) => {
+    //读取文件发生错误事件
+    writeStream.on('error', (err) => {
+      console.log('发生异常:', err);
+      reject(err)
+    });
+    //已打开要写入的文件事件
+    writeStream.on('open', (fd) => {
+      console.log('文件已打开:', fd);
+    });
+    //文件已经就写入完成事件
+    writeStream.on('finish', () => {
+      console.log('写入已完成..');
+      console.log('读取文件内容:', fs.readFileSync(path.join(__dirname, dir), 'utf8')); //打印写入的内容
+      resolve(fs.readFileSync(path.join(__dirname, dir), 'utf8'))
+      console.log(writeStream);
+    });
+    //文件关闭事件
+    writeStream.on('close', () => {
+      console.log('文件已关闭！');
+    });
+
+    writeStream.write(data);
+    writeStream.end();
+  })
+  return promise
 }
 // 读取多个文件
 function readFiles(arr) {
@@ -97,5 +123,6 @@ module.exports = {
   getFileContent,
   writeFileContent,
   findSync,
-  readFiles
+  readFiles,
+  writeFileContent2
 };

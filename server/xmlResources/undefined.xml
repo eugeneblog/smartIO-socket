@@ -8,8 +8,8 @@
     <NET_CONFIG>
       <MAIN>
         <NAME>BACNET IP</NAME>
-        <IP>127.0.0.1</IP>
-        <MAC>00:00:00:00:00:00</MAC>
+        <IP>192.192.253.104</IP>
+        <MAC>78:4F:43:72:11:4C</MAC>
         <PORT type="number">47808</PORT>
       </MAIN>
       <PORT>

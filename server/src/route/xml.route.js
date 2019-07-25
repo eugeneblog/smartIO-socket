@@ -28,12 +28,15 @@ const xmlRouteHandle = (req, res) => {
 
   // 修改channel xml 节点
   if (method === "POST" && path === "/api/config/updatechannel") {
-    const result = updateChannelXml(req.body);
-    if (result) {
-      return new SuccessModel("修改成功");
-    } else {
-      return new ErrorModel("修改失败");
-    }
+    const { filename } = req.query
+    const result = updateChannelXml(req.body, filename);
+    return result.then(updateData => {
+      if (updateData) {
+        return new SuccessModel()
+      } else {
+        return new ErrorModel()
+      }
+    })
   }
 
   // 删除channel xml 节点

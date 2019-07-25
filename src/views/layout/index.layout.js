@@ -22,8 +22,9 @@ class HLayout extends React.Component {
       }
       console.log("Received values of form: ", values);
       let len = this.props.appstate.channelTabData.length;
+      let endKey = this.props.appstate.channelTabData[len - 1].attr.key
       let key = len
-        ? Number(this.props.appstate.channelTabData[len - 1].key) + 1
+        ? Number(endKey) + 1
         : 1;
       let typeName = values.selectConfig.replace(/.xml$/, "");
       let xmlStr = `
@@ -54,13 +55,13 @@ class HLayout extends React.Component {
           });
           let newData = JSON.parse(data["data"].xmlJson).CHANNEL;
           // 更新数据
-          this.props.appstate.channelTabData.push({
-            key: key,
-            name: newData.ITEM_NAME._text,
-            inumber: newData.ITEM_NUMBER._text,
-            chaname: ["nice", "developer"],
-            netConfig: newData.NET_CONFIG
-          });
+          let newTabData = Object.assign([], this.props.appstate.channelTabData)
+          newTabData.push(newData)
+          this.props.appstate.channelDataSource = {
+            ROOT: {
+              CHANNEL: newTabData
+            }
+          }
         } else {
           message.error("Increase the failure");
         }

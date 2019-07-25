@@ -46,11 +46,12 @@ export function getChannel(params) {
 }
 
 // 修改通道信息
-export function updateChannel(data) {
+export function updateChannel(data, filename) {
     return request({
         data,
+        params: filename,
         url: '/api/config/updatechannel',
-        method: 'post'
+        method: 'POST'
     })
 }
 
