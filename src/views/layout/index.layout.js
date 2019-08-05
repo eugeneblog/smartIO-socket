@@ -3,7 +3,7 @@ import "./index.layout.css";
 import Menus from "../../components/Menu/index.menu";
 import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
-import { newChannel, getAllType, getNetConfig } from "../../api/index.api";
+import { updateChannel, getAllType, getNetConfig } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
 import { Layout, notification, Icon, message } from "antd";
 
@@ -15,37 +15,44 @@ class HLayout extends React.Component {
   // 创建通道
   handleCreate = () => {
     const { form } = this.formRef.props;
+    let { channelDataSource, channelTabData } = this.props.appstate;
+    const NODES = channelDataSource.ROOT.CHANNEL;
     form.validateFields((err, values) => {
-      console.log(values);
       if (err) {
         return;
       }
       console.log("Received values of form: ", values);
-      let len = this.props.appstate.channelTabData.length;
-      let endKey = this.props.appstate.channelTabData[len - 1].attr.key
-      let key = len
-        ? Number(endKey) + 1
-        : 1;
+      let len = channelTabData.length;
+      let endKey = len ? channelTabData[len - 1].attr.key : 0;
+      let key = len ? Number(endKey) + 1 : 1;
       let typeName = values.selectConfig.replace(/.xml$/, "");
-      let xmlStr = `
-  <CHANNEL key='${key}'>
-    <ITEM_NAME>${values["radio-name"]}</ITEM_NAME>
-    <ITEM_NUMBER>${key}</ITEM_NUMBER>
-    <TYPE>${typeName || "localhost"}</TYPE>
-    <DESCRIPTION>null</DESCRIPTION>
-    <LAST_MODIFIED>${Date.now()}</LAST_MODIFIED>
-    ${this.getTypeStr(typeName)}
-  </CHANNEL>`;
+      let xmlJsonData = {
+        DESCRIPTION: "null",
+        ITEM_NAME: values["radio-name"],
+        ITEM_NUMBER: key,
+        LAST_MODIFIED: Date.now(),
+        NET_CONFIG: this.getTypeStr(typeName),
+        TYPE: typeName || "localhost",
+        attr: {
+          key
+        }
+      };
+      let source = [];
+      if (NODES) {
+        source = NODES.length ? NODES.slice() : [{ ...NODES }];
+      }
       // 将要插入的数据以json形式传送给后端
       let formData = {
-        xmlData: xmlStr
+        newData: JSON.stringify(source.concat(xmlJsonData))
       };
       // 通道信息写入xml
-      newChannel(formData, { filename: "channel" }).then(result => {
-        const data = result.data;
-        if (data.errno === 0) {
-          // 隐藏modal框
+      updateChannel(formData).then(result => {
+        let isAdd = result["data"].errno;
+        if (isAdd === 0) {
+          // 隐藏modal
           this.props.appstate.setView("modalVisible", false);
+          // 更新数据，同步到客户端
+          this.props.appstate.updateData();
           notification.open({
             message: "Message",
             description: `You have successfully created new channel is: ${
@@ -53,41 +60,41 @@ class HLayout extends React.Component {
             }`,
             icon: <Icon type="smile" style={{ color: "#108ee9" }} />
           });
-          let newData = JSON.parse(data["data"].xmlJson).CHANNEL;
-          // 更新数据
-          let newTabData = Object.assign([], this.props.appstate.channelTabData)
-          newTabData.push(newData)
-          this.props.appstate.channelDataSource = {
-            ROOT: {
-              CHANNEL: newTabData
-            }
-          }
-        } else {
-          message.error("Increase the failure");
         }
       });
     });
   };
 
   getTypeStr = typeName => {
-    let typeStr;
+    let typeData;
     this.props.appstate.allTypeData.forEach(item => {
       if (item.ROOT.NAME === typeName) {
         let net = item.ROOT.NET;
-        typeStr = `<NET_CONFIG>
-        <MAIN>
-          <NAME>${item.ROOT.NAME}</NAME>
-          <IP>${net.IP}</IP>
-          <MAC>00:00:00:00:00:00</MAC>
-          <PORT type="number">${net.PORT}</PORT>
-        </MAIN>
-        <PORT>
-          <TYPE type="netconfig">wifi</TYPE>
-        </PORT>
-      </NET_CONFIG>`;
+        typeData = {
+          MAIN: {
+            IP: net.IP,
+            MAC: "00:00:00:00:00:00",
+            NAME: item.ROOT.NAME,
+            PORT: {
+              "#text": net.PORT,
+              attr: {
+                type: "number"
+              }
+            }
+          },
+          PORT: {
+            TYPE: {
+              "#text": "WIFI",
+              attr: {
+                type: "netconfig"
+              }
+            },
+            UDPTIMEOUT: 1000
+          }
+        };
       }
     });
-    return typeStr;
+    return typeData;
   };
 
   saveFormRef = formRef => {

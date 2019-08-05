@@ -47,10 +47,8 @@ const updateChannelXml = (data, filename) => {
     format: true, // 格式化
     tagValueProcessor: val => val.toLocaleUpperCase()
   }).parse(Root);
-
+  console.log(Root)
   return writeFileContent2(xml, dir, {encoding:'utf8'}).then(wResult => {
-    console.log(xml)
-    console.log(wResult)
     return true
   });
 };

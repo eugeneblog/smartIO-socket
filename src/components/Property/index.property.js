@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Form, Select, Button, InputNumber } from "antd";
+import { Tabs, Form, Select, InputNumber } from "antd";
 import { observer, inject } from "mobx-react";
 import { updateChannel } from "../../api/index.api";
 
@@ -10,11 +10,23 @@ let submitTime;
 @inject(allStore => allStore.appstate)
 @observer
 class FormPanel extends React.Component {
-  handleSubmit = e => {
-    e.preventDefault();
+  handleSubmit = (e) => {
+    // e.preventDefault();
     this.props.form.validateFields((err, values) => {
       if (!err) {
         console.log("Received values of form: ", values);
+        console.log(this.props.appstate.selectedChannel)
+        // this.props.appstate.updateData()
+        // 更新数据到后端
+        let formData = {
+          newData: JSON.stringify(this.props.appstate.channelTabData)
+        };
+        updateChannel(formData).then(result => {
+          const { errno } = result["data"];
+          if (errno === 0) {
+            console.log("%cupdateData...", "color:green;font-weight:bold;");
+          }
+        });
       }
     });
   };
@@ -51,13 +63,18 @@ class FormPanel extends React.Component {
       case "span":
         return (
           <Form.Item label={Com.label} key={Com.id}>
-            <span>{Com.value}</span>
+            {getFieldDecorator(Com.label, {
+              rules: [{ required: false, message: "Please input your note!" }],
+              initialValue: Com.value
+            })(
+              <span>{Com.value}</span>
+            )}
           </Form.Item>
         );
       case "netconfig":
         return (
           <Form.Item label={Com.label} key={Com.id}>
-            {getFieldDecorator(`node${Com.id}`, {
+            {getFieldDecorator(Com.label, {
               rules: [{ required: false, message: "Please input your note!" }],
               initialValue: Com.value
             })(
@@ -79,7 +96,7 @@ class FormPanel extends React.Component {
       case "select":
         return (
           <Form.Item label={Com.label} key={Com.id}>
-            {getFieldDecorator(`node${Com.id}`, {
+            {getFieldDecorator(Com.label, {
               rules: [{ required: false, message: "Please input your note!" }],
               initialValue: Com.value
             })(
@@ -93,7 +110,7 @@ class FormPanel extends React.Component {
       case "number":
         return (
           <Form.Item label={Com.label} key={Com.id}>
-            {getFieldDecorator(`node${Com.id}`, {
+            {getFieldDecorator(Com.label, {
               rules: [{ required: false, message: "Please input your note!" }],
               initialValue: Com.value
             })(<InputNumber style={{ width: 200 }} />)}
@@ -112,12 +129,8 @@ class FormPanel extends React.Component {
   componentDidUpdate() {
     // 防止请求重复
     if (!submitTime) {
-      // 更新数据到后端
-      updateChannel(this.props.appstate.channelTabData, {
-        filename: "channel"
-      }).then(result => {
-        console.log(result);
-      });
+      // 触发提交submit函数
+      this.handleSubmit();
       submitTime = true;
       setTimeout(() => {
         submitTime = false;

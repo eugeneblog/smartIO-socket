@@ -2,9 +2,9 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import PropertyPanel from "../../components/Property/index.property";
-import { getChannel, delChannel } from "../../api/index.api";
+import { getChannel, updateChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Table, message, Modal } from "antd";
+import { Table, Modal } from "antd";
 
 const { confirm } = Modal;
 
@@ -64,23 +64,20 @@ class ChannelPanel extends React.Component {
       okType: "danger",
       cancelText: "No",
       onOk: () => {
-        delChannel({ id: Number(record.attr.key), filename: "channel" }).then(
-          delData => {
-            let result = delData["data"];
-            if (result.errno === 0) {
-              // this.props.appstate.channelTabData.remove(record);
-              getChannel({fileName: "channel"}).then(channelData => {
-                // 获取路由返回结果
-                let result = channelData.data;
-                let fxpJsonData = JSON.parse(result.data.fxpXmlJson);
-                this.props.appstate.channelDataSource = fxpJsonData;
-              });
-              message.success(`Delete ${record.name} successed`);
-            } else {
-              message.error(`Delete ${record.name} failed`);
-            }
+        let id = Number(record.attr.key);
+        let source = this.props.appstate.channelTabData;
+        // 过滤不需要的节点
+        let newData = source.filter(item => {
+          let key = Number(item.attr.key);
+          return id !== key;
+        });
+        // 后端更新数据
+        updateChannel({newData: JSON.stringify(newData)}).then(result => {
+          const { errno } = result.data
+          if (errno === 0) {
+            this.props.appstate.updateData()
           }
-        );
+        });
       }
     });
   };
@@ -124,15 +121,14 @@ class ChannelPanel extends React.Component {
   componentDidMount() {
     console.log("加载channel数据");
     // 加载通道信息
-    let params = {
-      fileName: "channel"
-    };
-    getChannel(params).then(channelData => {
+    getChannel().then(channelData => {
       // 获取路由返回结果
       let result = channelData.data;
-      let fxpJsonData = JSON.parse(result.data.fxpXmlJson);
-      console.log(fxpJsonData);
-      this.props.appstate.channelDataSource = fxpJsonData;
+      if (result.errno === 0) {
+        let channelData = result["data"];
+        console.log(channelData);
+        this.props.appstate.channelDataSource = channelData;
+      }
     });
   }
 }

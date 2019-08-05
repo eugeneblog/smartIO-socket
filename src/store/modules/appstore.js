@@ -1,5 +1,6 @@
 import React from "react";
 import { observable, action, computed } from "mobx";
+import { getChannel } from '../../api/index.api'
 
 class BaseState {
   @observable language = "";
@@ -104,6 +105,17 @@ class AppState extends BaseState {
   @action setView = (name, value) => {
     this.showView[name] = value;
   };
+
+  // 更新当前channel数据： 就是重新获取一遍，然后写入
+  @action updateData = function(id, data) {
+    if (id) {
+      console.log(arguments)
+    }
+    getChannel().then(result => {
+      let data = result['data'].data
+      this.channelDataSource = data
+    })
+  }
   // 更改modal内部组件
   @action setModalComponent = com => {
     this.modalComponent = com;
