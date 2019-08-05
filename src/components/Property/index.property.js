@@ -10,23 +10,13 @@ let submitTime;
 @inject(allStore => allStore.appstate)
 @observer
 class FormPanel extends React.Component {
-  handleSubmit = (e) => {
+  handleSubmit = e => {
     // e.preventDefault();
     this.props.form.validateFields((err, values) => {
       if (!err) {
         console.log("Received values of form: ", values);
-        console.log(this.props.appstate.selectedChannel)
-        // this.props.appstate.updateData()
-        // 更新数据到后端
-        let formData = {
-          newData: JSON.stringify(this.props.appstate.channelTabData)
-        };
-        updateChannel(formData).then(result => {
-          const { errno } = result["data"];
-          if (errno === 0) {
-            console.log("%cupdateData...", "color:green;font-weight:bold;");
-          }
-        });
+        const { selectedChannel } = this.props.appstate;
+        this.props.onNetChange(selectedChannel, values);
       }
     });
   };
@@ -63,12 +53,7 @@ class FormPanel extends React.Component {
       case "span":
         return (
           <Form.Item label={Com.label} key={Com.id}>
-            {getFieldDecorator(Com.label, {
-              rules: [{ required: false, message: "Please input your note!" }],
-              initialValue: Com.value
-            })(
-              <span>{Com.value}</span>
-            )}
+            <span>{Com.value}</span>
           </Form.Item>
         );
       case "netconfig":
@@ -151,16 +136,53 @@ class PropertyPanel extends React.Component {
     };
   }
   render() {
+    let { propertyData } = this.props.appstate;
     return (
       <div className="card-container">
-        <Tabs type="card">{this.createTabPanes(this.props.tabData)}</Tabs>
+        <Tabs type="card">{this.createTabPanes(propertyData)}</Tabs>
       </div>
     );
   }
 
-  // 更改main配置
-  onNetChangeHandle = (sel, parameter, key) => {
-    this.props.appstate.setNetProperty(sel, parameter, key);
+  // 提交config配置
+  onNetChangeHandle = (sel, parameter, key, form) => {
+    // 处理数据
+    const { channelDataSource } = this.props.appstate;
+    let CHANNEL = channelDataSource.ROOT.CHANNEL;
+    const len = CHANNEL.length;
+    const pane = form.title.toUpperCase()
+    if (!len) {
+      let obj = CHANNEL.NET_CONFIG[pane]
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const element = obj[key];
+          if (parameter[key]) {
+            element['#text'] = parameter[key]
+          }
+        }
+      }
+    } else {
+      CHANNEL.forEach((item, index) => {
+        if (index === key) {
+          let obj = item.NET_CONFIG[pane]
+          for (const key in obj) {
+            if (parameter[key]) {
+              obj[key]['#text'] = parameter[key]
+            }
+          }
+        }
+      })
+    }
+    // // // 更新数据到后端
+    let newData = {
+      newData: JSON.stringify(channelDataSource.ROOT.CHANNEL)
+    };
+    updateChannel(newData).then(result => {
+      const { errno } = result["data"];
+      if (errno === 0) {
+        console.log("%cupdateData...", "color:green;font-weight:bold;");
+      }
+    });
   };
 
   createTabPanes(panes) {
@@ -169,8 +191,8 @@ class PropertyPanel extends React.Component {
         <TabPane tab={item.title} key={item.key}>
           <WrappedApp
             formData={item.main}
-            onNetChange={(par, sel) =>
-              this.onNetChangeHandle(par, sel, item.key)
+            onNetChange={(sel, par) =>
+              this.onNetChangeHandle(sel, par, item.key, item)
             }
           />
         </TabPane>

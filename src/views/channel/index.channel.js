@@ -112,7 +112,7 @@ class ChannelPanel extends React.Component {
           rowSelection={this.rowSelectionConfig}
         />
         {this.state.isPropertyShow ? (
-          <PropertyPanel tabData={this.props.appstate.propertyData} />
+          <PropertyPanel />
         ) : null}
       </div>
     );

@@ -31,6 +31,9 @@ class AppState extends BaseState {
     })[0];
     let config = [];
     let index = 0;
+    if (!selChannel) {
+      return []
+    }
     let NET_CONFIG = selChannel.NET_CONFIG;
     for (const key in NET_CONFIG) {
       if (NET_CONFIG.hasOwnProperty(key)) {
