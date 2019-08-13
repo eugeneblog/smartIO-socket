@@ -43,7 +43,8 @@ class FormPanel extends React.Component {
     let ipv4 = nowSel[0].ipv4;
     if (ipv4[0]) {
       let { address, mac } = ipv4[0];
-      this.props.onNetChange(sel, { address, mac });
+      // 获取ipv4&mac地址，然后写入
+      this.props.appstate.setNetProperty(sel, { address, mac });
     }
   };
 
@@ -145,33 +146,35 @@ class PropertyPanel extends React.Component {
   }
 
   // 提交config配置
-  onNetChangeHandle = (sel, parameter, key, form) => {
-    // 处理数据
+  onNetChangeHandle = (sel, parameter, form) => {
+    // 获取源
     const { channelDataSource } = this.props.appstate;
     let CHANNEL = channelDataSource.ROOT.CHANNEL;
     const len = CHANNEL.length;
-    const pane = form.title.toUpperCase()
+    // 获取当前属性pane
+    const pane = form.title.toUpperCase();
     if (!len) {
-      let obj = CHANNEL.NET_CONFIG[pane]
+      let obj = CHANNEL.NET_CONFIG[pane];
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
           const element = obj[key];
           if (parameter[key]) {
-            element['#text'] = parameter[key]
+            element["#text"] = parameter[key];
           }
         }
       }
     } else {
       CHANNEL.forEach((item, index) => {
-        if (index === key) {
-          let obj = item.NET_CONFIG[pane]
+        // index 需要 + 1，默认从1开始，找到当前选择的通道节点
+        if (index + 1 === sel) {
+          let obj = item.NET_CONFIG[pane];
           for (const key in obj) {
             if (parameter[key]) {
-              obj[key]['#text'] = parameter[key]
+              obj[key]["#text"] = parameter[key];
             }
           }
         }
-      })
+      });
     }
     // // // 更新数据到后端
     let newData = {
@@ -192,7 +195,7 @@ class PropertyPanel extends React.Component {
           <WrappedApp
             formData={item.main}
             onNetChange={(sel, par) =>
-              this.onNetChangeHandle(sel, par, item.key, item)
+              this.onNetChangeHandle(sel, par, item)
             }
           />
         </TabPane>

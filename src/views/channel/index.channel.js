@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import PropertyPanel from "../../components/Property/index.property";
-import { getChannel, updateChannel } from "../../api/index.api";
+import { updateChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
 import { Table, Modal } from "antd";
 
@@ -116,20 +116,6 @@ class ChannelPanel extends React.Component {
         ) : null}
       </div>
     );
-  }
-
-  componentDidMount() {
-    console.log("加载channel数据");
-    // 加载通道信息
-    getChannel().then(channelData => {
-      // 获取路由返回结果
-      let result = channelData.data;
-      if (result.errno === 0) {
-        let channelData = result["data"];
-        console.log(channelData);
-        this.props.appstate.channelDataSource = channelData;
-      }
-    });
   }
 }
 

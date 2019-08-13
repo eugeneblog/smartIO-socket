@@ -4,7 +4,7 @@ import request from "../utils/request";
 export function getNetConfig(params) {
   return request({
     params,
-    url: "http://localhost:8000/api/socket/net/list",
+    url: "/api/socket/net/list",
     method: "GET"
   });
 }
@@ -13,7 +13,7 @@ export function getNetConfig(params) {
 export function getChannel(params) {
   return request({
     params,
-    url: "http://localhost:8000/api/socket/channel/list",
+    url: "/api/socket/channel/list",
     method: "GET"
   });
 }
@@ -22,7 +22,7 @@ export function getChannel(params) {
 export function updateChannel(data) {
   return request({
     data,
-    url: "http://localhost:8000/api/socket/channel/update",
+    url: "/api/socket/channel/update",
     method: "POST"
   });
 }
@@ -31,7 +31,7 @@ export function updateChannel(data) {
 export function getAllType(params) {
   return request({
     params,
-    url: "/api/config/alltype",
+    url: "/api/socket/config/alltype",
     method: "GET"
   });
 }

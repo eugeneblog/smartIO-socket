@@ -4,7 +4,7 @@
 
 .ant-layout-header,
 .ant-layout-footer {
-  background: #7dbcea;
+  /* background: #7dbcea; */
   color: #fff;
 }
 
@@ -22,7 +22,7 @@
 
 .ant-layout-sider {
   padding: 0 10px;
-  background: #3ba0e9;
+  /* background: #3ba0e9; */
   color: #fff;
   line-height: 120px;
 }

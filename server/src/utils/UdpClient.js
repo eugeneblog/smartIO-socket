@@ -13,7 +13,7 @@ class UdpClient {
         let message = Buffer.from(msg, 'ascii')
         this.client.bind(this.PORT, () => {
             console.log(`bind to ${this.PORT}`)
-        }) 
+        })
         this.client.send(message, 0, message.length, this.PORT, this.IP, function(err, bytes) {
             if (err) {
                 console.log(err)

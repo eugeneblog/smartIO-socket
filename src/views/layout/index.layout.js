@@ -3,7 +3,7 @@ import "./index.layout.css";
 import Menus from "../../components/Menu/index.menu";
 import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
-import { updateChannel, getAllType, getNetConfig } from "../../api/index.api";
+import { updateChannel, getAllType, getNetConfig, getChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
 import { Layout, notification, Icon, message } from "antd";
 
@@ -111,8 +111,8 @@ class HLayout extends React.Component {
           <Sider width={240} style={{ background: "#fff" }}>
             <TreePane />
           </Sider>
-          <Content style={{ padding: "20px 50px" }}>
-            <div style={{ background: "#fff", padding: 24, minHeight: 640 }}>
+          <Content style={{ padding: "0px 20px" }}>
+            <div style={{ background: "#fff", padding: 24, minHeight: 800 }}>
               {this.props.children}
             </div>
           </Content>
@@ -127,12 +127,24 @@ class HLayout extends React.Component {
   }
 
   componentDidMount() {
+    // 加载通道信息
+    getChannel().then(channelData => {
+      console.log("加载channel数据");
+      let result = channelData.data;
+      if (result.errno === 0) {
+        let channelData = result["data"];
+        this.props.appstate.channelDataSource = channelData;
+      }
+    });
     // 视图加载完毕后请求数据：获取type文件名
     getAllType()
       .then(typeResult => {
-        let data = typeResult.data["data"];
-        this.props.appstate.allType = data["allFiles"];
-        this.props.appstate.allTypeData = data["allFileData"];
+        let result = typeResult.data;
+        if (result.errno === 0) {
+          let data = result['data']
+          this.props.appstate.allType = data['allFiles'];
+          this.props.appstate.allTypeData = data['allFileData'];
+        }
         console.log("%cgetAlltype...", "color:green;font-weight:bold;");
       })
       .catch(err => {

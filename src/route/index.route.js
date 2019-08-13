@@ -10,6 +10,7 @@ import { HLayout } from "../views/layout/index.layout";
 import Facillty from "../views/facillty/index.facillty.js";
 import ChannelPanel from "../views/channel/index.channel";
 import NotFoundPage from "../components/404/index.notfound";
+import Equipment from "../views/equipment/index.equipment";
 
 let routes = [
   {
@@ -42,6 +43,15 @@ let routes = [
     )
   },
   {
+    path: "/equipment",
+    exact: true,
+    sidebar: () => (
+      <div>
+        <Equipment />
+      </div>
+    )
+  },
+  {
     path: "*",
     exact: true,
     sidebar: () => (
@@ -54,10 +64,10 @@ let routes = [
 
 class MainRoute extends React.Component {
   constructor() {
-    super()
-    this.state={
+    super();
+    this.state = {
       route: routes
-    }
+    };
   }
   render() {
     return (

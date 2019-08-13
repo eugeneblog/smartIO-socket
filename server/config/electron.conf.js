@@ -1,7 +1,5 @@
 const { app, BrowserWindow } = require('electron')
 // 服务端入口文件
-const path = require('path')
-require(path.join(__dirname, '../www.js'))
 let win
 function createWindow() {
     // runDevServer("npm run dev:server")

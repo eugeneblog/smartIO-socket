@@ -135,8 +135,8 @@ class TreeState extends BaseState {
       }
     },
     {
-      title: "Recycle Bin",
-      name: "bin",
+      title: "equipment",
+      name: "equipment",
       key: "0-3",
       icon: "api",
       menu: {
