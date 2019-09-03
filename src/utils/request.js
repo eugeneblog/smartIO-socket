@@ -1,6 +1,13 @@
 import axios from "axios";
 import { message } from "antd";
 
+message.config({
+  // 自动关闭延时
+  duration: 3,
+  // 最大显示数
+  maxCount: 1,
+})
+
 const baseURL =
   process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
@@ -28,8 +35,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => response,
   error => {
-    console.log("err" + error);
-    message.error(error.message, 2 * 1000);
+    message.error(`error: ${error.message}, please check you network server`)
     return Promise.reject(error);
   }
 );

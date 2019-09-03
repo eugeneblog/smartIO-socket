@@ -3,9 +3,14 @@ import "./index.layout.css";
 import Menus from "../../components/Menu/index.menu";
 import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
-import { updateChannel, getAllType, getNetConfig, getChannel } from "../../api/index.api";
+import {
+  updateChannel,
+  getAllType,
+  getNetConfig,
+  getChannel
+} from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Layout, notification, Icon, message } from "antd";
+import { Layout, notification, Icon } from "antd";
 
 const { Header, Content, Sider } = Layout;
 
@@ -101,6 +106,59 @@ class HLayout extends React.Component {
     this.formRef = formRef;
   };
 
+  init = () => {
+    // 加载通道信息
+    getChannel().then(channelData => {
+      console.log("加载channel数据");
+      let result = channelData.data;
+      if (result.errno === 0) {
+        let channelData = result["data"];
+        this.props.appstate.channelDataSource = channelData;
+      }
+    });
+    // 视图加载完毕后请求数据：获取type文件名
+    getAllType().then(typeResult => {
+      let result = typeResult.data;
+      if (result.errno === 0) {
+        let data = result["data"];
+        this.props.appstate.allType = data["allFiles"];
+        this.props.appstate.allTypeData = data["allFileData"];
+      }
+      console.log("%cgetAlltype...", "color:green;font-weight:bold;");
+    });
+    // 获取网络系统的网络配置
+    getNetConfig().then(result => {
+      if (result["data"].errno === 0) {
+        let data = result["data"].data;
+        this.props.appstate.netConfig = data.sysNetConfig || data.net.en0;
+        let netArr = [];
+        // 处理net数据，转换为数组，并分离ipv4地址和ipv6地址
+        for (const key in data.net) {
+          if (data.net.hasOwnProperty(key)) {
+            const element = data.net[key];
+            const ipv4 = element.filter(item => {
+              return item.family !== "IPv6";
+            });
+            const ipv6 = element.filter(item => {
+              return item.family !== "IPv4";
+            });
+            netArr.push({
+              [key]: { ...element },
+              name: key,
+              ipv4: { ...ipv4 },
+              ipv6: { ...ipv6 }
+            });
+          }
+        }
+        this.props.appstate.net = netArr;
+        console.log(
+          "%cgetAllNet_Config配置...",
+          "color:green;font-weight:bold;"
+        );
+        return;
+      }
+    });
+  };
   render() {
     return [
       <Layout key="layout">
@@ -125,67 +183,9 @@ class HLayout extends React.Component {
       />
     ];
   }
-
+  // 在Layout视图构建完成数据初始化的工作
   componentDidMount() {
-    // 加载通道信息
-    getChannel().then(channelData => {
-      console.log("加载channel数据");
-      let result = channelData.data;
-      if (result.errno === 0) {
-        let channelData = result["data"];
-        this.props.appstate.channelDataSource = channelData;
-      }
-    });
-    // 视图加载完毕后请求数据：获取type文件名
-    getAllType()
-      .then(typeResult => {
-        let result = typeResult.data;
-        if (result.errno === 0) {
-          let data = result['data']
-          this.props.appstate.allType = data['allFiles'];
-          this.props.appstate.allTypeData = data['allFileData'];
-        }
-        console.log("%cgetAlltype...", "color:green;font-weight:bold;");
-      })
-      .catch(err => {
-        console.log(err);
-      });
-    // 获取网络系统的网络配置
-    getNetConfig()
-      .then(result => {
-        if (result["data"].errno === 0) {
-          let data = result["data"].data;
-          this.props.appstate.netConfig = data.sysNetConfig || data.net.en0;
-          let netArr = [];
-          // 处理net数据，转换为数组，并分离ipv4地址和ipv6地址
-          for (const key in data.net) {
-            if (data.net.hasOwnProperty(key)) {
-              const element = data.net[key];
-              const ipv4 = element.filter(item => {
-                return item.family !== "IPv6";
-              });
-              const ipv6 = element.filter(item => {
-                return item.family !== "IPv4";
-              });
-              netArr.push({
-                [key]: { ...element },
-                name: key,
-                ipv4: { ...ipv4 },
-                ipv6: { ...ipv6 }
-              });
-            }
-          }
-          this.props.appstate.net = netArr;
-          console.log(
-            "%cgetAllNet_Config配置...",
-            "color:green;font-weight:bold;"
-          );
-          return;
-        }
-      })
-      .catch(err => {
-        message.error(err);
-      });
+    this.init();
   }
 
   componentDidUpdate() {

@@ -113,9 +113,9 @@ class FormPanel extends React.Component {
 
   // 在这个钩子自动更新数据到后端
   componentDidUpdate() {
-    // 防止请求重复
+    // 防抖
     if (!submitTime) {
-      // 触发提交submit函数
+      // 立即触发提交submit函数
       this.handleSubmit();
       submitTime = true;
       setTimeout(() => {
