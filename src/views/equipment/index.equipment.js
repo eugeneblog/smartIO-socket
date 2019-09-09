@@ -11,24 +11,32 @@ import {
   Button,
   Modal,
   Steps,
-  Select
+  Select,
+  message
 } from "antd";
+import * as Socket from "socket.io-client";
 import "./index.equipment.css";
+import { getWhoMsg, sendUdpMes, startWebsocket } from "../../api/index.api";
+// const SocketClient = Socket();
 const { Step } = Steps;
 const { Option } = Select;
 
 const columns = [
-  { title: "Name", dataIndex: "name", key: "name" },
-  { title: "Platform", dataIndex: "platform", key: "platform" },
-  { title: "Version", dataIndex: "version", key: "version" },
-  { title: "Upgraded", dataIndex: "upgradeNum", key: "upgradeNum" },
-  { title: "Creator", dataIndex: "creator", key: "creator" },
-  { title: "Date", dataIndex: "createdAt", key: "createdAt" },
   {
-    title: "Action",
-    key: "operation",
-    render: () => <a href="javascript:;">Publish</a>
-  }
+    title: "DeviceId",
+    dataIndex: "deviceid",
+    key: "deviceid",
+    render: text => (
+      <span>
+        <Icon type="hdd" theme="twoTone" style={{paddingRight: ".4em"}} />
+        {text}
+      </span>
+    )
+  },
+  { title: "Maxapdu", dataIndex: "maxapdu", key: "maxapdu" },
+  { title: "Segmenation", dataIndex: "segmenation", key: "segmenation" },
+  { title: "Vendor id", dataIndex: "vendorid", key: "vendorid" },
+  { title: "Sources", dataIndex: "sources", key: "sources" }
 ];
 
 const menu = (
@@ -83,23 +91,13 @@ const expandedRowRender = () => {
   return <Table columns={columns} dataSource={data} pagination={false} />;
 };
 
-const data = [];
-for (let i = 0; i < 3; ++i) {
-  data.push({
-    key: i,
-    name: "Screem",
-    platform: "iOS",
-    version: "10.3.4.5654",
-    upgradeNum: 500,
-    creator: "Jack",
-    createdAt: "2014-12-24 23:12:00"
-  });
-}
-const searchHandle = function(e) {
+const selecChannelHandle = function(e) {
+  // 显示config modal
   this.setState({
     configVisable: true
   });
 };
+
 let timer = null;
 @inject(allStore => allStore.appstate)
 @observer
@@ -109,19 +107,109 @@ class Equipment extends React.Component {
     this.state = {
       configVisable: false,
       current: 0,
-      isLoading: false
+      isLoading: false,
+      timeout: 1000,
+      estate: false
     };
   }
-  handleOk = e => {
+  handleOk = (e, config) => {
+    // 获取选择的通道配置
+    const { selctConfig } = config;
     this.setState({
-      configVisable: false,
-      isLoading: true
+      selctConfig
     });
-    timer = setTimeout(() => {
-      this.setState({
-        isLoading: false
+    // 开启websocket连接, 获取要发送的信息, 发送udp消息
+    this.connectSocket()
+      .then(isStart => {
+        return getWhoMsg();
+      })
+      .then(whoMsgRes => {
+        let data = whoMsgRes["data"];
+        const { bclcEncodeOriginalRes, pduData } = data;
+        console.log(bclcEncodeOriginalRes, pduData);
+        // 先使用假数据
+        let mes = [
+          0x81,
+          0x0b,
+          0x00,
+          0x0c,
+          0x01,
+          0x20,
+          0xff,
+          0xff,
+          0x00,
+          0xff,
+          0x10,
+          0x08
+        ];
+        return mes;
+      })
+      .then(mes => {
+        // 发送udp消息, table 为loading状态
+        this.setState({
+          configVisable: false,
+          isLoading: true
+        });
+        return sendUdpMes({ ip: "0.0.0.0", port: 47808, mes: mes });
+      })
+      .then(udpData => {
+        const udpResult = udpData["data"];
+        if (udpResult.errno === 0) {
+          this.setState({
+            isLoading: false
+          });
+        }
+      })
+      .catch(err => {
+        message.info("Failed to locate device");
       });
-    }, 2000);
+  };
+
+  discoveryHandle = e => {
+    if (this.socket) {
+      this.socket.close();
+      this.props.appstate.equipmentData = [];
+      // 开启websocket连接, 获取要发送的信息, 发送udp消息
+      getWhoMsg()
+        .then(res => {
+          let data = res["data"];
+          const { bclcEncodeOriginalRes, pduData } = data;
+          console.log(bclcEncodeOriginalRes, pduData);
+          // 先使用假数据
+          let mes = [
+            0x81,
+            0x0b,
+            0x00,
+            0x0c,
+            0x01,
+            0x20,
+            0xff,
+            0xff,
+            0x00,
+            0xff,
+            0x10,
+            0x08
+          ];
+          return mes;
+        })
+        .then(mes => {
+          // 发送udp消息
+          return sendUdpMes({ ip: "0.0.0.0", port: 47808, mes: mes });
+        });
+      this.connectSocket();
+      // 获取who_msg
+      this.setState({
+        configVisable: false,
+        isLoading: true
+      });
+      timer = setTimeout(() => {
+        this.setState({
+          isLoading: false
+        });
+      }, 1000);
+    } else {
+      message.info("Please select the channel configuration first");
+    }
   };
 
   handleCancel = e => {
@@ -130,24 +218,83 @@ class Equipment extends React.Component {
     });
   };
 
+  connectSocket() {
+    return startWebsocket().then(res => {
+      let data = res["data"];
+      let index = 0;
+      if (data.errno === 0) {
+        this.socket = Socket("http://localhost:8001");
+        this.socket.on("connect", () => {
+          this.setState({
+            estate: true
+          });
+          this.socket.emit("client message", { msg: "hi , server" });
+        });
+        this.socket.on("server message", udpData => {
+          // 存储服务端消息
+          let data = udpData["iAmData"];
+          if (data && data["sourceAddr"] !== "192.168.153.104") {
+            this.props.appstate.equipmentData.push({
+              key: (index += 1),
+              deviceid: data["deviceId"],
+              maxapdu: data["maxapdu"],
+              segmenation: data["segment"],
+              vendorid: data["vendorId"],
+              sources: data["address"] + ":" + data["port"]
+            });
+            // console.log(data)
+            console.log("server:", data);
+          }
+        });
+        this.socket.on("disconnect", () => {
+          console.log("client disconnect");
+        });
+        return true;
+      }
+    });
+  }
+
   render() {
     return (
       <React.Fragment>
         <Button
-          onClick={searchHandle.bind(this)}
+          onClick={selecChannelHandle.bind(this)}
           type="primary"
-          icon="search"
+          icon="link"
           style={{ marginBottom: 16, marginRight: 16 }}
           loading={this.state.isLoading}
         >
-          Search
+          {`Select Channel: ${this.state.selctConfig || "none"}`}
         </Button>
+        <Button
+          onClick={this.discoveryHandle}
+          type="primary"
+          icon="sync"
+          loading={this.state.isLoading}
+        >
+          Discovery
+        </Button>
+        <span className="equipment-state">
+          State:{" "}
+          {
+            <b
+              style={this.state.estate ? { color: "green" } : { color: "red" }}
+            >
+              {this.state.estate ? "online •" : "offline •"}
+            </b>
+          }
+        </span>
         <Table
           loading={this.state.isLoading}
           className="components-table-demo-nested"
           columns={columns}
+          pagination={{
+            position: "bottom",
+            defaultPageSize: 30,
+            hideOnSinglePage: true
+          }}
           expandedRowRender={expandedRowRender}
-          dataSource={data}
+          dataSource={this.props.appstate.allEquimpent}
         />
         <ConfigModal
           isShow={this.state.configVisable}
@@ -158,6 +305,11 @@ class Equipment extends React.Component {
     );
   }
   componentWillUnmount() {
+    if (this.socket) {
+      // 退出后关闭websocket连接
+      this.socket.close();
+      this.socket = null;
+    }
     clearTimeout(timer);
     // 卸载异步操作设置状态
     this.setState = (state, callback) => {
@@ -210,7 +362,7 @@ class ConfigModal extends React.Component {
             )}
             {current === steps.length - 1 && (
               <Button type="primary" onClick={this.doneHandle}>
-                Done
+                Start
               </Button>
             )}
           </div>
@@ -225,11 +377,11 @@ class ConfigModal extends React.Component {
       </Modal>
     );
   }
-  doneHandle = () => {
+  doneHandle = e => {
     this.setState({
       current: 0
     });
-    this.props.handleOk();
+    this.props.handleOk(e, this.state);
   };
   selectHandle = (val, opt) => {
     console.log("select", val);

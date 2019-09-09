@@ -46,10 +46,26 @@ export function getSerialPort(params) {
 }
 
 // 发送udp广播消息
-export function sendUdpMes(mes) {
+export function sendUdpMes(data) {
   return request({
-    mes,
-    url: "/api/udp/send",
+    data,
+    url: "/api/socket/udp/send",
     method: "POST"
   });
+}
+
+// 获取who_msg
+export function getWhoMsg() {
+  return request({
+    url: "/api/socket/ffi/who",
+    method: "GET"
+  })
+}
+
+// 开启websocket连接
+export function startWebsocket() {
+  return request({
+    url: "/api/socket/websocket/start",
+    method: "GET"
+  })
 }

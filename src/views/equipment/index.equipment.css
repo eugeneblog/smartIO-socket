@@ -6,3 +6,7 @@
     min-height: 100px;
     text-align: center;
 }
+.equipment-state {
+    padding: 0 .8rem;
+    color: rgb(148, 148, 148);
+}

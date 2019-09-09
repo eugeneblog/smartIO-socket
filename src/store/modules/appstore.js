@@ -1,6 +1,6 @@
 import React from "react";
 import { observable, action, computed } from "mobx";
-import { getChannel } from '../../api/index.api'
+import { getChannel } from "../../api/index.api";
 
 class BaseState {
   @observable language = "";
@@ -32,7 +32,7 @@ class AppState extends BaseState {
     let config = [];
     let index = 0;
     if (!selChannel) {
-      return []
+      return [];
     }
     let NET_CONFIG = selChannel.NET_CONFIG;
     for (const key in NET_CONFIG) {
@@ -42,12 +42,14 @@ class AppState extends BaseState {
           title: key.toLocaleLowerCase(),
           key: (index += 1),
           main: Array.from({ length: Object.keys(element).length }, (v, id) => {
-            let value = typeof element[Object.keys(element)[id]] !== "object"
-              ? element[Object.keys(element)[id]]
-              : element[Object.keys(element)[id]]["#text"];
-            let type = typeof element[Object.keys(element)[id]] === "object"
-              ?  element[Object.keys(element)[id]]['attr'].type
-              : 'span'
+            let value =
+              typeof element[Object.keys(element)[id]] !== "object"
+                ? element[Object.keys(element)[id]]
+                : element[Object.keys(element)[id]]["#text"];
+            let type =
+              typeof element[Object.keys(element)[id]] === "object"
+                ? element[Object.keys(element)[id]]["attr"].type
+                : "span";
             return {
               id,
               label: Object.keys(element)[id],
@@ -88,6 +90,16 @@ class AppState extends BaseState {
   @observable netConfig = [];
   @observable net = [];
 
+  // equipment存放udp消息
+  @observable equipmentData = [];
+
+  @computed get allEquimpent() {
+    let newData = this.equipmentData.map(item => {
+      return item
+    })
+    return newData
+  }
+
   // 根据选择的配置更改channel tab数据
   @action setNetProperty = (sel, data) => {
     let key = this.selectedChannel;
@@ -112,13 +124,13 @@ class AppState extends BaseState {
   // 更新当前channel数据： 就是重新获取一遍，然后写入
   @action updateData = function(id, data) {
     if (id) {
-      console.log(arguments)
+      console.log(arguments);
     }
     getChannel().then(result => {
-      let data = result['data'].data
-      this.channelDataSource = data
-    })
-  }
+      let data = result["data"].data;
+      this.channelDataSource = data;
+    });
+  };
   // 更改modal内部组件
   @action setModalComponent = com => {
     this.modalComponent = com;
