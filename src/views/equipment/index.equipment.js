@@ -4,7 +4,6 @@ import React from "react";
 import { observer, inject } from "mobx-react";
 import {
   Table,
-  Badge,
   Menu,
   Dropdown,
   Icon,
@@ -12,84 +11,24 @@ import {
   Modal,
   Steps,
   Select,
-  message
+  message,
+  Spin,
+  List,
+  Avatar,
+  Progress
 } from "antd";
 import * as Socket from "socket.io-client";
 import "./index.equipment.css";
-import { getWhoMsg, sendUdpMes, startWebsocket } from "../../api/index.api";
+import {
+  getWhoMsg,
+  sendUdpMes,
+  startWebsocket,
+  generateEquXml
+} from "../../api/index.api";
 // const SocketClient = Socket();
 const { Step } = Steps;
 const { Option } = Select;
-
-const columns = [
-  {
-    title: "DeviceId",
-    dataIndex: "deviceid",
-    key: "deviceid",
-    render: text => (
-      <span>
-        <Icon type="hdd" theme="twoTone" style={{paddingRight: ".4em"}} />
-        {text}
-      </span>
-    )
-  },
-  { title: "Maxapdu", dataIndex: "maxapdu", key: "maxapdu" },
-  { title: "Segmenation", dataIndex: "segmenation", key: "segmenation" },
-  { title: "Vendor id", dataIndex: "vendorid", key: "vendorid" },
-  { title: "Sources", dataIndex: "sources", key: "sources" }
-];
-
-const menu = (
-  <Menu>
-    <Menu.Item>Action 1</Menu.Item>
-    <Menu.Item>Action 2</Menu.Item>
-  </Menu>
-);
-
-const expandedRowRender = () => {
-  const columns = [
-    { title: "Date", dataIndex: "date", key: "date" },
-    { title: "Name", dataIndex: "name", key: "name" },
-    {
-      title: "Status",
-      key: "state",
-      render: () => (
-        <span>
-          <Badge status="success" />
-          Finished
-        </span>
-      )
-    },
-    { title: "Upgrade Status", dataIndex: "upgradeNum", key: "upgradeNum" },
-    {
-      title: "Action",
-      dataIndex: "operation",
-      key: "operation",
-      render: () => (
-        <span className="table-operation">
-          <a href="javascript:;">Pause</a>
-          <a href="javascript:;">Stop</a>
-          <Dropdown overlay={menu}>
-            <a href="javascript:;">
-              More <Icon type="down" />
-            </a>
-          </Dropdown>
-        </span>
-      )
-    }
-  ];
-
-  const data = [];
-  for (let i = 0; i < 3; ++i) {
-    data.push({
-      key: i,
-      date: "2014-12-24 23:12:00",
-      name: "This is production name",
-      upgradeNum: "Upgraded: 56"
-    });
-  }
-  return <Table columns={columns} dataSource={data} pagination={false} />;
-};
+const { confirm } = Modal;
 
 const selecChannelHandle = function(e) {
   // 显示config modal
@@ -105,16 +44,165 @@ class Equipment extends React.Component {
   constructor() {
     super();
     this.state = {
+      tableData: [],
       configVisable: false,
       current: 0,
       isLoading: false,
-      timeout: 1000,
-      estate: false
+      estate: false,
+      selEquKeys: [],
+      selEquRows: [],
+      generateLoading: false
     };
+    this.mainMenu = record => {
+      return (
+        <Menu>
+          <Menu.Item
+            onClick={() =>
+              this.exportEquSel(this.state.selEquKeys, this.state.selEquRows)
+            }
+          >
+            Export the selected object
+          </Menu.Item>
+          <Menu.Item
+            onClick={() => this.exportEquAll(this.props.appstate.allEquimpent)}
+          >
+            Export all objects
+          </Menu.Item>
+        </Menu>
+      );
+    };
+
+    this.equipmentMenu = record => {
+      return (
+        <Menu>
+          <Menu.Item onClick={() => this.exportEquOne(record)}>
+            Export the configuration
+          </Menu.Item>
+        </Menu>
+      );
+    };
+
+    this.mainColumns = [
+      { title: "Sources", dataIndex: "sources", key: "sources" },
+      {
+        title: "Action",
+        key: "action",
+        render: (text, record) => {
+          return (
+            <span className="table-operation">
+              <Dropdown overlay={() => this.mainMenu(record)}>
+                <a href="#">
+                  Hover me <Icon type="down" />
+                </a>
+              </Dropdown>
+            </span>
+          );
+        }
+      }
+    ];
+
+    this.columns = [
+      { title: "DeviceId", dataIndex: "deviceid", key: "deviceid" },
+      { title: "Maxapdu", dataIndex: "maxapdu", key: "maxapdu" },
+      {
+        title: "Segmenation",
+        key: "segmenation",
+        dataIndex: "segmenation"
+      },
+      {
+        title: "Vendor id",
+        dataIndex: "vendorid",
+        key: "vendorid"
+      },
+      {
+        title: "Action",
+        dataIndex: "operation",
+        key: "operation",
+        render: (text, record) => {
+          return (
+            <span className="table-operation">
+              <Dropdown overlay={() => this.equipmentMenu(record)}>
+                <a href="javascript:;">
+                  More <Icon type="down" />
+                </a>
+              </Dropdown>
+            </span>
+          );
+        }
+      }
+    ];
   }
-  handleOk = (e, config) => {
+  // 导出单个设备
+  exportEquOne = record => {
+    confirm({
+      title: "Do you want to delete these items?",
+      content:
+        "When clicked the OK button, this dialog will be closed after 1 second",
+      onOk() {
+        return new Promise((resolve, reject) => {
+          setTimeout(Math.random() > 0.5 ? resolve : reject, 1000);
+        }).catch(() => console.log("Oops errors!"));
+      },
+      onCancel() {}
+    });
+  };
+  // 导出所有设备, allRecord: 所有设备对象列表(Array)
+  exportEquAll = allRecord => {
+    console.log(allRecord);
+  };
+  // 导出已选择的设备, selRecord: 所有选择的key(Array)
+  exportEquSel = (selRecordKey, selRecordRow) => {
+    // console.log(selRecordKey, selRecordRow);
+    if (selRecordKey.length >= 1) {
+      confirm({
+        title: "Please confirm your options",
+        content: (
+          <div className="demo-infinite-container">
+            <List
+              itemLayout="horizontal"
+              dataSource={selRecordRow}
+              split={false}
+              renderItem={item => (
+                <List.Item className="demo-event-hover">
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        style={{
+                          backgroundColor: "#f56a00",
+                          marginLeft: ".2rem"
+                        }}
+                      >
+                        E
+                      </Avatar>
+                    }
+                    title={item.deviceid}
+                    description={item.vendorid}
+                  />
+                </List.Item>
+              )}
+            />
+            <Progress percent={50} size="small" status="active" />
+          </div>
+        ),
+        onOk: () => {
+          return generateEquXml().then(result => {
+            console.log(result)
+          }).catch(err => {
+            console.log(err)
+          })
+        },
+        onCancel() {}
+      });
+    } else {
+      message.warning("Please select at least one device");
+    }
+  };
+
+  // 搜索设备
+  searchEqu = (e, channel) => {
     // 获取选择的通道配置
-    const { selctConfig } = config;
+    const { selctConfig, config } = channel;
+    // 获取通道配置信息
     this.setState({
       selctConfig
     });
@@ -150,21 +238,33 @@ class Equipment extends React.Component {
           configVisable: false,
           isLoading: true
         });
-        return sendUdpMes({ ip: "0.0.0.0", port: 47808, mes: mes });
+        return sendUdpMes({
+          ip: "0.0.0.0",
+          port: config.NET_CONFIG.MAIN.PORT["#text"],
+          mes: mes
+        });
       })
       .then(udpData => {
         const udpResult = udpData["data"];
         if (udpResult.errno === 0) {
-          this.setState({
-            isLoading: false
-          });
+          timer = setTimeout(() => {
+            // 如果data 为空，则提示用户没有搜索到设备
+            if (this.props.appstate.equipmentData.length === 0) {
+              message.warning(
+                "No device found, please check channel configuration !"
+              );
+            }
+            this.setState({
+              isLoading: false
+            });
+          }, 1000);
         }
       })
       .catch(err => {
         message.info("Failed to locate device");
       });
   };
-
+  // 重载设备
   discoveryHandle = e => {
     if (this.socket) {
       this.socket.close();
@@ -203,6 +303,12 @@ class Equipment extends React.Component {
         isLoading: true
       });
       timer = setTimeout(() => {
+        // 如果data 为空，则提示用户没有搜索到设备
+        if (this.props.appstate.equipmentData.length === 0) {
+          message.warning(
+            "No device found, please check channel configuration !"
+          );
+        }
         this.setState({
           isLoading: false
         });
@@ -217,7 +323,7 @@ class Equipment extends React.Component {
       configVisable: false
     });
   };
-
+  // 连接websocket
   connectSocket() {
     return startWebsocket().then(res => {
       let data = res["data"];
@@ -234,6 +340,14 @@ class Equipment extends React.Component {
           // 存储服务端消息
           let data = udpData["iAmData"];
           if (data && data["sourceAddr"] !== "192.168.153.104") {
+            this.setState({
+              tableData: [
+                {
+                  key: 1,
+                  sources: data["address"] + ":" + data["port"]
+                }
+              ]
+            });
             this.props.appstate.equipmentData.push({
               key: (index += 1),
               deviceid: data["deviceId"],
@@ -254,56 +368,97 @@ class Equipment extends React.Component {
     });
   }
 
+  // 行选择事件
+  rowSelection = {
+    onChange: (selectedRowKeys, selectedRows) => {
+      this.setState({
+        selEquKeys: selectedRowKeys,
+        selEquRows: selectedRows
+      });
+    },
+    getCheckboxProps: record => ({
+      disabled: record.name === "Disabled User", // Column configuration not to be checked
+      name: record.name
+    })
+  };
+  // 设备表格loading配置对象
+  equTabLoadObj = {
+    size: "large",
+    tip: "Loading",
+    indicator: () => (
+      <Spin
+        indicator={() => <Icon type="home" style={{ fontSize: 24 }} spin />}
+      />
+    )
+  };
+  // 展开事件
+  expandedRowRender = () => {
+    return (
+      <Table
+        rowSelection={this.rowSelection}
+        columns={this.columns}
+        dataSource={this.props.appstate.allEquimpent}
+        pagination={false}
+      />
+    );
+  };
+
   render() {
     return (
       <React.Fragment>
-        <Button
-          onClick={selecChannelHandle.bind(this)}
-          type="primary"
-          icon="link"
-          style={{ marginBottom: 16, marginRight: 16 }}
-          loading={this.state.isLoading}
-        >
-          {`Select Channel: ${this.state.selctConfig || "none"}`}
-        </Button>
-        <Button
-          onClick={this.discoveryHandle}
-          type="primary"
-          icon="sync"
-          loading={this.state.isLoading}
-        >
-          Discovery
-        </Button>
-        <span className="equipment-state">
-          State:{" "}
-          {
-            <b
-              style={this.state.estate ? { color: "green" } : { color: "red" }}
-            >
-              {this.state.estate ? "online •" : "offline •"}
-            </b>
-          }
-        </span>
+        <div className="equipment-toos-layout">
+          <Button
+            onClick={selecChannelHandle.bind(this)}
+            type="primary"
+            icon="link"
+            style={{ marginBottom: 16, marginRight: 16 }}
+            loading={this.state.isLoading}
+          >
+            {`Select Channel: ${this.state.selctConfig || "none"}`}
+          </Button>
+          <Button
+            onClick={this.discoveryHandle}
+            type="primary"
+            icon="sync"
+            loading={this.state.isLoading}
+          >
+            Discovery
+          </Button>
+          <span className="equipment-state">
+            State:{" "}
+            {
+              <b
+                style={
+                  this.state.estate ? { color: "#52c41a" } : { color: "red" }
+                }
+              >
+                {this.state.estate ? "online •" : "offline •"}
+              </b>
+            }
+          </span>
+        </div>
         <Table
           loading={this.state.isLoading}
           className="components-table-demo-nested"
-          columns={columns}
+          columns={this.mainColumns}
           pagination={{
             position: "bottom",
             defaultPageSize: 30,
             hideOnSinglePage: true
           }}
-          expandedRowRender={expandedRowRender}
-          dataSource={this.props.appstate.allEquimpent}
+          defaultExpandedRowKeys={[1]}
+          expandedRowRender={this.expandedRowRender}
+          dataSource={this.state.tableData}
         />
         <ConfigModal
           isShow={this.state.configVisable}
           handleCancel={this.handleCancel}
-          handleOk={this.handleOk}
+          handleOk={this.searchEqu}
         />
       </React.Fragment>
     );
   }
+  // 关闭socket连接，清空该组件所有关联对象，防止内存泄漏
   componentWillUnmount() {
     if (this.socket) {
       // 退出后关闭websocket连接
@@ -377,12 +532,14 @@ class ConfigModal extends React.Component {
       </Modal>
     );
   }
+
   doneHandle = e => {
     this.setState({
       current: 0
     });
     this.props.handleOk(e, this.state);
   };
+
   selectHandle = (val, opt) => {
     console.log("select", val);
     const { channelDataSource } = this.props.appstate;
@@ -398,6 +555,7 @@ class ConfigModal extends React.Component {
       config: { ...config[0] }
     });
   };
+
   stepView = current => {
     const { channelDataSource } = this.props.appstate;
     let channelData = [];
@@ -454,6 +612,7 @@ class ConfigModal extends React.Component {
         break;
     }
   };
+
   next() {
     const current = this.state.current + 1;
     this.setState({ current });

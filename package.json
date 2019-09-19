@@ -78,7 +78,6 @@
     "start": "node scripts/start.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win --x64",
-    "dev:server": "cross-env NODE_ENV=dev nodemon ./server/www.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
     "estart": "electron .",

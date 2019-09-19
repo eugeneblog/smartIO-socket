@@ -45,6 +45,15 @@ export function getSerialPort(params) {
   });
 }
 
+// 设备生成xml
+export function generateEquXml(data) {
+  return request({
+    data,
+    url: "/api/socket/genequxml",
+    method: "POST"
+  })
+}
+
 // 发送udp广播消息
 export function sendUdpMes(data) {
   return request({

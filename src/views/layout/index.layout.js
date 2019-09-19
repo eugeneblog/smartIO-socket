@@ -60,9 +60,7 @@ class HLayout extends React.Component {
           this.props.appstate.updateData();
           notification.open({
             message: "Message",
-            description: `You have successfully created new channel is: ${
-              values.select
-            }`,
+            description: `You have successfully created new channel is: ${values.select}`,
             icon: <Icon type="smile" style={{ color: "#108ee9" }} />
           });
         }
