@@ -5,6 +5,7 @@
     background-color: #fafafa;
     min-height: 100px;
     text-align: center;
+    position: relative;
 }
 
 .equipment-state {
@@ -27,4 +28,13 @@
 
 .equipment-toos-layout {
     margin-top: 10px;
+}
+
+.equipment-find-router {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    padding: 10px
 }

@@ -45,7 +45,7 @@ export function getSerialPort(params) {
   });
 }
 
-// 设备生成xml
+// 设备存储生成xml
 export function generateEquXml(data) {
   return request({
     data,
@@ -61,6 +61,15 @@ export function sendUdpMes(data) {
     url: "/api/socket/udp/send",
     method: "POST"
   });
+}
+
+// 获取路由
+export function getUdpNetNum(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/getnetnum",
+    method: "POST"
+  })
 }
 
 // 获取who_msg

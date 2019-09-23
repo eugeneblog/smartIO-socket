@@ -21,6 +21,7 @@ import * as Socket from "socket.io-client";
 import "./index.equipment.css";
 import {
   getWhoMsg,
+  getUdpNetNum,
   sendUdpMes,
   startWebsocket,
   generateEquXml
@@ -41,17 +42,17 @@ let timer = null;
 @inject(allStore => allStore.appstate)
 @observer
 class Equipment extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
-      tableData: [],
       configVisable: false,
       current: 0,
       isLoading: false,
       estate: false,
       selEquKeys: [],
       selEquRows: [],
-      generateLoading: false
+      generateLoading: false,
+      findNetStatus: ""
     };
     this.mainMenu = record => {
       return (
@@ -167,6 +168,7 @@ class Equipment extends React.Component {
                   <List.Item.Meta
                     avatar={
                       <Avatar
+                        size="small"
                         style={{
                           backgroundColor: "#f56a00",
                           marginLeft: ".2rem"
@@ -176,20 +178,21 @@ class Equipment extends React.Component {
                       </Avatar>
                     }
                     title={item.deviceid}
-                    description={item.vendorid}
                   />
+                  <Progress percent={50} size="small" />
                 </List.Item>
               )}
             />
-            <Progress percent={50} size="small" status="active" />
           </div>
         ),
         onOk: () => {
-          return generateEquXml().then(result => {
-            console.log(result)
-          }).catch(err => {
-            console.log(err)
-          })
+          return generateEquXml()
+            .then(result => {
+              console.log(result);
+            })
+            .catch(err => {
+              console.log(err);
+            });
         },
         onCancel() {}
       });
@@ -207,10 +210,7 @@ class Equipment extends React.Component {
       selctConfig
     });
     // 开启websocket连接, 获取要发送的信息, 发送udp消息
-    this.connectSocket()
-      .then(isStart => {
-        return getWhoMsg();
-      })
+    getWhoMsg()
       .then(whoMsgRes => {
         let data = whoMsgRes["data"];
         const { bclcEncodeOriginalRes, pduData } = data;
@@ -240,8 +240,10 @@ class Equipment extends React.Component {
         });
         return sendUdpMes({
           ip: "0.0.0.0",
-          port: config.NET_CONFIG.MAIN.PORT["#text"],
-          mes: mes
+          port: config.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
+          mes: mes,
+          local_port: config.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
+          remote_port: config.NET_CONFIG.MAIN.REMOTE_PORT["#text"]
         });
       })
       .then(udpData => {
@@ -340,14 +342,12 @@ class Equipment extends React.Component {
           // 存储服务端消息
           let data = udpData["iAmData"];
           if (data && data["sourceAddr"] !== "192.168.153.104") {
-            this.setState({
-              tableData: [
-                {
-                  key: 1,
-                  sources: data["address"] + ":" + data["port"]
-                }
-              ]
-            });
+            this.props.appstate.equipmentTableData = [
+              {
+                key: 1,
+                sources: data["address"] + ":" + data["port"]
+              }
+            ];
             this.props.appstate.equipmentData.push({
               key: (index += 1),
               deviceid: data["deviceId"],
@@ -404,8 +404,14 @@ class Equipment extends React.Component {
   };
 
   render() {
-    return (
-      <React.Fragment>
+    const { location } = this.props.router;
+    console.log(location);
+    return location.pathname !== "/person" ? (
+      <div
+        style={{
+          display: location.pathname !== "/equipment" ? "none" : "block"
+        }}
+      >
         <div className="equipment-toos-layout">
           <Button
             onClick={selecChannelHandle.bind(this)}
@@ -448,15 +454,21 @@ class Equipment extends React.Component {
           }}
           defaultExpandedRowKeys={[1]}
           expandedRowRender={this.expandedRowRender}
-          dataSource={this.state.tableData}
+          dataSource={this.props.appstate.equipmentTableData.slice()}
         />
         <ConfigModal
           isShow={this.state.configVisable}
           handleCancel={this.handleCancel}
           handleOk={this.searchEqu}
         />
-      </React.Fragment>
+      </div>
+    ) : (
+      ""
     );
+  }
+  componentDidMount() {
+    // 开启websocket连接
+    this.connectSocket()
   }
   // 关闭socket连接，清空该组件所有关联对象，防止内存泄漏
   componentWillUnmount() {
@@ -479,6 +491,9 @@ const steps = [
     content: "First-content"
   },
   {
+    title: "Find Router"
+  },
+  {
     title: "Search",
     content: "Second-content"
   }
@@ -489,7 +504,9 @@ class ConfigModal extends React.Component {
     super(props);
     this.state = {
       current: 0,
-      selctConfig: ""
+      selctConfig: "",
+      findNetProgress: 0,
+      netprogress: ""
     };
   }
   render() {
@@ -592,22 +609,33 @@ class ConfigModal extends React.Component {
       case "Search":
         if (this.state.config) {
           let netConfig = this.state.config.NET_CONFIG;
-          const { IP, MAC, NAME, PORT } = netConfig.MAIN;
+          const { MAC, NAME, LOCAL_PORT, REMOTE_PORT } = netConfig.MAIN;
           return (
             <div label="Main" style={{ textAlign: "left", padding: "10px" }}>
-              IP: {IP}
+              local_port: {LOCAL_PORT["#text"]}
+              <br />
+              remote_port: {REMOTE_PORT["#text"]}
               <br />
               mac: {MAC}
               <br />
               name: {NAME}
-              <br />
-              port: {PORT["#text"]}
               <br />
             </div>
           );
         } else {
           return null;
         }
+      case "Find Router":
+        return (
+          <div className="equipment-find-router">
+            <Progress percent={this.state.findNetProgress} showInfo={true} status={this.state.findNetStatus} />
+            <span style={{ color: "#bbb", marginTop: ".4rem" }}>
+              Looking for network number
+            </span>
+            <br />
+            <span>The network number is: {this.props.appstate.NetProgress}</span>
+          </div>
+        );
       default:
         break;
     }
@@ -615,6 +643,42 @@ class ConfigModal extends React.Component {
 
   next() {
     const current = this.state.current + 1;
+    let timer = null;
+    let step = 10;
+    // 选择通道之后的步骤，获取网络号
+    if (current === 1) {
+      let netResult
+      if (!this.props.appstate.NetProgress) {
+        getUdpNetNum({
+          ip: "0.0.0.0",
+          local_port: 47808,
+          remote_port: 47808
+        })
+          .then(result => {
+            let data = result["data"];
+            if (data.errno === 0) {
+              // 成功获取网络号
+              netResult = 10000
+            }
+          })
+          .catch(err => {
+            this.setState({
+              findNetStatus: "exception"
+            })
+            message.error("The network number could not be found")
+          });
+        timer = setInterval(() => {
+          if (this.state.findNetProgress >= 100) {
+            this.props.appstate.NetProgress = netResult;
+            clearInterval(timer);
+          }
+          this.setState({
+            findNetProgress: this.state.findNetProgress + step
+          });
+        }, 50);
+        console.log("查找路由");
+      }
+    }
     this.setState({ current });
   }
 

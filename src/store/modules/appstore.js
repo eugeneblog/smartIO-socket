@@ -92,6 +92,10 @@ class AppState extends BaseState {
 
   // equipment存放udp消息
   @observable equipmentData = [];
+  @observable equipmentTableData = [];
+
+  // 网络号
+  @observable NetProgress = undefined;
 
   @computed get allEquimpent() {
     let newData = this.equipmentData.map(item => {

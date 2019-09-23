@@ -36,20 +36,18 @@ let routes = [
   {
     path: "/channel",
     exact: true,
-    sidebar: () => (
-      <div>
-        <ChannelPanel />
-      </div>
-    )
+    sidebar: props => {
+      return (
+        <div>
+          <ChannelPanel />
+        </div>
+      );
+    }
   },
   {
     path: "/equipment",
     exact: true,
-    sidebar: () => (
-      <div>
-        <Equipment />
-      </div>
-    )
+    children: (props) => <Equipment router={props} />
   },
   {
     path: "*",
@@ -62,9 +60,20 @@ let routes = [
   }
 ];
 
+class Comp extends React.Component {
+  componentDidUpdate(prevProps) {
+    // will be true
+    const locationChanged = this.props.location !== prevProps.location;
+    console.log(locationChanged);
+  }
+  render() {
+    return <div>login</div>;
+  }
+}
+
 class MainRoute extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
       route: routes
     };
@@ -74,7 +83,7 @@ class MainRoute extends React.Component {
       <Router>
         <div className="App">
           <Switch>
-            <Route exact path="/login" component={() => <div>login</div>} />
+            <Route exact path="/login" component={Comp} />
             <HLayout>
               <Switch>
                 {this.state.route.map((route, index) => (
