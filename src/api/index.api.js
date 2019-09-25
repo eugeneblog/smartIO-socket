@@ -87,3 +87,21 @@ export function startWebsocket() {
     method: "GET"
   })
 }
+
+// 搜索设备对象属性
+export function searchEquObjProperties(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/searchEquObjAll",
+    method: "POST"
+  })
+}
+
+// 搜索单个设备对象列表
+export function searchEquOneObj(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/searchEquObj",
+    method: "POST"
+  })
+}

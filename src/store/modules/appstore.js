@@ -85,6 +85,7 @@ class AppState extends BaseState {
   }
   // 被选择的channel
   @observable selectedChannel;
+  @observable selectedChannelData;
 
   // 网络配置
   @observable netConfig = [];
@@ -95,7 +96,13 @@ class AppState extends BaseState {
   @observable equipmentTableData = [];
 
   // 网络号
-  @observable NetProgress = undefined;
+  @observable NetProgress = [];
+  
+  // 过滤网络号
+  @action filterNetProgress() {
+    let newNetProg = this.NetProgress
+    return newNetProg
+  }
 
   @computed get allEquimpent() {
     let newData = this.equipmentData.map(item => {

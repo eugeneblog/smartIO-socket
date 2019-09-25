@@ -15,7 +15,8 @@ import {
   Spin,
   List,
   Avatar,
-  Progress
+  Progress,
+  Tabs
 } from "antd";
 import * as Socket from "socket.io-client";
 import "./index.equipment.css";
@@ -24,9 +25,11 @@ import {
   getUdpNetNum,
   sendUdpMes,
   startWebsocket,
-  generateEquXml
+  generateEquXml,
+  searchEquOneObj
 } from "../../api/index.api";
 // const SocketClient = Socket();
+const { TabPane } = Tabs;
 const { Step } = Steps;
 const { Option } = Select;
 const { confirm } = Modal;
@@ -69,6 +72,19 @@ class Equipment extends React.Component {
           >
             Export all objects
           </Menu.Item>
+          <Menu.Item onClick={() => this.searchObjProper()}>
+            Search for object properties
+          </Menu.Item>
+          <Menu.Item
+            onClick={() =>
+              this.searchSelObjProper(
+                this.state.selEquKeys,
+                this.state.selEquRows
+              )
+            }
+          >
+            Search selected object properties
+          </Menu.Item>
         </Menu>
       );
     };
@@ -78,6 +94,9 @@ class Equipment extends React.Component {
         <Menu>
           <Menu.Item onClick={() => this.exportEquOne(record)}>
             Export the configuration
+          </Menu.Item>
+          <Menu.Item onClick={() => this.getEquPropertie(record)}>
+            Retrieve attributes
           </Menu.Item>
         </Menu>
       );
@@ -132,7 +151,49 @@ class Equipment extends React.Component {
         }
       }
     ];
+
+    this.takeEquipmentColumns = [
+      { title: "DeviceId", dataIndex: "deviceid", key: "deviceid" },
+      { title: "Maxapdu", dataIndex: "maxapdu", key: "maxapdu" },
+      {
+        title: "Segmenation",
+        key: "segmenation",
+        dataIndex: "segmenation"
+      },
+      {
+        title: "Vendor id",
+        dataIndex: "vendorid",
+        key: "vendorid"
+      },
+      {
+        title: "Action",
+        dataIndex: "operation",
+        key: "operation",
+        render: (text, record) => {
+          return (
+            <span className="table-operation">
+              <Dropdown overlay={() => this.equipmentMenu(record)}>
+                <a href="javascript:;">
+                  More <Icon type="down" />
+                </a>
+              </Dropdown>
+            </span>
+          );
+        }
+      }
+    ];
   }
+  // 获取对象列表
+  getEquPropertie = record => {
+    
+    const { deviceid, maxapdu, segmenation, sources, sourceAddrNet, sourceAddrAdr } = record;
+    searchEquOneObj({ deviceid, maxapdu, segmenation, sources, sourceAddrNet, sourceAddrAdr }).then(
+      result => {
+        let data = result["data"];
+        console.log(data);
+      }
+    );
+  };
   // 导出单个设备
   exportEquOne = record => {
     confirm({
@@ -149,7 +210,9 @@ class Equipment extends React.Component {
   };
   // 导出所有设备, allRecord: 所有设备对象列表(Array)
   exportEquAll = allRecord => {
-    console.log(allRecord);
+    confirm({
+      title: "Export all"
+    });
   };
   // 导出已选择的设备, selRecord: 所有选择的key(Array)
   exportEquSel = (selRecordKey, selRecordRow) => {
@@ -200,15 +263,32 @@ class Equipment extends React.Component {
       message.warning("Please select at least one device");
     }
   };
+  // 搜索选择好的对象
+  searchSelObjProper = (selRecordKey, selRecordRow) => {
+    if (selRecordKey.length >= 1) {
+      confirm({
+        title: "Add to the required group",
+        content: (
+          <div>{`You have selected ${selRecordRow.length} devices`}</div>
+        ),
+        onOk: () => {
+          this.props.equipmentstate.takeEquiObj = selRecordRow
+        }
+      });
+    } else {
+      message.warning("Please select at least one device");
+    }
+  };
+  // 搜索所有设备对象属性
+  searchObjProper = () => {};
 
   // 搜索设备
   searchEqu = (e, channel) => {
     // 获取选择的通道配置
     const { selctConfig, config } = channel;
-    // 获取通道配置信息
-    this.setState({
-      selctConfig
-    });
+    // 保存当前选择的通道以及通道信息
+    this.props.appstate.selectedChannel = selctConfig;
+    this.props.appstate.selectedChannelData = config;
     // 开启websocket连接, 获取要发送的信息, 发送udp消息
     getWhoMsg()
       .then(whoMsgRes => {
@@ -268,6 +348,11 @@ class Equipment extends React.Component {
   };
   // 重载设备
   discoveryHandle = e => {
+    const { selectedChannelData, selectedChannel } = this.props.appstate;
+    if (!selectedChannel) {
+      message.info("Please select the channel configuration first");
+      return;
+    }
     if (this.socket) {
       this.socket.close();
       this.props.appstate.equipmentData = [];
@@ -296,7 +381,14 @@ class Equipment extends React.Component {
         })
         .then(mes => {
           // 发送udp消息
-          return sendUdpMes({ ip: "0.0.0.0", port: 47808, mes: mes });
+          return sendUdpMes({
+            ip: "0.0.0.0",
+            port: selectedChannelData.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
+            mes: mes,
+            local_port: selectedChannelData.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
+            remote_port:
+              selectedChannelData.NET_CONFIG.MAIN.REMOTE_PORT["#text"]
+          });
         });
       this.connectSocket();
       // 获取who_msg
@@ -315,8 +407,6 @@ class Equipment extends React.Component {
           isLoading: false
         });
       }, 1000);
-    } else {
-      message.info("Please select the channel configuration first");
     }
   };
 
@@ -339,9 +429,13 @@ class Equipment extends React.Component {
           this.socket.emit("client message", { msg: "hi , server" });
         });
         this.socket.on("server message", udpData => {
-          // 存储服务端消息
+          // 忽略空消息
+          if (!Object.keys(udpData).length) {
+            return;
+          }
+          // 存储whois IAm报文
           let data = udpData["iAmData"];
-          if (data && data["sourceAddr"] !== "192.168.153.104") {
+          if (data) {
             this.props.appstate.equipmentTableData = [
               {
                 key: 1,
@@ -354,11 +448,17 @@ class Equipment extends React.Component {
               maxapdu: data["maxapdu"],
               segmenation: data["segment"],
               vendorid: data["vendorId"],
-              sources: data["address"] + ":" + data["port"]
+              sources: data["address"] + ":" + data["port"],
+              sourceAddrNet: data['sourceAddrNet'],
+              sourceAddrAdr: data['sourceAddrAdr']
             });
             // console.log(data)
-            console.log("server:", data);
           }
+          // 存储 IAm-router报文
+          if (udpData["allNetWork"]) {
+            this.props.appstate.NetProgress = udpData["allNetWork"];
+          }
+          console.log("server:", udpData);
         });
         this.socket.on("disconnect", () => {
           console.log("client disconnect");
@@ -393,69 +493,93 @@ class Equipment extends React.Component {
   };
   // 展开事件
   expandedRowRender = () => {
+    function childExpandeRowRender() {
+      return <div></div>;
+    }
     return (
       <Table
         rowSelection={this.rowSelection}
         columns={this.columns}
         dataSource={this.props.appstate.allEquimpent}
         pagination={false}
+        expandedRowRender={childExpandeRowRender}
       />
     );
   };
 
   render() {
     const { location } = this.props.router;
-    console.log(location);
+    // console.log(location);
     return location.pathname !== "/person" ? (
       <div
         style={{
           display: location.pathname !== "/equipment" ? "none" : "block"
         }}
       >
-        <div className="equipment-toos-layout">
-          <Button
-            onClick={selecChannelHandle.bind(this)}
-            type="primary"
-            icon="link"
-            style={{ marginBottom: 16, marginRight: 16 }}
-            loading={this.state.isLoading}
-          >
-            {`Select Channel: ${this.state.selctConfig || "none"}`}
-          </Button>
-          <Button
-            onClick={this.discoveryHandle}
-            type="primary"
-            icon="sync"
-            loading={this.state.isLoading}
-          >
-            Discovery
-          </Button>
-          <span className="equipment-state">
-            State:{" "}
-            {
-              <b
-                style={
-                  this.state.estate ? { color: "#52c41a" } : { color: "red" }
-                }
+        <Tabs type="card">
+          <TabPane tab="Tab Title 1" key="1">
+            <div className="equipment-toos-layout">
+              <Button
+                onClick={selecChannelHandle.bind(this)}
+                type="primary"
+                icon="link"
+                style={{ marginBottom: 16, marginRight: 16 }}
+                loading={this.state.isLoading}
               >
-                {this.state.estate ? "online •" : "offline •"}
-              </b>
-            }
-          </span>
-        </div>
-        <Table
-          loading={this.state.isLoading}
-          className="components-table-demo-nested"
-          columns={this.mainColumns}
-          pagination={{
-            position: "bottom",
-            defaultPageSize: 30,
-            hideOnSinglePage: true
-          }}
-          defaultExpandedRowKeys={[1]}
-          expandedRowRender={this.expandedRowRender}
-          dataSource={this.props.appstate.equipmentTableData.slice()}
-        />
+                {`Select Channel: ${this.props.appstate.selectedChannel ||
+                  "none"}`}
+              </Button>
+              <Button
+                onClick={this.discoveryHandle}
+                type="primary"
+                icon="sync"
+                loading={this.state.isLoading}
+              >
+                Discovery
+              </Button>
+              <span className="equipment-state">
+                State:{" "}
+                {
+                  <b
+                    style={
+                      this.state.estate
+                        ? { color: "#52c41a" }
+                        : { color: "red" }
+                    }
+                  >
+                    {this.state.estate ? "online •" : "offline •"}
+                  </b>
+                }
+              </span>
+            </div>
+            <Table
+              loading={this.state.isLoading}
+              className="components-table-demo-nested"
+              columns={this.mainColumns}
+              pagination={{
+                position: "bottom",
+                defaultPageSize: 30,
+                hideOnSinglePage: true
+              }}
+              defaultExpandedRowKeys={[1]}
+              expandedRowRender={this.expandedRowRender}
+              dataSource={this.props.appstate.equipmentTableData.slice()}
+            />
+          </TabPane>
+          <TabPane tab="Tab Title 2" key="2">
+            <Table
+              loading={this.state.isLoading}
+              className="components-table-demo-nested"
+              columns={this.takeEquipmentColumns}
+              pagination={{
+                position: "bottom",
+                defaultPageSize: 30,
+                hideOnSinglePage: true
+              }}
+              dataSource={this.props.equipmentstate.takeEquiObj.slice()}
+            />
+          </TabPane>
+        </Tabs>
         <ConfigModal
           isShow={this.state.configVisable}
           handleCancel={this.handleCancel}
@@ -468,7 +592,7 @@ class Equipment extends React.Component {
   }
   componentDidMount() {
     // 开启websocket连接
-    this.connectSocket()
+    this.connectSocket();
   }
   // 关闭socket连接，清空该组件所有关联对象，防止内存泄漏
   componentWillUnmount() {
@@ -505,8 +629,7 @@ class ConfigModal extends React.Component {
     this.state = {
       current: 0,
       selctConfig: "",
-      findNetProgress: 0,
-      netprogress: ""
+      findNetProgress: 0
     };
   }
   render() {
@@ -628,12 +751,19 @@ class ConfigModal extends React.Component {
       case "Find Router":
         return (
           <div className="equipment-find-router">
-            <Progress percent={this.state.findNetProgress} showInfo={true} status={this.state.findNetStatus} />
+            <Progress
+              percent={this.state.findNetProgress}
+              showInfo={true}
+              status={this.state.findNetStatus}
+            />
             <span style={{ color: "#bbb", marginTop: ".4rem" }}>
               Looking for network number
             </span>
             <br />
-            <span>The network number is: {this.props.appstate.NetProgress}</span>
+            <span>
+              {this.props.appstate.filterNetProgress().length || 0} network
+              Numbers found{" "}
+            </span>
           </div>
         );
       default:
@@ -647,8 +777,7 @@ class ConfigModal extends React.Component {
     let step = 10;
     // 选择通道之后的步骤，获取网络号
     if (current === 1) {
-      let netResult
-      if (!this.props.appstate.NetProgress) {
+      if (!this.props.appstate.filterNetProgress().length) {
         getUdpNetNum({
           ip: "0.0.0.0",
           local_port: 47808,
@@ -658,18 +787,16 @@ class ConfigModal extends React.Component {
             let data = result["data"];
             if (data.errno === 0) {
               // 成功获取网络号
-              netResult = 10000
             }
           })
           .catch(err => {
             this.setState({
               findNetStatus: "exception"
-            })
-            message.error("The network number could not be found")
+            });
+            message.error("The network number could not be found");
           });
         timer = setInterval(() => {
           if (this.state.findNetProgress >= 100) {
-            this.props.appstate.NetProgress = netResult;
             clearInterval(timer);
           }
           this.setState({
