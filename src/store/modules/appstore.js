@@ -4,6 +4,7 @@ import { getChannel } from "../../api/index.api";
 
 class BaseState {
   @observable language = "";
+  @observable globalStatus = "ready";
 }
 
 class AppState extends BaseState {
@@ -97,18 +98,18 @@ class AppState extends BaseState {
 
   // 网络号
   @observable NetProgress = [];
-  
+
   // 过滤网络号
   @action filterNetProgress() {
-    let newNetProg = this.NetProgress
-    return newNetProg
+    let newNetProg = this.NetProgress;
+    return newNetProg;
   }
 
   @computed get allEquimpent() {
     let newData = this.equipmentData.map(item => {
-      return item
-    })
-    return newData
+      return item;
+    });
+    return newData;
   }
 
   // 根据选择的配置更改channel tab数据

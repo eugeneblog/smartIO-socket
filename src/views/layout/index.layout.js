@@ -10,7 +10,7 @@ import {
   getChannel
 } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Layout, notification, Icon } from "antd";
+import { Layout, notification, Icon, BackTop, message } from "antd";
 
 const { Header, Content, Sider } = Layout;
 
@@ -157,9 +157,10 @@ class HLayout extends React.Component {
       }
     });
   };
+
   render() {
     return [
-      <Layout key="layout">
+      <Layout key="layout" state={this.props.appstate.globalStatus}>
         <Header className="header">
           <Menus />
         </Header>
@@ -170,6 +171,7 @@ class HLayout extends React.Component {
           <Content style={{ padding: "0px 20px" }}>
             <div style={{ background: "#fff", padding: 24, minHeight: 800 }}>
               {this.props.children}
+              <BackTop />
             </div>
           </Content>
         </Layout>
@@ -187,6 +189,11 @@ class HLayout extends React.Component {
   }
 
   componentDidUpdate() {
+    if (this.props.appstate.globalStatus === 'loading') {
+      message.loading("Action in progress..", 0)
+    } else {
+      message.destroy()
+    }
     // 路由切换触发
     let pathName = this.props.location.pathname;
     this.props.treestate.defaultSelectedKey(pathName.split("/")[1]);

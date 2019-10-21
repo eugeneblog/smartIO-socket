@@ -105,3 +105,21 @@ export function searchEquOneObj(data) {
     method: "POST"
   })
 }
+
+// 上传到数据库
+export function uploadDataToRedis(data) {
+  return request({
+    data,
+    url: "/api/socket/db/upload",
+    method: "POST"
+  })
+}
+
+// 读取数据库设备信息
+export function readDeviceData(data) {
+  return request({
+    data,
+    url: "/api/socket/db/getDevice",
+    method: "POST"
+  })
+}

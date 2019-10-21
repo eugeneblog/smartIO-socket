@@ -5,7 +5,6 @@ import { observer, inject } from "mobx-react";
 import {
   Table,
   Menu,
-  Dropdown,
   Icon,
   Button,
   Modal,
@@ -16,7 +15,10 @@ import {
   List,
   Avatar,
   Progress,
-  Tabs
+  Tabs,
+  Row,
+  Col,
+  Tree
 } from "antd";
 import * as Socket from "socket.io-client";
 import "./index.equipment.css";
@@ -25,14 +27,16 @@ import {
   getUdpNetNum,
   sendUdpMes,
   startWebsocket,
-  generateEquXml,
-  searchEquOneObj
+  searchEquOneObj,
+  uploadDataToRedis
 } from "../../api/index.api";
+import SavedEqu from "./savedEqu";
 // const SocketClient = Socket();
 const { TabPane } = Tabs;
 const { Step } = Steps;
 const { Option } = Select;
 const { confirm } = Modal;
+const { TreeNode } = Tree;
 
 const selecChannelHandle = function(e) {
   // 显示config modal
@@ -55,9 +59,11 @@ class Equipment extends React.Component {
       selEquKeys: [],
       selEquRows: [],
       generateLoading: false,
-      findNetStatus: ""
+      findNetStatus: "",
+      expandeRow: []
     };
-    this.mainMenu = record => {
+
+    this.mainMenu = () => {
       return (
         <Menu>
           <Menu.Item
@@ -66,11 +72,6 @@ class Equipment extends React.Component {
             }
           >
             Export the selected object
-          </Menu.Item>
-          <Menu.Item
-            onClick={() => this.exportEquAll(this.props.appstate.allEquimpent)}
-          >
-            Export all objects
           </Menu.Item>
           <Menu.Item onClick={() => this.searchObjProper()}>
             Search for object properties
@@ -95,117 +96,88 @@ class Equipment extends React.Component {
           <Menu.Item onClick={() => this.exportEquOne(record)}>
             Export the configuration
           </Menu.Item>
-          <Menu.Item onClick={() => this.getEquPropertie(record)}>
-            Retrieve attributes
-          </Menu.Item>
         </Menu>
       );
     };
 
     this.mainColumns = [
-      { title: "Sources", dataIndex: "sources", key: "sources" },
-      {
-        title: "Action",
-        key: "action",
-        render: (text, record) => {
-          return (
-            <span className="table-operation">
-              <Dropdown overlay={() => this.mainMenu(record)}>
-                <a href="#">
-                  Hover me <Icon type="down" />
-                </a>
-              </Dropdown>
-            </span>
-          );
-        }
-      }
+      { title: "Sources", dataIndex: "sources", key: "sources" }
     ];
 
     this.columns = [
       { title: "DeviceId", dataIndex: "deviceid", key: "deviceid" },
-      { title: "Maxapdu", dataIndex: "maxapdu", key: "maxapdu" },
-      {
-        title: "Segmenation",
-        key: "segmenation",
-        dataIndex: "segmenation"
-      },
-      {
-        title: "Vendor id",
-        dataIndex: "vendorid",
-        key: "vendorid"
-      },
       {
         title: "Action",
-        dataIndex: "operation",
-        key: "operation",
-        render: (text, record) => {
+        key: "key",
+        dataIndex: "key",
+        render: (key, record) => {
           return (
-            <span className="table-operation">
-              <Dropdown overlay={() => this.equipmentMenu(record)}>
-                <a href="javascript:;">
-                  More <Icon type="down" />
-                </a>
-              </Dropdown>
-            </span>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => this.getEquPropertie(record)}
+            >
+              > > >
+            </Button>
           );
         }
       }
     ];
 
     this.takeEquipmentColumns = [
-      { title: "DeviceId", dataIndex: "deviceid", key: "deviceid" },
-      { title: "Maxapdu", dataIndex: "maxapdu", key: "maxapdu" },
+      { title: "objProperty", dataIndex: "objProperty", key: "objProperty" },
+      { title: "value", dataIndex: "value", key: "value" },
       {
         title: "Segmenation",
         key: "segmenation",
         dataIndex: "segmenation"
-      },
-      {
-        title: "Vendor id",
-        dataIndex: "vendorid",
-        key: "vendorid"
-      },
-      {
-        title: "Action",
-        dataIndex: "operation",
-        key: "operation",
-        render: (text, record) => {
-          return (
-            <span className="table-operation">
-              <Dropdown overlay={() => this.equipmentMenu(record)}>
-                <a href="javascript:;">
-                  More <Icon type="down" />
-                </a>
-              </Dropdown>
-            </span>
-          );
-        }
       }
     ];
   }
   // 获取对象列表
   getEquPropertie = record => {
-    
-    const { deviceid, maxapdu, segmenation, sources, sourceAddrNet, sourceAddrAdr } = record;
-    searchEquOneObj({ deviceid, maxapdu, segmenation, sources, sourceAddrNet, sourceAddrAdr }).then(
-      result => {
-        let data = result["data"];
-        console.log(data);
-      }
-    );
+    const {
+      deviceid,
+      maxapdu,
+      segmenation,
+      sources,
+      sourceAddrNet,
+      sourceAddrAdr
+    } = record;
+    return searchEquOneObj({
+      deviceid,
+      maxapdu,
+      segmenation,
+      sources,
+      sourceAddrNet,
+      sourceAddrAdr
+    }).then(result => {
+      let data = result["data"];
+      // 开始解析设备对象, 全局状态变为loading
+      this.props.appstate.globalStatus = "loading";
+      return data;
+    });
   };
   // 导出单个设备
   exportEquOne = record => {
+    // 存入数据库，读取设备对象，参数：设备, 对象, 属性
+  };
+
+  // 上传到数据库
+  uploadClickHandle = () => {
+    const { takeEquiObj } = this.props.equipmentstate;
+    console.log(takeEquiObj);
     confirm({
-      title: "Do you want to delete these items?",
-      content:
-        "When clicked the OK button, this dialog will be closed after 1 second",
-      onOk() {
-        return new Promise((resolve, reject) => {
-          setTimeout(Math.random() > 0.5 ? resolve : reject, 1000);
-        }).catch(() => console.log("Oops errors!"));
-      },
-      onCancel() {}
+      title: "Commit the data to the database",
+      onOk: () => {
+        return uploadDataToRedis({
+          deviceId: "test1001",
+          obj: 2,
+          attribute: { a: 1, b: 2 }
+        }).then(result => {
+          console.log(result);
+        });
+      }
     });
   };
   // 导出所有设备, allRecord: 所有设备对象列表(Array)
@@ -216,7 +188,7 @@ class Equipment extends React.Component {
   };
   // 导出已选择的设备, selRecord: 所有选择的key(Array)
   exportEquSel = (selRecordKey, selRecordRow) => {
-    // console.log(selRecordKey, selRecordRow);
+    console.log(selRecordKey, selRecordRow);
     if (selRecordKey.length >= 1) {
       confirm({
         title: "Please confirm your options",
@@ -242,20 +214,18 @@ class Equipment extends React.Component {
                     }
                     title={item.deviceid}
                   />
-                  <Progress percent={50} size="small" />
                 </List.Item>
               )}
             />
           </div>
         ),
         onOk: () => {
-          return generateEquXml()
-            .then(result => {
-              console.log(result);
-            })
-            .catch(err => {
-              console.log(err);
-            });
+          return new Promise(resolve => {
+            setTimeout(() => {
+              this.props.equipmentstate.takeEquiObj = selRecordRow;
+              resolve();
+            }, 500);
+          });
         },
         onCancel() {}
       });
@@ -272,7 +242,7 @@ class Equipment extends React.Component {
           <div>{`You have selected ${selRecordRow.length} devices`}</div>
         ),
         onOk: () => {
-          this.props.equipmentstate.takeEquiObj = selRecordRow
+          this.props.equipmentstate.takeEquiObj = selRecordRow;
         }
       });
     } else {
@@ -289,28 +259,36 @@ class Equipment extends React.Component {
     // 保存当前选择的通道以及通道信息
     this.props.appstate.selectedChannel = selctConfig;
     this.props.appstate.selectedChannelData = config;
-    // 开启websocket连接, 获取要发送的信息, 发送udp消息
+    // 判断是否已经存在数据
+    if (this.props.appstate.equipmentData.length) {
+      confirm({
+        title: "Do you want ",
+        content: "You will empty the device and retrieve the device list",
+        onOk: () => {
+          this.props.appstate.equipmentTableData = [];
+          this.setState(
+            {
+              configVisable: false
+            },
+            () => {
+              // 开始新一轮设备搜索
+            }
+          );
+          return;
+        }
+      });
+      return;
+    }
     getWhoMsg()
       .then(whoMsgRes => {
         let data = whoMsgRes["data"];
-        const { bclcEncodeOriginalRes, pduData } = data;
-        console.log(bclcEncodeOriginalRes, pduData);
-        // 先使用假数据
-        let mes = [
-          0x81,
-          0x0b,
-          0x00,
-          0x0c,
-          0x01,
-          0x20,
-          0xff,
-          0xff,
-          0x00,
-          0xff,
-          0x10,
-          0x08
-        ];
-        return mes;
+        let { bclcEncodeOriginalRes, pduData } = data;
+        pduData = pduData["data"].slice(0, bclcEncodeOriginalRes).map(item => {
+          return item.toString(16).length > 1
+            ? "0x" + item.toString(16)
+            : "0x0" + item.toString(16);
+        });
+        return pduData;
       })
       .then(mes => {
         // 发送udp消息, table 为loading状态
@@ -333,19 +311,20 @@ class Equipment extends React.Component {
             // 如果data 为空，则提示用户没有搜索到设备
             if (this.props.appstate.equipmentData.length === 0) {
               message.warning(
-                "No device found, please check channel configuration !"
+                "Timeout, please check network or configuration!"
               );
             }
             this.setState({
               isLoading: false
             });
-          }, 1000);
+          }, 1500);
         }
       })
       .catch(err => {
         message.info("Failed to locate device");
       });
   };
+
   // 重载设备
   discoveryHandle = e => {
     const { selectedChannelData, selectedChannel } = this.props.appstate;
@@ -354,30 +333,21 @@ class Equipment extends React.Component {
       return;
     }
     if (this.socket) {
-      this.socket.close();
-      this.props.appstate.equipmentData = [];
+      // this.socket.close();
+      // this.props.appstate.equipmentData = [];
       // 开启websocket连接, 获取要发送的信息, 发送udp消息
       getWhoMsg()
         .then(res => {
           let data = res["data"];
-          const { bclcEncodeOriginalRes, pduData } = data;
-          console.log(bclcEncodeOriginalRes, pduData);
-          // 先使用假数据
-          let mes = [
-            0x81,
-            0x0b,
-            0x00,
-            0x0c,
-            0x01,
-            0x20,
-            0xff,
-            0xff,
-            0x00,
-            0xff,
-            0x10,
-            0x08
-          ];
-          return mes;
+          let { bclcEncodeOriginalRes, pduData } = data;
+          pduData = pduData["data"]
+            .slice(0, bclcEncodeOriginalRes)
+            .map(item => {
+              return item.toString(16).length > 1
+                ? "0x" + item.toString(16)
+                : "0x0" + item.toString(16);
+            });
+          return pduData;
         })
         .then(mes => {
           // 发送udp消息
@@ -399,14 +369,12 @@ class Equipment extends React.Component {
       timer = setTimeout(() => {
         // 如果data 为空，则提示用户没有搜索到设备
         if (this.props.appstate.equipmentData.length === 0) {
-          message.warning(
-            "No device found, please check channel configuration !"
-          );
+          message.warning("Timeout, please check network or configuration!");
         }
         this.setState({
           isLoading: false
         });
-      }, 1000);
+      }, 1500);
     }
   };
 
@@ -436,27 +404,51 @@ class Equipment extends React.Component {
           // 存储whois IAm报文
           let data = udpData["iAmData"];
           if (data) {
-            this.props.appstate.equipmentTableData = [
-              {
-                key: 1,
-                sources: data["address"] + ":" + data["port"]
-              }
-            ];
-            this.props.appstate.equipmentData.push({
-              key: (index += 1),
-              deviceid: data["deviceId"],
-              maxapdu: data["maxapdu"],
-              segmenation: data["segment"],
-              vendorid: data["vendorId"],
-              sources: data["address"] + ":" + data["port"],
-              sourceAddrNet: data['sourceAddrNet'],
-              sourceAddrAdr: data['sourceAddrAdr']
+            // 如果equipmentData里面有该设备了则不进行插入操作
+            let isThere = this.props.appstate.equipmentData.findIndex(item => {
+              return data["deviceId"] === item.deviceid;
             });
+            if (isThere === -1) {
+              this.props.appstate.equipmentTableData = [
+                {
+                  key: 1,
+                  sources: data["address"] + ":" + data["port"]
+                }
+              ];
+              this.props.appstate.equipmentData.push({
+                key: (index += 1),
+                deviceid: data["deviceId"],
+                maxapdu: data["maxapdu"],
+                segmenation: data["segment"],
+                vendorid: data["vendorId"],
+                sources: data["address"] + ":" + data["port"],
+                sourceAddrNet: data["sourceAddrNet"],
+                sourceAddrAdr: data["sourceAddrAdr"]
+              });
+            }
+            return;
             // console.log(data)
           }
           // 存储 IAm-router报文
           if (udpData["allNetWork"]) {
             this.props.appstate.NetProgress = udpData["allNetWork"];
+          }
+          // 存储 属性报文
+          if (udpData["property_data"]) {
+            this.props.equipmentstate.propertyDataSour = udpData;
+            this.props.appstate.equipmentData.forEach(item => {
+              if (item.deviceid === udpData.device_inatance) {
+                item.property_data = udpData.property_data.map(
+                  (item, index) => {
+                    return {
+                      key: index,
+                      ...item
+                    };
+                  }
+                );
+              }
+            });
+            this.props.appstate.globalStatus = "ready";
           }
           console.log("server:", udpData);
         });
@@ -492,17 +484,130 @@ class Equipment extends React.Component {
     )
   };
   // 展开事件
-  expandedRowRender = () => {
-    function childExpandeRowRender() {
-      return <div></div>;
+  onExpandClickHandle = (expanded, record) => {
+    if (expanded) {
+      this.setState({
+        expandeRow: [record.key]
+      });
+    } else {
+      this.setState({
+        expandeRow: []
+      });
     }
+  };
+
+  // 属性table
+  childExpandeRowRender = record => {
+    if (!record.property_data) {
+      return <div>Click search to get the device object</div>;
+    }
+    const treeData = record.property_data;
+    let treeList = [];
+    // 改变原始数据结构，在数据上进行分类
+    let Obj_list = {
+      object_type_text: undefined
+    };
+    let Other_list = {
+      key: "0-0-0",
+      object_type_text: "Device info",
+      children: []
+    };
+    // 拆分objlist
+    function breakUp(arr) {
+      let result = [];
+      arr.forEach((item, index) => {
+        if (!arr[index + 1]) {
+          return;
+        }
+        if (item.object_type !== arr[index + 1].object_type) {
+          let obj_group = {
+            object_type: item.object_type,
+            key: `0-0-0-${index}`,
+            object_type_text: item.object_type_text,
+            children: []
+          };
+          result.push(obj_group);
+        }
+      });
+      result.forEach(item => {
+        // 过滤不相同类型的type
+        let type = item.object_type;
+        let childNode = arr.filter((item, key) => {
+          item.key = `0-0-0-0-${key}`;
+          return type === item.object_type;
+        });
+        item.children.push(...childNode);
+      });
+      return result;
+    }
+    treeData.forEach((list, key) => {
+      if (list.objPropertyId === 76) {
+        // 再根据obj_type 细分
+        let childResult = breakUp(list.value);
+        Obj_list.objPropertyId = list.objPropertyId;
+        Obj_list.children = [...childResult];
+        Obj_list.key = `0-0-1`;
+        return;
+      }
+      if (list.objPropertyId === 70) {
+        Obj_list.object_type_text = list.value;
+        return;
+      }
+      list.key = `0-0-0-${key}`;
+      Other_list.children.push(list);
+    });
+    treeList.push(Other_list, Obj_list);
+
+    function renderTreeNodes(data) {
+      return data.map(node => {
+        if (node.children) {
+          return (
+            <TreeNode
+              title={<span>{node.object_type_text}: </span>}
+              key={node.key}
+            >
+              {renderTreeNodes(node.children)}
+            </TreeNode>
+          );
+        } else {
+          let val = node.value;
+          if (typeof val === "object") {
+            val = "...obj";
+          }
+          return (
+            <TreeNode
+              title={
+                <span>
+                  {node.object_type_text}: {val}
+                </span>
+              }
+              key={node.key}
+            ></TreeNode>
+          );
+        }
+      });
+    }
+
+    return (
+      <React.Fragment>
+        <Tree showLine defaultExpandedKeys={["0-0-0"]} autoExpandParent={false}>
+          {renderTreeNodes(treeList)}
+        </Tree>
+      </React.Fragment>
+    );
+  };
+  // 设备table
+  expandedRowRender = () => {
     return (
       <Table
         rowSelection={this.rowSelection}
         columns={this.columns}
-        dataSource={this.props.appstate.allEquimpent}
+        dataSource={this.props.appstate.equipmentData.slice()}
         pagination={false}
-        expandedRowRender={childExpandeRowRender}
+        expandRowByClick={false}
+        expandedRowRender={this.childExpandeRowRender}
+        onExpand={this.onExpandClickHandle}
+        expandedRowKeys={this.state.expandeRow}
       />
     );
   };
@@ -517,13 +622,13 @@ class Equipment extends React.Component {
         }}
       >
         <Tabs type="card">
-          <TabPane tab="Tab Title 1" key="1">
+          <TabPane tab="Equipment" key="1">
             <div className="equipment-toos-layout">
               <Button
                 onClick={selecChannelHandle.bind(this)}
                 type="primary"
                 icon="link"
-                style={{ marginBottom: 16, marginRight: 16 }}
+                size="small"
                 loading={this.state.isLoading}
               >
                 {`Select Channel: ${this.props.appstate.selectedChannel ||
@@ -533,51 +638,59 @@ class Equipment extends React.Component {
                 onClick={this.discoveryHandle}
                 type="primary"
                 icon="sync"
+                size="small"
                 loading={this.state.isLoading}
               >
                 Discovery
               </Button>
-              <span className="equipment-state">
-                State:{" "}
-                {
-                  <b
-                    style={
-                      this.state.estate
-                        ? { color: "#52c41a" }
-                        : { color: "red" }
-                    }
-                  >
-                    {this.state.estate ? "online •" : "offline •"}
-                  </b>
+              <Button
+                onClick={() =>
+                  this.exportEquSel(
+                    this.state.selEquKeys,
+                    this.state.selEquRows
+                  )
                 }
-              </span>
+                type="primary"
+                icon="plus"
+                size="small"
+                loading={this.state.isLoading}
+              >
+                Add
+              </Button>
+              <Button
+                onClick={this.uploadClickHandle}
+                type="primary"
+                size="small"
+                icon="plus"
+                loading={this.state.isLoading}
+              >
+                Upload
+              </Button>
             </div>
-            <Table
-              loading={this.state.isLoading}
-              className="components-table-demo-nested"
-              columns={this.mainColumns}
-              pagination={{
-                position: "bottom",
-                defaultPageSize: 30,
-                hideOnSinglePage: true
-              }}
-              defaultExpandedRowKeys={[1]}
-              expandedRowRender={this.expandedRowRender}
-              dataSource={this.props.appstate.equipmentTableData.slice()}
-            />
-          </TabPane>
-          <TabPane tab="Tab Title 2" key="2">
-            <Table
-              loading={this.state.isLoading}
-              className="components-table-demo-nested"
-              columns={this.takeEquipmentColumns}
-              pagination={{
-                position: "bottom",
-                defaultPageSize: 30,
-                hideOnSinglePage: true
-              }}
-              dataSource={this.props.equipmentstate.takeEquiObj.slice()}
-            />
+            <Row gutter={16}>
+              <Col className="gutter-row" span={14}>
+                <div className="equipment-divier">
+                  <Table
+                    loading={this.state.isLoading}
+                    className="components-table-demo-nested"
+                    columns={this.mainColumns}
+                    pagination={{
+                      position: "bottom",
+                      defaultPageSize: 30,
+                      hideOnSinglePage: true
+                    }}
+                    defaultExpandedRowKeys={[1]}
+                    expandedRowRender={this.expandedRowRender}
+                    dataSource={this.props.appstate.equipmentTableData.slice()}
+                  />
+                </div>
+              </Col>
+              <Col className="gutter-row" span={10}>
+                <div className="equipment-divier">
+                  <SavedEqu />
+                </div>
+              </Col>
+            </Row>
           </TabPane>
         </Tabs>
         <ConfigModal
@@ -674,10 +787,10 @@ class ConfigModal extends React.Component {
   }
 
   doneHandle = e => {
+    this.props.handleOk(e, this.state);
     this.setState({
       current: 0
     });
-    this.props.handleOk(e, this.state);
   };
 
   selectHandle = (val, opt) => {
