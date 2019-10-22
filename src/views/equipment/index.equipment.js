@@ -12,7 +12,9 @@ import {
   Tabs,
   Row,
   Col,
-  Tree
+  Tree,
+  Tooltip,
+  Icon
 } from "antd";
 import * as Socket from "socket.io-client";
 import "./index.equipment.css";
@@ -23,8 +25,9 @@ import {
   searchEquOneObj,
   uploadDataToRedis
 } from "../../api/index.api";
-import StorageEqu from "./StorageEqu"
+import StorageEqu from "./StorageEqu";
 import ConfigModal from "./configmodal";
+import DeviceSvg from "../../svg/devicelink.svg";
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 const { TreeNode } = Tree;
@@ -35,6 +38,9 @@ const selecChannelHandle = function(e) {
     configVisable: true
   });
 };
+
+let selEquKeys = [];
+let selEquRows = [];
 
 let timer = null;
 // table > tree 节点
@@ -123,18 +129,16 @@ function EquipmentTableTree(record) {
               </span>
             }
             key={node.key}
-          ></TreeNode>
+          />
         );
       }
     });
   }
 
   return (
-    <React.Fragment>
-      <Tree showLine autoExpandParent={false}>
-        {renderTreeNodes(treeList)}
-      </Tree>
-    </React.Fragment>
+    <Tree showLine autoExpandParent={false}>
+      {renderTreeNodes(treeList)}
+    </Tree>
   );
 }
 
@@ -158,10 +162,52 @@ class EquipmentTable extends React.Component {
         expandRowByClick={false}
         expandedRowRender={record => EquipmentTableTree(record)}
         onExpand={this.onExpandClickHandle}
+        expandIcon={this.expandIconRender}
         expandedRowKeys={this.state.expandeRow}
+        size="middle"
       />
     );
   }
+  // 展开事件
+  onExpandClickHandle = (expanded, record) => {
+    if (expanded) {
+      this.setState({
+        expandeRow: [record.key]
+      });
+    } else {
+      this.setState({
+        expandeRow: []
+      });
+    }
+  };
+  // 自定义展开图标
+  expandIconRender = record => {
+    let isPropertyData = Boolean(record["record"].property_data);
+    let device = record["record"];
+    // 如果该设备已经读取了设备对象，则显示图标
+    if (isPropertyData) {
+      if (!record.expanded) {
+        return (
+          <Button
+            onClick={() => record.onExpand(device)}
+            size="small"
+            icon="plus-square"
+            type="link"
+          />
+        );
+      } else {
+        return (
+          <Button
+            onClick={() => record.onExpand(device)}
+            size="small"
+            icon="minus-square"
+            type="link"
+          />
+        );
+      }
+    }
+    return;
+  };
   // 获取对象列表
   getEquPropertie = record => {
     const {
@@ -183,23 +229,8 @@ class EquipmentTable extends React.Component {
       let data = result["data"];
       // 开始解析设备对象, 全局状态变为loading
       this.props.appstate.globalStatus = "loading";
-      this.setState({
-        expandeRow: []
-      });
       return data;
     });
-  };
-  // 展开事件
-  onExpandClickHandle = (expanded, record) => {
-    if (expanded) {
-      this.setState({
-        expandeRow: [record.key]
-      });
-    } else {
-      this.setState({
-        expandeRow: []
-      });
-    }
   };
 
   columns = [
@@ -209,7 +240,26 @@ class EquipmentTable extends React.Component {
       key: "deviceid",
       sortDirections: ["ascend"],
       sortOrder: "ascend",
-      defaultSortOrder: "ascend"
+      defaultSortOrder: "ascend",
+      render: (key, record) => {
+        return (
+          <span style={{ color: "#3e90f7", fontWeight: "bold" }}>
+            <Icon component={DeviceSvg} />
+            &nbsp;
+            {record.deviceid}
+          </span>
+        );
+      }
+    },
+    {
+      title: "Mac",
+      dataIndex: "sourceAddrAdr",
+      key: "sourceAddrAdr"
+    },
+    {
+      title: "NetNum",
+      dataIndex: "sourceAddrNet",
+      key: "sourceAddrNet"
     },
     {
       title: "Action",
@@ -217,13 +267,14 @@ class EquipmentTable extends React.Component {
       dataIndex: "key",
       render: (key, record) => {
         return (
-          <Button
-            type="link"
-            size="small"
-            onClick={() => this.getEquPropertie(record)}
-          >
-            > > >
-          </Button>
+          <Tooltip placement="topLeft" title="Search device object">
+            <Button
+              type="link"
+              size="small"
+              onClick={() => this.getEquPropertie(record)}
+              icon="search"
+            />
+          </Tooltip>
         );
       }
     }
@@ -231,10 +282,8 @@ class EquipmentTable extends React.Component {
   // 行选择事件
   rowSelection = {
     onChange: (selectedRowKeys, selectedRows) => {
-      this.setState({
-        selEquKeys: selectedRowKeys,
-        selEquRows: selectedRows
-      });
+      selEquKeys = selectedRowKeys;
+      selEquRows = selectedRows;
     },
     getCheckboxProps: record => ({
       disabled: record.name === "Disabled User", // Column configuration not to be checked
@@ -259,8 +308,9 @@ class Equipment extends React.Component {
     ];
   }
   // 上传到数据库
-  uploadClickHandle = () => {
+  uploadClickHandle = (selequ, allequ) => {
     const { takeEquiObj } = this.props.equipmentstate;
+    console.log(selequ, allequ);
     console.log(takeEquiObj);
     confirm({
       title: "Commit the data to the database",
@@ -506,18 +556,21 @@ class Equipment extends React.Component {
           // 存储 属性报文
           if (udpData["property_data"]) {
             this.props.equipmentstate.propertyDataSour = udpData;
-            this.props.appstate.equipmentData.forEach(item => {
-              if (item.deviceid === udpData.device_inatance) {
-                item.property_data = udpData.property_data.map(
-                  (item, index) => {
-                    return {
-                      key: index,
-                      ...item
-                    };
-                  }
-                );
+            this.props.appstate.equipmentData = this.props.appstate.equipmentData.map(
+              item => {
+                if (item.deviceid === udpData.device_inatance) {
+                  item.property_data = udpData.property_data.map(
+                    (item, index) => {
+                      return {
+                        key: index,
+                        ...item
+                      };
+                    }
+                  );
+                }
+                return item;
               }
-            });
+            );
             this.props.appstate.globalStatus = "ready";
           }
           console.log("server:", udpData);
@@ -576,7 +629,7 @@ class Equipment extends React.Component {
                 Add
               </Button>
               <Button
-                onClick={this.uploadClickHandle}
+                onClick={() => this.uploadClickHandle(selEquKeys, selEquRows)}
                 type="primary"
                 size="small"
                 icon="plus"
@@ -589,7 +642,9 @@ class Equipment extends React.Component {
               <Col className="gutter-row" span={14}>
                 <div className="equipment-divier">
                   <Table
+                    title={() => <span>Discovered</span>}
                     loading={this.state.isLoading}
+                    size="middle"
                     className="components-table-demo-nested"
                     columns={this.mainColumns}
                     pagination={{
@@ -605,7 +660,7 @@ class Equipment extends React.Component {
               </Col>
               <Col className="gutter-row" span={10}>
                 <div className="equipment-divier">
-                  <StorageEqu />
+                  <StorageEqu title={() => <span>Database</span>} />
                 </div>
               </Col>
             </Row>

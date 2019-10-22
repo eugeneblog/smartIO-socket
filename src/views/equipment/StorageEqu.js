@@ -46,7 +46,9 @@ class StorageEqu extends React.Component {
   render() {
     return (
       <Table
+        title={this.props.title}
         columns={this.columns}
+        size="middle"
         dataSource={this.props.equipmentstate.takeEquiObj.slice()}
         pagination={{
           position: "bottom",
