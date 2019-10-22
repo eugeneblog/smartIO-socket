@@ -4,17 +4,11 @@ import React from "react";
 import { observer, inject } from "mobx-react";
 import {
   Table,
-  Menu,
-  Icon,
   Button,
   Modal,
-  Steps,
-  Select,
   message,
-  Spin,
   List,
   Avatar,
-  Progress,
   Tabs,
   Row,
   Col,
@@ -24,17 +18,14 @@ import * as Socket from "socket.io-client";
 import "./index.equipment.css";
 import {
   getWhoMsg,
-  getUdpNetNum,
   sendUdpMes,
   startWebsocket,
   searchEquOneObj,
   uploadDataToRedis
 } from "../../api/index.api";
-import SavedEqu from "./savedEqu";
-// const SocketClient = Socket();
+import StorageEqu from "./StorageEqu"
+import ConfigModal from "./configmodal";
 const { TabPane } = Tabs;
-const { Step } = Steps;
-const { Option } = Select;
 const { confirm } = Modal;
 const { TreeNode } = Tree;
 
@@ -46,93 +37,130 @@ const selecChannelHandle = function(e) {
 };
 
 let timer = null;
+// table > tree 节点
+function EquipmentTableTree(record) {
+  if (!record.property_data) {
+    return <div>Click search to get the device object</div>;
+  }
+  const treeData = record.property_data;
+  let treeList = [];
+  // 改变原始数据结构，在数据上进行分类
+  let Obj_list = {
+    object_type_text: undefined
+  };
+  let Other_list = {
+    key: "0-0-0",
+    object_type_text: "Device info",
+    children: []
+  };
+  // 拆分objlist
+  function breakUp(arr) {
+    let result = [];
+    arr.forEach((item, index) => {
+      if (!arr[index + 1]) {
+        return;
+      }
+      if (item.object_type !== arr[index + 1].object_type) {
+        let obj_group = {
+          object_type: item.object_type,
+          key: `0-0-0-${index}`,
+          object_type_text: item.object_type_text,
+          children: []
+        };
+        result.push(obj_group);
+      }
+    });
+    result.forEach(item => {
+      // 过滤不相同类型的type
+      let type = item.object_type;
+      let childNode = arr.filter((item, key) => {
+        item.key = `0-0-0-0-${key}`;
+        return type === item.object_type;
+      });
+      item.children.push(...childNode);
+    });
+    return result;
+  }
+  treeData.forEach((list, key) => {
+    if (list.objPropertyId === 76) {
+      // 再根据obj_type 细分
+      let childResult = breakUp(list.value);
+      Obj_list.objPropertyId = list.objPropertyId;
+      Obj_list.children = [...childResult];
+      Obj_list.key = `0-0-1`;
+      return;
+    }
+    if (list.objPropertyId === 70) {
+      Obj_list.object_type_text = list.value;
+      return;
+    }
+    list.key = `0-0-0-${key}`;
+    Other_list.children.push(list);
+  });
+  treeList.push(Other_list, Obj_list);
+
+  function renderTreeNodes(data) {
+    return data.map(node => {
+      if (node.children) {
+        return (
+          <TreeNode
+            title={<span>{node.object_type_text}: </span>}
+            key={node.key}
+          >
+            {renderTreeNodes(node.children)}
+          </TreeNode>
+        );
+      } else {
+        let val = node.value;
+        if (typeof val === "object") {
+          val = "...obj";
+        }
+        return (
+          <TreeNode
+            title={
+              <span>
+                {node.object_type_text}: {val}
+              </span>
+            }
+            key={node.key}
+          ></TreeNode>
+        );
+      }
+    });
+  }
+
+  return (
+    <React.Fragment>
+      <Tree showLine autoExpandParent={false}>
+        {renderTreeNodes(treeList)}
+      </Tree>
+    </React.Fragment>
+  );
+}
+
+// 设备 table 组件
 @inject(allStore => allStore.appstate)
 @observer
-class Equipment extends React.Component {
+class EquipmentTable extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      configVisable: false,
-      current: 0,
-      isLoading: false,
-      estate: false,
-      selEquKeys: [],
-      selEquRows: [],
-      generateLoading: false,
-      findNetStatus: "",
       expandeRow: []
     };
-
-    this.mainMenu = () => {
-      return (
-        <Menu>
-          <Menu.Item
-            onClick={() =>
-              this.exportEquSel(this.state.selEquKeys, this.state.selEquRows)
-            }
-          >
-            Export the selected object
-          </Menu.Item>
-          <Menu.Item onClick={() => this.searchObjProper()}>
-            Search for object properties
-          </Menu.Item>
-          <Menu.Item
-            onClick={() =>
-              this.searchSelObjProper(
-                this.state.selEquKeys,
-                this.state.selEquRows
-              )
-            }
-          >
-            Search selected object properties
-          </Menu.Item>
-        </Menu>
-      );
-    };
-
-    this.equipmentMenu = record => {
-      return (
-        <Menu>
-          <Menu.Item onClick={() => this.exportEquOne(record)}>
-            Export the configuration
-          </Menu.Item>
-        </Menu>
-      );
-    };
-
-    this.mainColumns = [
-      { title: "Sources", dataIndex: "sources", key: "sources" }
-    ];
-
-    this.columns = [
-      { title: "DeviceId", dataIndex: "deviceid", key: "deviceid" },
-      {
-        title: "Action",
-        key: "key",
-        dataIndex: "key",
-        render: (key, record) => {
-          return (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => this.getEquPropertie(record)}
-            >
-              > > >
-            </Button>
-          );
-        }
-      }
-    ];
-
-    this.takeEquipmentColumns = [
-      { title: "objProperty", dataIndex: "objProperty", key: "objProperty" },
-      { title: "value", dataIndex: "value", key: "value" },
-      {
-        title: "Segmenation",
-        key: "segmenation",
-        dataIndex: "segmenation"
-      }
-    ];
+  }
+  render() {
+    return (
+      <Table
+        rowSelection={this.rowSelection}
+        columns={this.columns}
+        dataSource={this.props.appstate.equipmentData.slice()}
+        pagination={false}
+        expandRowByClick={false}
+        expandedRowRender={record => EquipmentTableTree(record)}
+        onExpand={this.onExpandClickHandle}
+        expandedRowKeys={this.state.expandeRow}
+      />
+    );
   }
   // 获取对象列表
   getEquPropertie = record => {
@@ -155,14 +183,81 @@ class Equipment extends React.Component {
       let data = result["data"];
       // 开始解析设备对象, 全局状态变为loading
       this.props.appstate.globalStatus = "loading";
+      this.setState({
+        expandeRow: []
+      });
       return data;
     });
   };
-  // 导出单个设备
-  exportEquOne = record => {
-    // 存入数据库，读取设备对象，参数：设备, 对象, 属性
+  // 展开事件
+  onExpandClickHandle = (expanded, record) => {
+    if (expanded) {
+      this.setState({
+        expandeRow: [record.key]
+      });
+    } else {
+      this.setState({
+        expandeRow: []
+      });
+    }
   };
 
+  columns = [
+    {
+      title: "DeviceId",
+      dataIndex: "deviceid",
+      key: "deviceid",
+      sortDirections: ["ascend"],
+      sortOrder: "ascend",
+      defaultSortOrder: "ascend"
+    },
+    {
+      title: "Action",
+      key: "key",
+      dataIndex: "key",
+      render: (key, record) => {
+        return (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => this.getEquPropertie(record)}
+          >
+            > > >
+          </Button>
+        );
+      }
+    }
+  ];
+  // 行选择事件
+  rowSelection = {
+    onChange: (selectedRowKeys, selectedRows) => {
+      this.setState({
+        selEquKeys: selectedRowKeys,
+        selEquRows: selectedRows
+      });
+    },
+    getCheckboxProps: record => ({
+      disabled: record.name === "Disabled User", // Column configuration not to be checked
+      name: record.name
+    })
+  };
+}
+
+// 父组件
+@inject(allStore => allStore.appstate)
+@observer
+class Equipment extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      configVisable: false,
+      isLoading: false,
+      estate: false
+    };
+    this.mainColumns = [
+      { title: "Sources", dataIndex: "sources", key: "sources" }
+    ];
+  }
   // 上传到数据库
   uploadClickHandle = () => {
     const { takeEquiObj } = this.props.equipmentstate;
@@ -178,12 +273,6 @@ class Equipment extends React.Component {
           console.log(result);
         });
       }
-    });
-  };
-  // 导出所有设备, allRecord: 所有设备对象列表(Array)
-  exportEquAll = allRecord => {
-    confirm({
-      title: "Export all"
     });
   };
   // 导出已选择的设备, selRecord: 所有选择的key(Array)
@@ -233,25 +322,6 @@ class Equipment extends React.Component {
       message.warning("Please select at least one device");
     }
   };
-  // 搜索选择好的对象
-  searchSelObjProper = (selRecordKey, selRecordRow) => {
-    if (selRecordKey.length >= 1) {
-      confirm({
-        title: "Add to the required group",
-        content: (
-          <div>{`You have selected ${selRecordRow.length} devices`}</div>
-        ),
-        onOk: () => {
-          this.props.equipmentstate.takeEquiObj = selRecordRow;
-        }
-      });
-    } else {
-      message.warning("Please select at least one device");
-    }
-  };
-  // 搜索所有设备对象属性
-  searchObjProper = () => {};
-
   // 搜索设备
   searchEqu = (e, channel) => {
     // 获取选择的通道配置
@@ -460,158 +530,6 @@ class Equipment extends React.Component {
     });
   }
 
-  // 行选择事件
-  rowSelection = {
-    onChange: (selectedRowKeys, selectedRows) => {
-      this.setState({
-        selEquKeys: selectedRowKeys,
-        selEquRows: selectedRows
-      });
-    },
-    getCheckboxProps: record => ({
-      disabled: record.name === "Disabled User", // Column configuration not to be checked
-      name: record.name
-    })
-  };
-  // 设备表格loading配置对象
-  equTabLoadObj = {
-    size: "large",
-    tip: "Loading",
-    indicator: () => (
-      <Spin
-        indicator={() => <Icon type="home" style={{ fontSize: 24 }} spin />}
-      />
-    )
-  };
-  // 展开事件
-  onExpandClickHandle = (expanded, record) => {
-    if (expanded) {
-      this.setState({
-        expandeRow: [record.key]
-      });
-    } else {
-      this.setState({
-        expandeRow: []
-      });
-    }
-  };
-
-  // 属性table
-  childExpandeRowRender = record => {
-    if (!record.property_data) {
-      return <div>Click search to get the device object</div>;
-    }
-    const treeData = record.property_data;
-    let treeList = [];
-    // 改变原始数据结构，在数据上进行分类
-    let Obj_list = {
-      object_type_text: undefined
-    };
-    let Other_list = {
-      key: "0-0-0",
-      object_type_text: "Device info",
-      children: []
-    };
-    // 拆分objlist
-    function breakUp(arr) {
-      let result = [];
-      arr.forEach((item, index) => {
-        if (!arr[index + 1]) {
-          return;
-        }
-        if (item.object_type !== arr[index + 1].object_type) {
-          let obj_group = {
-            object_type: item.object_type,
-            key: `0-0-0-${index}`,
-            object_type_text: item.object_type_text,
-            children: []
-          };
-          result.push(obj_group);
-        }
-      });
-      result.forEach(item => {
-        // 过滤不相同类型的type
-        let type = item.object_type;
-        let childNode = arr.filter((item, key) => {
-          item.key = `0-0-0-0-${key}`;
-          return type === item.object_type;
-        });
-        item.children.push(...childNode);
-      });
-      return result;
-    }
-    treeData.forEach((list, key) => {
-      if (list.objPropertyId === 76) {
-        // 再根据obj_type 细分
-        let childResult = breakUp(list.value);
-        Obj_list.objPropertyId = list.objPropertyId;
-        Obj_list.children = [...childResult];
-        Obj_list.key = `0-0-1`;
-        return;
-      }
-      if (list.objPropertyId === 70) {
-        Obj_list.object_type_text = list.value;
-        return;
-      }
-      list.key = `0-0-0-${key}`;
-      Other_list.children.push(list);
-    });
-    treeList.push(Other_list, Obj_list);
-
-    function renderTreeNodes(data) {
-      return data.map(node => {
-        if (node.children) {
-          return (
-            <TreeNode
-              title={<span>{node.object_type_text}: </span>}
-              key={node.key}
-            >
-              {renderTreeNodes(node.children)}
-            </TreeNode>
-          );
-        } else {
-          let val = node.value;
-          if (typeof val === "object") {
-            val = "...obj";
-          }
-          return (
-            <TreeNode
-              title={
-                <span>
-                  {node.object_type_text}: {val}
-                </span>
-              }
-              key={node.key}
-            ></TreeNode>
-          );
-        }
-      });
-    }
-
-    return (
-      <React.Fragment>
-        <Tree showLine defaultExpandedKeys={["0-0-0"]} autoExpandParent={false}>
-          {renderTreeNodes(treeList)}
-        </Tree>
-      </React.Fragment>
-    );
-  };
-  // 设备table
-  expandedRowRender = () => {
-    return (
-      <Table
-        rowSelection={this.rowSelection}
-        columns={this.columns}
-        dataSource={this.props.appstate.equipmentData.slice()}
-        pagination={false}
-        expandRowByClick={false}
-        expandedRowRender={this.childExpandeRowRender}
-        onExpand={this.onExpandClickHandle}
-        expandedRowKeys={this.state.expandeRow}
-      />
-    );
-  };
-
   render() {
     const { location } = this.props.router;
     // console.log(location);
@@ -680,14 +598,14 @@ class Equipment extends React.Component {
                       hideOnSinglePage: true
                     }}
                     defaultExpandedRowKeys={[1]}
-                    expandedRowRender={this.expandedRowRender}
+                    expandedRowRender={() => <EquipmentTable />}
                     dataSource={this.props.appstate.equipmentTableData.slice()}
                   />
                 </div>
               </Col>
               <Col className="gutter-row" span={10}>
                 <div className="equipment-divier">
-                  <SavedEqu />
+                  <StorageEqu />
                 </div>
               </Col>
             </Row>
@@ -703,6 +621,7 @@ class Equipment extends React.Component {
       ""
     );
   }
+
   componentDidMount() {
     // 开启websocket连接
     this.connectSocket();
@@ -719,212 +638,6 @@ class Equipment extends React.Component {
     this.setState = (state, callback) => {
       return;
     };
-  }
-}
-
-const steps = [
-  {
-    title: "Select",
-    content: "First-content"
-  },
-  {
-    title: "Find Router"
-  },
-  {
-    title: "Search",
-    content: "Second-content"
-  }
-];
-@inject(allStore => allStore.appstate)
-class ConfigModal extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      current: 0,
-      selctConfig: "",
-      findNetProgress: 0
-    };
-  }
-  render() {
-    const { current } = this.state;
-    return (
-      <Modal
-        title="Channel selection"
-        visible={this.props.isShow}
-        onCancel={this.props.handleCancel}
-        footer={
-          <div className="steps-action">
-            {current > 0 && (
-              <Button style={{ marginLeft: 8 }} onClick={() => this.prev()}>
-                Previous
-              </Button>
-            )}
-            {current < steps.length - 1 && (
-              <Button
-                disabled={!this.state.selctConfig}
-                type="primary"
-                onClick={() => this.next()}
-              >
-                Next
-              </Button>
-            )}
-            {current === steps.length - 1 && (
-              <Button type="primary" onClick={this.doneHandle}>
-                Start
-              </Button>
-            )}
-          </div>
-        }
-      >
-        <Steps current={current}>
-          {steps.map(item => (
-            <Step key={item.title} title={item.title} />
-          ))}
-        </Steps>
-        <div className="steps-content">{this.stepView(steps[current])}</div>
-      </Modal>
-    );
-  }
-
-  doneHandle = e => {
-    this.props.handleOk(e, this.state);
-    this.setState({
-      current: 0
-    });
-  };
-
-  selectHandle = (val, opt) => {
-    console.log("select", val);
-    const { channelDataSource } = this.props.appstate;
-    let config;
-    if (!channelDataSource.ROOT) {
-      return;
-    }
-    config = channelDataSource.ROOT.CHANNEL.filter(item => {
-      return item.ITEM_NAME === val.key;
-    });
-    this.setState({
-      selctConfig: val.key,
-      config: { ...config[0] }
-    });
-  };
-
-  stepView = current => {
-    const { channelDataSource } = this.props.appstate;
-    let channelData = [];
-    if (channelDataSource.ROOT) {
-      channelData = channelDataSource.ROOT.CHANNEL;
-    }
-    switch (current.title) {
-      case "Select":
-        return (
-          <div
-            style={{ width: "100%", padding: "0 20px", lineHeight: "100px" }}
-          >
-            <Select
-              labelInValue
-              defaultValue={
-                this.state.selctConfig
-                  ? { key: this.state.selctConfig }
-                  : undefined
-              }
-              placeholder="Select a channel"
-              style={{ width: "100%" }}
-              onChange={this.selectHandle}
-            >
-              {channelData.map((item, index) => {
-                return (
-                  <Option key={index} value={item.ITEM_NAME}>
-                    {item.ITEM_NAME}
-                  </Option>
-                );
-              })}
-            </Select>
-          </div>
-        );
-      case "Search":
-        if (this.state.config) {
-          let netConfig = this.state.config.NET_CONFIG;
-          const { MAC, NAME, LOCAL_PORT, REMOTE_PORT } = netConfig.MAIN;
-          return (
-            <div label="Main" style={{ textAlign: "left", padding: "10px" }}>
-              local_port: {LOCAL_PORT["#text"]}
-              <br />
-              remote_port: {REMOTE_PORT["#text"]}
-              <br />
-              mac: {MAC}
-              <br />
-              name: {NAME}
-              <br />
-            </div>
-          );
-        } else {
-          return null;
-        }
-      case "Find Router":
-        return (
-          <div className="equipment-find-router">
-            <Progress
-              percent={this.state.findNetProgress}
-              showInfo={true}
-              status={this.state.findNetStatus}
-            />
-            <span style={{ color: "#bbb", marginTop: ".4rem" }}>
-              Looking for network number
-            </span>
-            <br />
-            <span>
-              {this.props.appstate.filterNetProgress().length || 0} network
-              Numbers found{" "}
-            </span>
-          </div>
-        );
-      default:
-        break;
-    }
-  };
-
-  next() {
-    const current = this.state.current + 1;
-    let timer = null;
-    let step = 10;
-    // 选择通道之后的步骤，获取网络号
-    if (current === 1) {
-      if (!this.props.appstate.filterNetProgress().length) {
-        getUdpNetNum({
-          ip: "0.0.0.0",
-          local_port: 47808,
-          remote_port: 47808
-        })
-          .then(result => {
-            let data = result["data"];
-            if (data.errno === 0) {
-              // 成功获取网络号
-            }
-          })
-          .catch(err => {
-            this.setState({
-              findNetStatus: "exception"
-            });
-            message.error("The network number could not be found");
-          });
-        timer = setInterval(() => {
-          if (this.state.findNetProgress >= 100) {
-            clearInterval(timer);
-          }
-          this.setState({
-            findNetProgress: this.state.findNetProgress + step
-          });
-        }, 50);
-        console.log("查找路由");
-      }
-    }
-    this.setState({ current });
-  }
-
-  prev() {
-    const current = this.state.current - 1;
-    this.setState({ current });
   }
 }
 

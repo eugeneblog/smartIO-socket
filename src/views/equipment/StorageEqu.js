@@ -6,7 +6,7 @@ import { readDeviceData } from "../../api/index.api";
 
 @inject(allStore => allStore.appstate)
 @observer
-class SavedEqu extends React.Component {
+class StorageEqu extends React.Component {
   constructor() {
     super();
     this.mainMenu = () => {
@@ -86,4 +86,4 @@ class SavedEqu extends React.Component {
   }
 }
 
-export default SavedEqu;
+export default StorageEqu;

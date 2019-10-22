@@ -5,8 +5,8 @@ message.config({
   // 自动关闭延时
   duration: 3,
   // 最大显示数
-  maxCount: 1,
-})
+  maxCount: 1
+});
 
 const baseURL =
   process.env.NODE_ENV === "development"
@@ -35,7 +35,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => response,
   error => {
-    message.error(`error: ${error.message}, please check you network server`)
+    message.error(`error: ${error.message}, please check you network server`);
     return Promise.reject(error);
   }
 );
