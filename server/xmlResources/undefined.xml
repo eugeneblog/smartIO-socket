@@ -1,0 +1,39 @@
+<ROOT>
+  <CHANNEL key="2">
+    <ITEM_NAME>CHANNEL6</ITEM_NAME>
+    <ITEM_NUMBER>2</ITEM_NUMBER>
+    <TYPE>BACNET CLIENT</TYPE>
+    <DESCRIPTION>THIS IS CHANNEL</DESCRIPTION>
+    <LAST_MODIFIED>2019-7-4 15:30:33</LAST_MODIFIED>
+    <NET_CONFIG>
+      <MAIN>
+        <NAME>BACNET IP</NAME>
+        <IP>192.192.253.104</IP>
+        <MAC>78:4F:43:72:11:4C</MAC>
+        <PORT type="number">47808</PORT>
+      </MAIN>
+      <PORT>
+        <UDPTIMEOUT>1000</UDPTIMEOUT>
+        <TYPE type="netconfig">WIFI</TYPE>
+      </PORT>
+    </NET_CONFIG>
+  </CHANNEL>
+  <CHANNEL key="3">
+    <ITEM_NAME>CHANNEL2</ITEM_NAME>
+    <ITEM_NUMBER>3</ITEM_NUMBER>
+    <TYPE>BACNET_IP</TYPE>
+    <DESCRIPTION>NULL</DESCRIPTION>
+    <LAST_MODIFIED>1563957183679</LAST_MODIFIED>
+    <NET_CONFIG>
+      <MAIN>
+        <NAME>BACNET_IP</NAME>
+        <IP>127.0.0.1</IP>
+        <MAC>00:00:00:00:00:00</MAC>
+        <PORT type="number">47808</PORT>
+      </MAIN>
+      <PORT>
+        <TYPE type="netconfig">WIFI</TYPE>
+      </PORT>
+    </NET_CONFIG>
+  </CHANNEL>
+</ROOT>

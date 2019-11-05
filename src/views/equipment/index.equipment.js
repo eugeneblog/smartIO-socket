@@ -1,20 +1,20 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable no-script-url */
-import React from "react";
+import React, { useState } from "react";
 import { observer, inject } from "mobx-react";
 import {
   Table,
   Button,
   Modal,
   message,
-  List,
-  Avatar,
   Tabs,
   Row,
   Col,
   Tree,
   Tooltip,
-  Icon
+  Icon,
+  Progress,
+  Statistic
 } from "antd";
 import * as Socket from "socket.io-client";
 import "./index.equipment.css";
@@ -23,6 +23,7 @@ import {
   sendUdpMes,
   startWebsocket,
   searchEquOneObj,
+  getEquObjAttribute,
   uploadDataToRedis
 } from "../../api/index.api";
 import StorageEqu from "./StorageEqu";
@@ -45,10 +46,10 @@ let selEquRows = [];
 let timer = null;
 // table > tree 节点
 function EquipmentTableTree(record) {
-  if (!record.property_data) {
+  if (!record.property_values) {
     return <div>Click search to get the device object</div>;
   }
-  const treeData = record.property_data;
+  const treeData = record.property_values;
   let treeList = [];
   // 改变原始数据结构，在数据上进行分类
   let Obj_list = {
@@ -106,11 +107,19 @@ function EquipmentTableTree(record) {
   treeList.push(Other_list, Obj_list);
 
   function renderTreeNodes(data) {
+    if (!data) {
+      return;
+    }
     return data.map(node => {
       if (node.children) {
+        let val = node.value ? node.value : "";
         return (
           <TreeNode
-            title={<span>{node.object_type_text}: </span>}
+            title={
+              <span>
+                {node.object_type_text}: {val}
+              </span>
+            }
             key={node.key}
           >
             {renderTreeNodes(node.children)}
@@ -142,6 +151,160 @@ function EquipmentTableTree(record) {
   );
 }
 
+// 属性进度条
+const ProgressOf = props => {
+  return (
+    <div>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Progress type="circle" percent={props.percent} />
+        </Col>
+        <Col span={12}>
+          <Statistic
+            title="Unmerged"
+            value={props.progreInd}
+            suffix={`/ ${props.count}`}
+          />
+        </Col>
+      </Row>
+    </div>
+  );
+};
+
+// 获取对象列表属性modal框组件
+const ModalAttribute = inject("appstate")(
+  observer(props => {
+    const [btnProps, setBtnProps] = useState({ loading: false });
+    const { modalData, onCancel } = props;
+    const {
+      sourceAddrNet,
+      sourceAddrAdr,
+      sources,
+      maxapdu,
+      deviceid,
+      property_values
+    } = modalData;
+    let obj_list;
+    let { attributeIndex } = props.appstate.equipmentstate;
+    // 获取对象类型
+    property_values.forEach(item => {
+      if (item.objPropertyId === 76) {
+        obj_list = item.value.filter(list => {
+          // 过滤类型为8的对象 和
+          return list.object_type !== 8 && list.object_type !== 17;
+        });
+      }
+    });
+    let iter = obj_list[Symbol.iterator]();
+    // 开始获取对象属性
+    const handleStart = () => {
+      setBtnProps({ loading: true });
+      let { equipmentData } = props.appstate["appstate"];
+      // 递归获取
+      let tryIndex = 0;
+      function getAllAttribute(iter) {
+        let objType = iter.next();
+        // 如果已经没有值了，直接退出递归函数
+        if (objType.value) {
+          console.log(objType);
+          return getEquObjAttribute({
+            sources,
+            maxapdu,
+            sourceAddrNet,
+            sourceAddrAdr,
+            deviceObjType: objType.value
+          })
+            .then(result => {
+              let data = result["data"];
+              attributeIndex += 1;
+              tryIndex = 0;
+              props.appstate.equipmentstate.attributeIndex = attributeIndex;
+              // 插入数据
+              let attributeData = data["data"];
+
+              let deviceFind = equipmentData.find(ele => {
+                return ele.sourceAddrAdr === attributeData["sourceAddr"].adr[0];
+              });
+              if (deviceFind) {
+                // 插入属性
+                deviceFind.property_values.forEach(item => {
+                  if (item.objPropertyId === 76) {
+                    item.value.forEach(list => {
+                      if (
+                        list.object_type === attributeData["object_type"] &&
+                        list.value === attributeData["object_inatance"]
+                      ) {
+                        // 添加key
+                        let childrenData = attributeData["obj_attribute"].map(
+                          (item, key) => {
+                            return { ...item, key };
+                          }
+                        );
+                        list.children = [...childrenData];
+                      }
+                    });
+                  }
+                });
+                equipmentData.set(deviceFind.key - 1, {
+                  ...deviceFind
+                });
+              }
+              getAllAttribute(iter);
+            })
+            .catch(err => {
+              console.log("未能接收到请求，正在尝试重新发送...");
+              tryIndex++;
+              console.log(`正在重新发起请求,第${tryIndex}次尝试...`);
+              getAllAttribute(iter);
+            });
+        }
+        // 执行完之后, index 归 0, 并且退出递归函数
+        setBtnProps({ loading: false });
+        // 自动关闭
+        onCancel();
+        props.appstate.equipmentstate.attributeIndex = 0;
+        message.success(
+          `${deviceid}Property read successfully, please check in the list`
+        );
+        return;
+      }
+      getAllAttribute(iter);
+    };
+
+    const handleCancel = () => {
+      // 清空index
+      return onCancel();
+    };
+
+    return (
+      <div>
+        <Modal
+          title="Basic Modal"
+          visible={props.isShow}
+          okText="Start"
+          okButtonProps={btnProps}
+          onOk={handleStart}
+          onCancel={handleCancel}
+        >
+          {!attributeIndex ? (
+            <p>{`Device ${deviceid} has ${obj_list.length} objects in total. Click the start button to start reading`}</p>
+          ) : (
+            <ProgressOf
+              percent={Math.trunc(
+                (props.appstate.equipmentstate.attributeIndex /
+                  obj_list.length) *
+                  100
+              )}
+              progreInd={props.appstate.equipmentstate.attributeIndex}
+              count={obj_list.length}
+            />
+          )}
+        </Modal>
+      </div>
+    );
+  })
+);
+
 // 设备 table 组件
 @inject(allStore => allStore.appstate)
 @observer
@@ -149,23 +312,36 @@ class EquipmentTable extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      expandeRow: []
+      expandeRow: [],
+      modalAttribute: false,
+      modalData: undefined
     };
   }
   render() {
     return (
-      <Table
-        rowSelection={this.rowSelection}
-        columns={this.columns}
-        dataSource={this.props.appstate.equipmentData.slice()}
-        pagination={false}
-        expandRowByClick={false}
-        expandedRowRender={record => EquipmentTableTree(record)}
-        onExpand={this.onExpandClickHandle}
-        expandIcon={this.expandIconRender}
-        expandedRowKeys={this.state.expandeRow}
-        size="middle"
-      />
+      <React.Fragment>
+        <Table
+          rowSelection={this.rowSelection}
+          columns={this.columns}
+          dataSource={this.props.appstate.equipmentData.slice()}
+          pagination={false}
+          expandRowByClick={false}
+          expandedRowRender={record => EquipmentTableTree(record)}
+          onExpand={this.onExpandClickHandle}
+          expandIcon={this.expandIconRender}
+          expandedRowKeys={this.state.expandeRow}
+          size="middle"
+        />
+        {this.state.modalData ? (
+          <ModalAttribute
+            isShow={this.state.modalAttribute}
+            modalData={this.state.modalData}
+            onCancel={() => {
+              this.setState({ modalAttribute: false });
+            }}
+          />
+        ) : null}
+      </React.Fragment>
     );
   }
   // 展开事件
@@ -182,7 +358,7 @@ class EquipmentTable extends React.Component {
   };
   // 自定义展开图标
   expandIconRender = record => {
-    let isPropertyData = Boolean(record["record"].property_data);
+    let isPropertyData = Boolean(record["record"].property_values);
     let device = record["record"];
     // 如果该设备已经读取了设备对象，则显示图标
     if (isPropertyData) {
@@ -216,7 +392,9 @@ class EquipmentTable extends React.Component {
       segmenation,
       sources,
       sourceAddrNet,
-      sourceAddrAdr
+      sourceAddrAdr,
+      object_instance,
+      object_type
     } = record;
     return searchEquOneObj({
       deviceid,
@@ -224,12 +402,27 @@ class EquipmentTable extends React.Component {
       segmenation,
       sources,
       sourceAddrNet,
-      sourceAddrAdr
+      sourceAddrAdr,
+      object_instance,
+      object_type
     }).then(result => {
       let data = result["data"];
       // 开始解析设备对象, 全局状态变为loading
       this.props.appstate.globalStatus = "loading";
       return data;
+    });
+  };
+
+  // 获取所有属性列表
+  getAllAttrbutes = record => {
+    // 如果没有获取对象列表，return
+    if (!record.property_values) {
+      message.warning("Get the list of objects first");
+      return;
+    }
+    this.setState({
+      modalAttribute: true,
+      modalData: record
     });
   };
 
@@ -267,14 +460,25 @@ class EquipmentTable extends React.Component {
       dataIndex: "key",
       render: (key, record) => {
         return (
-          <Tooltip placement="topLeft" title="Search device object">
-            <Button
-              type="link"
-              size="small"
-              onClick={() => this.getEquPropertie(record)}
-              icon="search"
-            />
-          </Tooltip>
+          <React.Fragment>
+            <Tooltip placement="topLeft" title="Search device object">
+              <Button
+                type="link"
+                size="small"
+                onClick={() => this.getEquPropertie(record)}
+                icon="search"
+              />
+            </Tooltip>
+            <Tooltip placement="topLeft" title="Get all attributes">
+              <Button
+                disabled={!Boolean(record["property_values"])}
+                type="link"
+                size="small"
+                icon="deployment-unit"
+                onClick={() => this.getAllAttrbutes(record)}
+              />
+            </Tooltip>
+          </React.Fragment>
         );
       }
     }
@@ -309,68 +513,46 @@ class Equipment extends React.Component {
   }
   // 上传到数据库
   uploadClickHandle = (selequ, allequ) => {
-    const { takeEquiObj } = this.props.equipmentstate;
-    console.log(selequ, allequ);
-    console.log(takeEquiObj);
+    // 如果没有选择设备，直接return并且提示
+    if (!selEquRows.length) {
+      message.warning("Please select at least one device !!!");
+      return;
+    }
     confirm({
       title: "Commit the data to the database",
       onOk: () => {
+        // 过滤不需要的数据，传送给后端，格式为 [{deviceId: {...objType: [{"k": v...}]}}...]
+        const deviceData = selEquRows.map(list => {
+          // 判断该字段是否有对象列表
+          let propertyDatas = list.property_values
+            ? list.property_values
+            : null;
+          let objList = [];
+          if (propertyDatas) {
+            // 处理对象列表
+            objList = [
+              {
+                object_type: list.object_type,
+                object_inatance: list.object_instance,
+                property_values: [...list.property_values]
+              }
+            ];
+          }
+          return {
+            device_name: list.deviceid,
+            sourceAddrAdr: list.sourceAddrAdr,
+            sourceAddrNet: list.sourceAddrNet,
+            objList
+          };
+        });
+        // console.log(JSON.stringify(deviceData))
         return uploadDataToRedis({
-          deviceId: "test1001",
-          obj: 2,
-          attribute: { a: 1, b: 2 }
+          deviceData: deviceData
         }).then(result => {
           console.log(result);
         });
       }
     });
-  };
-  // 导出已选择的设备, selRecord: 所有选择的key(Array)
-  exportEquSel = (selRecordKey, selRecordRow) => {
-    console.log(selRecordKey, selRecordRow);
-    if (selRecordKey.length >= 1) {
-      confirm({
-        title: "Please confirm your options",
-        content: (
-          <div className="demo-infinite-container">
-            <List
-              itemLayout="horizontal"
-              dataSource={selRecordRow}
-              split={false}
-              renderItem={item => (
-                <List.Item className="demo-event-hover">
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        size="small"
-                        style={{
-                          backgroundColor: "#f56a00",
-                          marginLeft: ".2rem"
-                        }}
-                      >
-                        E
-                      </Avatar>
-                    }
-                    title={item.deviceid}
-                  />
-                </List.Item>
-              )}
-            />
-          </div>
-        ),
-        onOk: () => {
-          return new Promise(resolve => {
-            setTimeout(() => {
-              this.props.equipmentstate.takeEquiObj = selRecordRow;
-              resolve();
-            }, 500);
-          });
-        },
-        onCancel() {}
-      });
-    } else {
-      message.warning("Please select at least one device");
-    }
   };
   // 搜索设备
   searchEqu = (e, channel) => {
@@ -553,13 +735,24 @@ class Equipment extends React.Component {
           if (udpData["allNetWork"]) {
             this.props.appstate.NetProgress = udpData["allNetWork"];
           }
-          // 存储 属性报文
-          if (udpData["property_data"]) {
+          // 存储 对象列表报文
+          if (udpData["property_values"]) {
+            if (!udpData["property_values"].length) {
+              return;
+            }
             this.props.equipmentstate.propertyDataSour = udpData;
             this.props.appstate.equipmentData = this.props.appstate.equipmentData.map(
               item => {
-                if (item.deviceid === udpData.device_inatance) {
-                  item.property_data = udpData.property_data.map(
+                let len = udpData["sourceAddr"].len;
+                let mac = udpData["sourceAddr"].adr[len - 1];
+                let net = udpData["sourceAddr"].net;
+                if (
+                  item["sourceAddrNet"] === net &&
+                  item["sourceAddrAdr"] === mac
+                ) {
+                  item.object_type = udpData["object_type"];
+                  item.object_instance = udpData["object_inatance"];
+                  item.property_values = udpData.property_values.map(
                     (item, index) => {
                       return {
                         key: index,
@@ -615,20 +808,6 @@ class Equipment extends React.Component {
                 Discovery
               </Button>
               <Button
-                onClick={() =>
-                  this.exportEquSel(
-                    this.state.selEquKeys,
-                    this.state.selEquRows
-                  )
-                }
-                type="primary"
-                icon="plus"
-                size="small"
-                loading={this.state.isLoading}
-              >
-                Add
-              </Button>
-              <Button
                 onClick={() => this.uploadClickHandle(selEquKeys, selEquRows)}
                 type="primary"
                 size="small"
@@ -659,9 +838,7 @@ class Equipment extends React.Component {
                 </div>
               </Col>
               <Col className="gutter-row" span={10}>
-                <div className="equipment-divier">
-                  <StorageEqu title={() => <span>Database</span>} />
-                </div>
+                <StorageEqu title="Database" />
               </Col>
             </Row>
           </TabPane>

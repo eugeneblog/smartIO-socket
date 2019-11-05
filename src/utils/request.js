@@ -11,11 +11,11 @@ message.config({
 const baseURL =
   process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
-    : "http://localhost:8000";
+    : "http://192.168.253.253/:8000";
 
 const service = axios.create({
   baseURL,
-  timeout: 5000
+  timeout: 10000
 });
 
 // 请求拦截器

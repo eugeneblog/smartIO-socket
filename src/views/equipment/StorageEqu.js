@@ -1,61 +1,47 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
-import { Table, Dropdown, Icon, Menu } from "antd";
+import { Tree, PageHeader, Skeleton } from "antd";
 import { observer, inject } from "mobx-react";
 import { readDeviceData } from "../../api/index.api";
+
+const { TreeNode, DirectoryTree } = Tree;
+
+const RenderTreeNode = inject(allStore => allStore.appstate)(
+  observer(props => {
+    return (
+      <DirectoryTree multiple defaultExpandAll>
+        <TreeNode title="parent 0" key="0-0">
+          <TreeNode title="leaf 0-0" key="0-0-0" isLeaf />
+          <TreeNode title="leaf 0-1" key="0-0-1" isLeaf />
+        </TreeNode>
+      </DirectoryTree>
+    );
+  })
+);
 
 @inject(allStore => allStore.appstate)
 @observer
 class StorageEqu extends React.Component {
-  constructor() {
-    super();
-    this.mainMenu = () => {
-      return (
-        <Menu>
-          <Menu.Item onClick={key => this.searchDevObj(key)}>
-            Search device object
-          </Menu.Item>
-        </Menu>
-      );
-    };
-    this.columns = [
-      {
-        title: "Device",
-        dataIndex: "deviceid",
-        key: "deviceid",
-        render: text => <span>{text}</span>
-      },
-      {
-        title: "Action",
-        render: (text, record) => {
-          return (
-            <span className="table-operation">
-              <Dropdown overlay={() => this.mainMenu(record)}>
-                <a href="#">
-                  Menu <Icon type="down" />
-                </a>
-              </Dropdown>
-            </span>
-          );
-        }
-      }
-    ];
-  }
-  // 搜索设备对象
-  searchDevObj = (key, obj) => {};
+  // this.props.equipmentstate.takeEquiObj.slice()
   render() {
     return (
-      <Table
-        title={this.props.title}
-        columns={this.columns}
-        size="middle"
-        dataSource={this.props.equipmentstate.takeEquiObj.slice()}
-        pagination={{
-          position: "bottom",
-          defaultPageSize: 30,
-          hideOnSinglePage: true
-        }}
-      />
+      <div
+        className="equipment-divier"
+        style={{ borderBottom: "1px solid #ebedf0" }}
+      >
+        <PageHeader
+          title={this.props.title}
+          style={{ borderBottom: "1px solid #ebedf0" }}
+          subTitle="Redis Browser Manager"
+        />
+        <div style={{ padding: "10px" }}>
+          {this.props.equipmentstate.takeEquiObj ? (
+            <RenderTreeNode />
+          ) : (
+            <Skeleton active />
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -64,26 +50,75 @@ class StorageEqu extends React.Component {
     readDeviceData({}).then(result => {
       let data = result["data"];
       let deviceAll = data["data"];
-
-      let deviceList = deviceAll.map((item, index) => {
-        return {
-          deviceid: item.split(":")[0]
-        };
-      });
-      
-      // 数组对象去重
-      let unique = {}
-      deviceList.forEach((item) => {
-        unique[JSON.stringify(item)] = item
-      })
-      deviceList = Object.keys(unique).map((item, index) => {
-        item = JSON.parse(item)
-        return {
-          key: index,
-          ...item
+      console.log(deviceAll);
+      function refactoringTree() {
+        // 命名空间分离
+        let diviceid = deviceAll.map((item, index) => {
+          return {
+            objectName: item.split(":")[0]
+          };
+        });
+        // 去重
+        function duplicateRemoval(listArr) {
+          let unique = {};
+          listArr.forEach(item => {
+            unique[JSON.stringify(item)] = item;
+          });
+          return unique;
         }
-      })
-      this.props.equipmentstate.takeEquiObj = deviceList;
+        let unique = duplicateRemoval(diviceid);
+
+        // 重组
+        let objData = Object.keys(unique).map((item, index) => {
+          item = JSON.parse(item);
+          // 查询
+          let deviceTypeArr = deviceAll.filter(list => {
+            return list.split(":")[0] === item.objectName;
+          });
+          return {
+            key: index,
+            ...item,
+            children: [...recursive(deviceTypeArr, 1)]
+          };
+        });
+
+        function recursive(deviceTypeArr, num) {
+          // 如果num > namespace 总长 退出
+          if (num > 2) {
+            return [];
+          }
+          // 分离
+          let diviceid = deviceTypeArr.map(item => {
+            return {
+              objectName: item.split(":")[num]
+            };
+          });
+
+          // 去重
+          let unique = duplicateRemoval(diviceid);
+
+          // 前三步为加工数据，最后一步决定是否继续递归执行
+          let childrenResult = Object.keys(unique).map((item, index) => {
+            item = JSON.parse(item);
+            // 查询
+            let findNodes = deviceTypeArr.filter(list => {
+              return list.split(":")[1] === item.objectName;
+            });
+            return {
+              key: index,
+              ...item,
+              children: [...recursive(findNodes, num + 1)]
+            };
+          });
+
+          return childrenResult;
+        }
+
+        return objData;
+      }
+
+      let treeData = refactoringTree();
+      this.props.equipmentstate.takeEquiObj = treeData;
     });
   }
 }
