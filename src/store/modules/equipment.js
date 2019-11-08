@@ -2,7 +2,7 @@ import { observable, computed } from "mobx";
 import { BaseState } from "../modules/appstore";
 
 class EquipmentState extends BaseState {
-  @observable takeEquiObj = [];
+  @observable database = [];
   @observable attributeIndex = 0
 
   @computed get getPropertyData() {

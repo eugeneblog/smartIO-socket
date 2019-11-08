@@ -521,33 +521,12 @@ class Equipment extends React.Component {
     confirm({
       title: "Commit the data to the database",
       onOk: () => {
-        // 过滤不需要的数据，传送给后端，格式为 [{deviceId: {...objType: [{"k": v...}]}}...]
-        const deviceData = selEquRows.map(list => {
-          // 判断该字段是否有对象列表
-          let propertyDatas = list.property_values
-            ? list.property_values
-            : null;
-          let objList = [];
-          if (propertyDatas) {
-            // 处理对象列表
-            objList = [
-              {
-                object_type: list.object_type,
-                object_inatance: list.object_instance,
-                property_values: [...list.property_values]
-              }
-            ];
-          }
-          return {
-            device_name: list.deviceid,
-            sourceAddrAdr: list.sourceAddrAdr,
-            sourceAddrNet: list.sourceAddrNet,
-            objList
-          };
-        });
+        console.log(selEquRows);
+        let selData = selEquRows[0];
         // console.log(JSON.stringify(deviceData))
         return uploadDataToRedis({
-          deviceData: deviceData
+          deviceid: selData["deviceid"],
+          property_values: selData["property_values"] || []
         }).then(result => {
           console.log(result);
         });
@@ -817,30 +796,26 @@ class Equipment extends React.Component {
                 Upload
               </Button>
             </div>
-            <Row gutter={16}>
-              <Col className="gutter-row" span={14}>
-                <div className="equipment-divier">
-                  <Table
-                    title={() => <span>Discovered</span>}
-                    loading={this.state.isLoading}
-                    size="middle"
-                    className="components-table-demo-nested"
-                    columns={this.mainColumns}
-                    pagination={{
-                      position: "bottom",
-                      defaultPageSize: 30,
-                      hideOnSinglePage: true
-                    }}
-                    defaultExpandedRowKeys={[1]}
-                    expandedRowRender={() => <EquipmentTable />}
-                    dataSource={this.props.appstate.equipmentTableData.slice()}
-                  />
-                </div>
-              </Col>
-              <Col className="gutter-row" span={10}>
-                <StorageEqu title="Database" />
-              </Col>
-            </Row>
+            <div className="equipment-divier">
+              <Table
+                title={() => <span>Discovered</span>}
+                loading={this.state.isLoading}
+                size="middle"
+                className="components-table-demo-nested"
+                columns={this.mainColumns}
+                pagination={{
+                  position: "bottom",
+                  defaultPageSize: 30,
+                  hideOnSinglePage: true
+                }}
+                defaultExpandedRowKeys={[1]}
+                expandedRowRender={() => <EquipmentTable />}
+                dataSource={this.props.appstate.equipmentTableData.slice()}
+              />
+            </div>
+          </TabPane>
+          <TabPane tab="DataBase" key="2">
+            <StorageEqu title="Database" />
           </TabPane>
         </Tabs>
         <ConfigModal

@@ -51,7 +51,7 @@ export function generateEquXml(data) {
     data,
     url: "/api/socket/genequxml",
     method: "POST"
-  })
+  });
 }
 
 // 发送udp广播消息
@@ -69,7 +69,7 @@ export function getUdpNetNum(data) {
     data,
     url: "/api/socket/udp/getnetnum",
     method: "POST"
-  })
+  });
 }
 
 // 获取who_msg
@@ -77,7 +77,7 @@ export function getWhoMsg() {
   return request({
     url: "/api/socket/ffi/who",
     method: "GET"
-  })
+  });
 }
 
 // 开启websocket连接
@@ -85,9 +85,8 @@ export function startWebsocket() {
   return request({
     url: "/api/socket/websocket/start",
     method: "GET"
-  })
+  });
 }
-
 
 // 搜索单个设备对象列表
 export function searchEquOneObj(data) {
@@ -95,7 +94,7 @@ export function searchEquOneObj(data) {
     data,
     url: "/api/socket/udp/searchEquObj",
     method: "POST"
-  })
+  });
 }
 
 export function getEquObjAttribute(data) {
@@ -103,7 +102,7 @@ export function getEquObjAttribute(data) {
     data,
     url: "/api/socket/udp/getattribute",
     method: "POST"
-  })
+  });
 }
 
 // 上传到数据库
@@ -112,7 +111,7 @@ export function uploadDataToRedis(data) {
     data,
     url: "/api/socket/db/upload",
     method: "POST"
-  })
+  });
 }
 
 // 读取数据库设备信息
@@ -121,5 +120,23 @@ export function readDeviceData(data) {
     data,
     url: "/api/socket/db/getDevice",
     method: "POST"
+  });
+}
+
+// 更改数据库hash值
+export function setDeviceData(params) {
+  return request({
+    params,
+    url: "/api/socket/db/setDevice",
+    method: "GET"
+  });
+}
+
+// 从数据库中删除数据
+export function delDeviceData(params){
+  return request({
+    params,
+    url: "/api/socket/db/delDevice",
+    method: "GET"
   })
 }
