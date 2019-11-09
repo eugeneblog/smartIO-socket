@@ -12,12 +12,17 @@ import {
   Form,
   Input,
   Popconfirm,
-  InputNumber
+  InputNumber,
+  Icon,
+  Tooltip,
+  Modal,
+  Select
 } from "antd";
 import { observer, inject } from "mobx-react";
 import { readDeviceData, setDeviceData } from "../../api/index.api";
 import { BACNET_OBJECT_TYPE } from "../../utils/BAC_DECODE_TEXT";
 const { TabPane } = Tabs;
+const { Option } = Select;
 const { TreeNode, DirectoryTree } = Tree;
 const EditableContext = React.createContext();
 
@@ -90,7 +95,6 @@ class EditableTable extends React.Component {
         title: "operation",
         dataIndex: "operation",
         render: (text, record) => {
-          const { editingKey } = this.state;
           const editable = this.isEditing(record);
           return editable ? (
             <span>
@@ -112,12 +116,17 @@ class EditableTable extends React.Component {
               </Popconfirm>
             </span>
           ) : (
-            <a
-              disabled={editingKey !== ""}
-              onClick={() => this.edit(record.key)}
+            <Tooltip
+              placement="right"
+              title={!record.isEdit ? "Do not edit" : "Edit"}
             >
-              Edit
-            </a>
+              <a
+                disabled={!record.isEdit}
+                onClick={() => this.edit(record.key)}
+              >
+                <Icon type="edit" />
+              </a>
+            </Tooltip>
           );
         }
       }
@@ -135,7 +144,7 @@ class EditableTable extends React.Component {
       if (error) {
         return;
       }
-      const newData = [...this.props.equipmentstate.database];
+      const newData = [...this.props.equipmentstate.getAttributeData];
       const index = newData.findIndex(item => key === item.key);
       if (index > -1) {
         const item = newData[index];
@@ -150,7 +159,7 @@ class EditableTable extends React.Component {
           val: newData[index].value
         }).then(res => {
           // 客户端同步更新
-          this.props.equipmentstate.database = newData;
+          this.props.equipmentstate.attributeData = newData;
           this.setState({ editingKey: "" });
         });
       } else {
@@ -191,7 +200,7 @@ class EditableTable extends React.Component {
         <Table
           scroll={{ y: 540 }}
           components={components}
-          dataSource={this.props.equipmentstate.database.slice()}
+          dataSource={this.props.equipmentstate.getAttributeData.slice()}
           columns={columns}
           rowClassName="editable-row"
           size="small"
@@ -242,34 +251,108 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       <DirectoryTree
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
       >
-        {RecursiveTree(props.treeData)}
+        {RecursiveTree(props.equipmentstate.treeData.slice())}
       </DirectoryTree>
     );
   })
 );
 
+// SelectTree 组件
+const ModalTreeSelect = props => {
+  return (
+    <Select style={{ width: "100%" }} value={props.selectVal}>
+      <Option value={props.selectVal}>{props.text}</Option>
+    </Select>
+  );
+};
+
 // 右侧视图
 const AttributesPanel = inject(allStore => allStore.appstate)(
   observer(props => {
     const [activeKey, setActiveKey] = useState(props.panes[0].key);
+    const [disabled, setDisabled] = useState(true);
+    const pane = props.panes[0];
+    const keys = pane.hashKey ? pane.hashKey.split(":") : pane.hashKey;
+
+    useEffect(() => {
+      if (keys && keys[1]) {
+        let prdConfig = props.equipmentstate.getProductConfig(keys[1]);
+        let isDisabled = prdConfig ? !prdConfig.isAdd : true;
+        setDisabled(isDisabled);
+      } else {
+        setDisabled(true);
+      }
+    }, [keys, props]);
+
     const onChange = activeKey => {
       setActiveKey(activeKey);
     };
-    const pane = props.panes[0]
+
     // 增加对象
     const addObjCLickHandle = () => {
       // 获取要增加对象的设备号 key首部
-      const keys = pane.hashKey.split(":")
-      const deviceid = keys[0]
-      console.log(deviceid)
-    }
+      const deviceid = keys[0];
+      if (keys[1]) {
+        const objKey = keys.slice(0, 2);
+        let text = `device:${deviceid} ${getPropertyIdText(
+          BACNET_OBJECT_TYPE,
+          Number(keys[1])
+        )}`;
+        let iter = objKey[Symbol.iterator]();
+        let result;
+        // 递归查询
+        const findDevice = (iter, arr) => {
+          let key = iter.next().value;
+          if (key) {
+            // 查找
+            result = arr.find(ele => {
+              return ele.objectName === key;
+            });
+            // 继续查找children
+            if (result.children) {
+              findDevice(iter, result.children);
+            }
+          }
+          return result;
+        };
+        let findResult = findDevice(iter, props.equipmentstate.treeData);
+        let count = findResult.children.length;
+        Modal.confirm({
+          title: `Select the object you want to add to the device${deviceid}`,
+          icon: "check-square",
+          content: (
+            <ModalTreeSelect
+              selectVal={count + 1}
+              text={`${text} ${count + 1}`}
+            />
+          ),
+          onOk: () => {
+            console.log(count);
+          }
+        });
+      }
+      return;
+    };
 
     // 删除对象
     const delObjClickHandle = () => {
       // 获取要增加对象的设备号 key首部
-      const keys = pane.hashKey
-      console.log(keys)
-    }
+      let keys = pane.hashKey.split(":")
+      let content = `device${keys[0]} ${getPropertyIdText(
+        BACNET_OBJECT_TYPE,
+        Number(keys[1])
+      )} ${keys[2]}`;
+      Modal.confirm({
+        title: "Do you Want to delete these items?",
+        content: content,
+        destroyOnClose: true,
+        onOk() {
+          // 删除之后最后改变最后一个值，补齐删除的位
+          console.log(content, keys);
+        }
+      });
+    };
+
     return (
       <Tabs
         hideAdd
@@ -291,7 +374,7 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
                     block
                     style={{ marginTop: "10px" }}
                     icon="plus"
-                    disabled={pane.hashKey ? false : true}
+                    disabled={disabled}
                     onClick={addObjCLickHandle}
                   >
                     Add Object
@@ -302,7 +385,7 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
                     block
                     style={{ marginTop: "10px" }}
                     icon="delete"
-                    disabled={pane.hashKey ? false : true}
+                    disabled={keys ? !Boolean(keys.length >= 3) : true}
                     onClick={delObjClickHandle}
                   >
                     Delete Object
@@ -323,7 +406,6 @@ const StorageEqu = inject(allStore => allStore.appstate)(
     const [panes, setPanes] = useState([
       { title: "Tab 1", content: [], key: "1" }
     ]);
-    const [treeData, setTreeData] = useState([]);
 
     useEffect(() => {
       async function asyncFn() {
@@ -422,12 +504,14 @@ const StorageEqu = inject(allStore => allStore.appstate)(
         let treeData = refactoringTree();
         // 排序
         treeData.sort(compare);
-        setTreeData(treeData);
+        props.equipmentstate.treeData = treeData;
       }
       asyncFn();
-    }, []);
+    }, [props]);
 
     const onSelectHandle = (key, event) => {
+      // 记录当下选择的对象
+      props.equipmentstate.setSelected(key[0]);
       // 控制属性界面的显示
       setPanes([{ title: key, key: "1" }]);
       // 使用正则匹配key格式
@@ -448,7 +532,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
                 key
               };
             });
-            props.equipmentstate.database = tableData;
+            props.equipmentstate.attributeData = tableData;
             setPanes([{ title: key, key: "1", hashKey: key[0] }]);
           }
           return;
@@ -479,8 +563,8 @@ const StorageEqu = inject(allStore => allStore.appstate)(
                 overflow: "scroll"
               }}
             >
-              {treeData.length ? (
-                <RenderTreeNode treeData={treeData} onSelect={onSelectHandle} />
+              {props.equipmentstate.treeData.length ? (
+                <RenderTreeNode onSelect={onSelectHandle} />
               ) : (
                 <Skeleton active />
               )}
