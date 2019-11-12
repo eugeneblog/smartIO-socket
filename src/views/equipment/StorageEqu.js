@@ -19,7 +19,11 @@ import {
   Select
 } from "antd";
 import { observer, inject } from "mobx-react";
-import { readDeviceData, setDeviceData } from "../../api/index.api";
+import {
+  readDeviceData,
+  setDeviceData,
+  delDeviceData
+} from "../../api/index.api";
 import { BACNET_OBJECT_TYPE } from "../../utils/BAC_DECODE_TEXT";
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -78,7 +82,7 @@ class EditableTable extends React.Component {
     this.state = { editingKey: "" };
     this.columns = [
       {
-        title: "key",
+        title: "Point",
         dataIndex: "attrName",
         key: "attrName",
         width: "25%",
@@ -96,6 +100,7 @@ class EditableTable extends React.Component {
         dataIndex: "operation",
         render: (text, record) => {
           const editable = this.isEditing(record);
+          const isHover = this.isHover(record);
           return editable ? (
             <span>
               <EditableContext.Consumer>
@@ -116,17 +121,30 @@ class EditableTable extends React.Component {
               </Popconfirm>
             </span>
           ) : (
-            <Tooltip
-              placement="right"
-              title={!record.isEdit ? "Do not edit" : "Edit"}
-            >
-              <a
-                disabled={!record.isEdit}
-                onClick={() => this.edit(record.key)}
+            <div>
+              <Tooltip
+                placement="top"
+                title={!record.isEdit ? "Do not edit" : "Edit"}
               >
-                <Icon type="edit" />
-              </a>
-            </Tooltip>
+                <a
+                  disabled={!record.isEdit}
+                  onClick={() => this.edit(record.key)}
+                  style={{ padding: "5px" }}
+                >
+                  <Icon type="edit" />
+                </a>
+              </Tooltip>
+              {isHover ? (
+                <Tooltip key="2" placement="top" title="Placed at the top">
+                  <a
+                    onClick={() => this.top(record)}
+                    style={{ padding: "5px" }}
+                  >
+                    <Icon type="vertical-align-top" />
+                  </a>
+                </Tooltip>
+              ) : null}
+            </div>
           );
         }
       }
@@ -134,6 +152,7 @@ class EditableTable extends React.Component {
   }
 
   isEditing = record => record.key === this.state.editingKey;
+  isHover = record => record.key === this.state.hoverKey;
 
   cancel = () => {
     this.setState({ editingKey: "" });
@@ -172,6 +191,21 @@ class EditableTable extends React.Component {
     this.setState({ editingKey: key });
   }
 
+  top(record) {
+    let findRecord = this.props.equipmentstate.attributeData.findIndex(
+      ele => ele.key === record.key
+    );
+    if (findRecord > -1) {
+      // 删除该字段
+      let removeArr = this.props.equipmentstate.attributeData.splice(
+        findRecord,
+        1
+      );
+      // 将该字段放到数组头部
+      this.props.equipmentstate.attributeData.unshift(removeArr[0]);
+    }
+  }
+
   render() {
     const components = {
       body: {
@@ -194,7 +228,6 @@ class EditableTable extends React.Component {
         })
       };
     });
-
     return (
       <EditableContext.Provider value={this.props.form}>
         <Table
@@ -204,6 +237,18 @@ class EditableTable extends React.Component {
           columns={columns}
           rowClassName="editable-row"
           size="small"
+          onRow={record => {
+            return {
+              onMouseEnter: event => {
+                if (this.timer) {
+                  clearTimeout(this.timer);
+                }
+                this.timer = setTimeout(() => {
+                  this.setState({ hoverKey: record.key });
+                }, 50);
+              }
+            };
+          }}
           pagination={false}
         />
       </EditableContext.Provider>
@@ -251,7 +296,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       <DirectoryTree
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
       >
-        {RecursiveTree(props.equipmentstate.treeData.slice())}
+        {RecursiveTree(props.equipmentstate.getTreeData.slice())}
       </DirectoryTree>
     );
   })
@@ -315,7 +360,7 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
           }
           return result;
         };
-        let findResult = findDevice(iter, props.equipmentstate.treeData);
+        let findResult = findDevice(iter, props.equipmentstate.getTreeData);
         let count = findResult.children.length;
         Modal.confirm({
           title: `Select the object you want to add to the device${deviceid}`,
@@ -327,7 +372,15 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
             />
           ),
           onOk: () => {
-            console.log(count);
+            let newKey = `${keys[0]}:${keys[1]}:${count + 1}`;
+            setDeviceData({
+              key: newKey,
+              subKey: "OBJECT_TYPE",
+              val: "FUCK"
+            }).then(res => {
+              console.log(res);
+              props.equipmentstate.addDeviceObj(newKey);
+            });
           }
         });
       }
@@ -337,20 +390,58 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
     // 删除对象
     const delObjClickHandle = () => {
       // 获取要增加对象的设备号 key首部
-      let keys = pane.hashKey.split(":")
+      let keys = pane.hashKey.split(":");
       let content = `device${keys[0]} ${getPropertyIdText(
         BACNET_OBJECT_TYPE,
         Number(keys[1])
       )} ${keys[2]}`;
+      const objKey = keys.slice(0, 2);
+      let iter = objKey[Symbol.iterator]();
+      let result;
+      const findDevice = (iter, arr) => {
+        let key = iter.next().value;
+        if (key) {
+          // 查找
+          result = arr.find(ele => {
+            return ele.objectName === key;
+          });
+          // 继续查找children
+          if (result.children) {
+            findDevice(iter, result.children);
+          }
+        }
+        return result;
+      };
+      findDevice(iter, props.equipmentstate.getTreeData);
       Modal.confirm({
         title: "Do you Want to delete these items?",
-        content: content,
+        content,
         destroyOnClose: true,
         onOk() {
-          // 删除之后最后改变最后一个值，补齐删除的位
-          console.log(content, keys);
+          // 将该类型下的所有对象返回后端进行重命名
+          delDeviceData({
+            key: pane.hashKey,
+            allKey: result.children.map(ele => ele.objectName)
+          }).then(res => {
+            reloadClickHandle()
+          });
         }
       });
+    };
+
+    // 重新加载
+    const reloadClickHandle = () => {
+      // 清空
+      props.equipmentstate.dataSource = [];
+      props.equipmentstate.attributeData = [];
+      async function asyncFn() {
+        let result = await readDeviceData({ key: "*" });
+        let data = result["data"];
+        let deviceAll = data["data"];
+        props.equipmentstate.dataSource = deviceAll;
+      }
+      // 重新请求
+      asyncFn();
     };
 
     return (
@@ -390,6 +481,15 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
                   >
                     Delete Object
                   </Button>
+                  <Button
+                    type="primary"
+                    block
+                    icon="reload"
+                    style={{ marginTop: "10px" }}
+                    onClick={reloadClickHandle}
+                  >
+                    overloading
+                  </Button>
                 </div>
               </Col>
             </Row>
@@ -412,99 +512,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
         let result = await readDeviceData({ key: "*" });
         let data = result["data"];
         let deviceAll = data["data"];
-        // 定义排序函数
-        const compare = (a, b) => {
-          let numA = Number(a.objectName);
-          let numB = Number(b.objectName);
-          if (numA < numB) {
-            return -1;
-          }
-          if (numA > numB) {
-            return 1;
-          }
-          return 0;
-        };
-        function refactoringTree() {
-          // 命名空间分离
-          let diviceid = deviceAll.map((item, index) => {
-            return {
-              objectName: item.split(":")[0]
-            };
-          });
-          // 去重
-          function duplicateRemoval(listArr) {
-            let unique = {};
-            listArr.forEach(item => {
-              unique[JSON.stringify(item)] = item;
-            });
-            return unique;
-          }
-          let unique = duplicateRemoval(diviceid);
-
-          // 重组
-          let objData = Object.keys(unique).map((item, index) => {
-            item = JSON.parse(item);
-            // 查询
-            let deviceTypeArr = deviceAll.filter(list => {
-              return list.split(":")[0] === item.objectName;
-            });
-            return {
-              key: index,
-              ...item,
-              children: [...recursive(deviceTypeArr, 1)]
-            };
-          });
-
-          function recursive(deviceTypeArr, num, text) {
-            // 如果num > namespace 总长 退出
-            if (num > 2) {
-              return [];
-            }
-            // 分离
-            let diviceid = deviceTypeArr.map(item => {
-              return {
-                objectName: item.split(":")[num]
-              };
-            });
-
-            // 去重
-            let unique = duplicateRemoval(diviceid);
-
-            // 前三步为加工数据，最后一步决定是否继续递归执行
-            let childrenResult = Object.keys(unique).map((item, index) => {
-              item = JSON.parse(item);
-              // 查询
-              let findNodes = deviceTypeArr.filter(list => {
-                return list.split(":")[num] === item.objectName;
-              });
-              // 如果是第二位，进行文本转换
-              if (num === 1) {
-                text = getPropertyIdText(
-                  BACNET_OBJECT_TYPE,
-                  Number(item.objectName)
-                );
-              }
-              let content = {
-                key: index,
-                ...item,
-                text,
-                children: [...recursive(findNodes, num + 1, text)]
-              };
-              if (num === 2) {
-                content.text = `${text} ${item.objectName}`;
-              }
-              return content;
-            });
-            childrenResult.sort(compare);
-            return childrenResult;
-          }
-
-          return objData;
-        }
-        let treeData = refactoringTree();
-        // 排序
-        treeData.sort(compare);
-        props.equipmentstate.treeData = treeData;
+        props.equipmentstate.dataSource = deviceAll;
       }
       asyncFn();
     }, [props]);
@@ -534,8 +542,10 @@ const StorageEqu = inject(allStore => allStore.appstate)(
             });
             props.equipmentstate.attributeData = tableData;
             setPanes([{ title: key, key: "1", hashKey: key[0] }]);
+          } else {
+            props.equipmentstate.attributeData = [];
+            setPanes([{ title: key, key: "1", hashKey: key[0] }]);
           }
-          return;
         });
       } else {
         // 没有匹配
@@ -563,7 +573,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
                 overflow: "scroll"
               }}
             >
-              {props.equipmentstate.treeData.length ? (
+              {props.equipmentstate.getTreeData.length ? (
                 <RenderTreeNode onSelect={onSelectHandle} />
               ) : (
                 <Skeleton active />

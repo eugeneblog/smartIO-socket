@@ -696,8 +696,10 @@ class Equipment extends React.Component {
                   sources: data["address"] + ":" + data["port"]
                 }
               ];
+              let key = index++;
+              console.log(key)
               this.props.appstate.equipmentData.push({
-                key: (index += 1),
+                key,
                 deviceid: data["deviceId"],
                 maxapdu: data["maxapdu"],
                 segmenation: data["segment"],

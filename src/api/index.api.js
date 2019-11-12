@@ -140,3 +140,12 @@ export function delDeviceData(params){
     method: "GET"
   })
 }
+
+// 从数据库中增加数据
+export function addDeviceData(data) {
+  return request({
+    data,
+    url: "/api/socket/db/addDevice",
+    method: "POST"
+  })
+}

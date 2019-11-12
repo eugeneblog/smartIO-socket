@@ -3,7 +3,7 @@
 import React from "react";
 import "./index.menu.css";
 import { observer, inject } from "mobx-react";
-import { Menu, Dropdown } from "antd";
+import { Menu, Dropdown, notification } from "antd";
 const SubMenu = Menu.SubMenu;
 
 // 菜单点击事件
@@ -25,6 +25,14 @@ class MenuController extends React.Component {
   bacnetDisHandle = me => {
     // 发送后台请求
     console.log("click");
+  };
+
+  // 软件版本信息
+  aboutHandle = me => {
+    notification.open({
+      message: "Smart Socket",
+      description: "Version: 1.0.0"
+    });
   };
 }
 

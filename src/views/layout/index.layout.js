@@ -168,10 +168,28 @@ class HLayout extends React.Component {
           <Sider width={240} style={{ background: "#fff" }}>
             <TreePane />
           </Sider>
-          <Content style={{ padding: "0px 20px" }}>
-            <div style={{ background: "#fff", padding: 24, minHeight: 800 }}>
+          <Content
+            style={{
+              padding: "0px 10px",
+              height: "100%",
+              position: "relative"
+            }}
+          >
+            <div
+              style={{
+                background: "#fff",
+                margin: 10,
+                position: "absolute",
+                top: "0",
+                right: "0",
+                left: "0",
+                bottom: "0",
+                padding: "10px",
+                overflow: "scroll"
+              }}
+            >
+              <BackTop target={() => <Content></Content>} />
               {this.props.children}
-              <BackTop />
             </div>
           </Content>
         </Layout>
@@ -189,10 +207,10 @@ class HLayout extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.props.appstate.globalStatus === 'loading') {
-      message.loading("Action in progress..", 0)
+    if (this.props.appstate.globalStatus === "loading") {
+      message.loading("Action in progress..", 0);
     } else {
-      message.destroy()
+      message.destroy();
     }
     // 路由切换触发
     let pathName = this.props.location.pathname;
