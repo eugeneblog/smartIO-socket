@@ -179,6 +179,7 @@ class HLayout extends React.Component {
               style={{
                 background: "#fff",
                 margin: 10,
+                zIndex: "0",
                 position: "absolute",
                 top: "0",
                 right: "0",

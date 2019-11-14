@@ -12,11 +12,12 @@ import {
   Form,
   Input,
   Popconfirm,
-  InputNumber,
   Icon,
   Tooltip,
   Modal,
-  Select
+  Select,
+  TreeSelect,
+  AutoComplete
 } from "antd";
 import { observer, inject } from "mobx-react";
 import {
@@ -32,8 +33,69 @@ const EditableContext = React.createContext();
 
 const EditableCell = props => {
   const getInput = () => {
-    if (props.inputType === "number") {
-      return <InputNumber />;
+    const { inputType, inputData } = props.record;
+
+    if (inputType === "autoComplete") {
+      return (
+        <AutoComplete
+          dataSource={inputData}
+          style={{ width: 200 }}
+          placeholder="input here"
+        />
+      );
+    } else if (inputType === "treeSelect") {
+      const recursiveTree = (parent, treeData) => {
+        /**
+         *  @param{string} parent - 父节点key
+         *  @param{json} treeData - tree节点数据集合
+         *  @return{jsx}
+         **/
+        return treeData.map((item, index) => {
+          let key = !parent ? index : `${parent}-${index}`;
+          // 判断是否有子节点
+          if (!Array.isArray(item.value)) {
+            return (
+              <TreeSelect.TreeNode
+                key={key}
+                title={item.name}
+                value={item.value}
+              ></TreeSelect.TreeNode>
+            );
+          }
+          return (
+            <TreeSelect.TreeNode
+              selectable={false}
+              key={key}
+              value={item.name}
+              title={item.name}
+            >
+              {recursiveTree(key, item.value)}
+            </TreeSelect.TreeNode>
+          );
+        });
+      };
+      return (
+        <TreeSelect
+          style={{ width: "100%" }}
+          dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+          placeholder="Please select"
+          showSearch
+        >
+          {recursiveTree(null, inputData)}
+        </TreeSelect>
+      );
+    } else if (inputType === "select") {
+      return (
+        <Select style={{ width: "100%" }}>
+          {inputData.map((opt, key) => {
+            return (
+              <Option key={key} value={opt}>
+                {opt}
+              </Option>
+            );
+          })}
+        </Select>
+      );
     }
     return <Input />;
   };
@@ -206,6 +268,19 @@ class EditableTable extends React.Component {
     }
   }
 
+  onRow(record) {
+    return {
+      onMouseEnter: event => {
+        if (this.timer) {
+          clearTimeout(this.timer);
+        }
+        this.timer = setTimeout(() => {
+          this.setState({ hoverKey: record.key });
+        }, 50);
+      }
+    };
+  }
+
   render() {
     const components = {
       body: {
@@ -237,18 +312,7 @@ class EditableTable extends React.Component {
           columns={columns}
           rowClassName="editable-row"
           size="small"
-          onRow={record => {
-            return {
-              onMouseEnter: event => {
-                if (this.timer) {
-                  clearTimeout(this.timer);
-                }
-                this.timer = setTimeout(() => {
-                  this.setState({ hoverKey: record.key });
-                }, 50);
-              }
-            };
-          }}
+          onRow={this.onRow.bind(this)}
           pagination={false}
         />
       </EditableContext.Provider>
@@ -423,7 +487,7 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
             key: pane.hashKey,
             allKey: result.children.map(ele => ele.objectName)
           }).then(res => {
-            reloadClickHandle()
+            reloadClickHandle();
           });
         }
       });

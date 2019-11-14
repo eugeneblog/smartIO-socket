@@ -1,8 +1,11 @@
 import { observable, computed, action } from "mobx";
 import { BaseState } from "../modules/appstore";
-import { BACNET_OBJECT_TYPE } from "../../utils/BAC_DECODE_TEXT";
-import { getPropertyIdText } from "../../utils/util";
-
+import {
+  BACNET_OBJECT_TYPE,
+  BACNET_ENGINEERING_UNITS
+} from "../../utils/BAC_DECODE_TEXT";
+import { getPropertyIdText, objConverArray } from "../../utils/util";
+const UNITS_DATA = objConverArray(BACNET_ENGINEERING_UNITS);
 class EquipmentState extends BaseState {
   @observable dataSource = [];
   @observable attributeData = [];
@@ -12,8 +15,21 @@ class EquipmentState extends BaseState {
   @observable ProductConfigurator = {
     ANALOG_INPUT: {
       OBJECT_NAME: { isEdit: true },
-      DEVICE_TYPE: { isEdit: true },
-      UNITS: { isEdit: true },
+      DEVICE_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["NTC20K", "Hide", "0-10=0-100"]
+      },
+      UNITS: {
+        isEdit: true,
+        inputType: "treeSelect",
+        inputData: UNITS_DATA
+      },
+      NOTIFY_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["Alarm", "Event", "AckNotikication"]
+      },
       DESCRIPTION: { isEdit: true },
       TIME_DELAY: { isEdit: true },
       COV_INCREMENT: { isEdit: true },
@@ -26,8 +42,16 @@ class EquipmentState extends BaseState {
     },
     ANALOG_OUTPUT: {
       OBJECT_NAME: { isEdit: true },
-      DEVICE_TYPE: { isEdit: true },
-      UNITS: { isEdit: true },
+      DEVICE_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["NTC20K", "Hide", "0-10=0-100"]
+      },
+      UNITS: {
+        isEdit: true,
+        inputType: "treeSelect",
+        inputData: UNITS_DATA
+      },
       DESCRIPTION: { isEdit: true },
       TIME_DELAY: { isEdit: true },
       COV_INCREMENT: { isEdit: true },
@@ -35,15 +59,179 @@ class EquipmentState extends BaseState {
       LOW_LIMIT: { isEdit: true },
       DEADBAND: { isEdit: true },
       OFFSET: { isEdit: true },
-      RELINQUISH_DEFAULT: { isEdit: true }
+      RELINQUISH_DEFAULT: { isEdit: true },
+      NOTIFY_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["Alarm", "Event", "AckNotikication"]
+      }
     },
     ANALOG_VALUE: {
-      isAdd: true
+      isAdd: true,
+      HIGH_LIMIT: { isEdit: true },
+      LOW_LIMIT: { isEdit: true },
+      NOTIFY_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["Alarm", "Event", "AckNotikication"]
+      }
     },
-    BINARY_INPUT: {},
-    BINARY_OUTPUT: {},
+    BINARY_INPUT: {
+      INACTIVE_TEXT: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [
+          "Off",
+          "On",
+          "Alarm",
+          "Normal",
+          "Manual",
+          "Auto",
+          "Open",
+          "Close",
+          "Summer",
+          "Winter",
+          "Remote",
+          "Local",
+          "Start",
+          "Stop"
+        ]
+      },
+      ACTIVE_TEXT: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [
+          "Off",
+          "On",
+          "Alarm",
+          "Normal",
+          "Manual",
+          "Auto",
+          "Open",
+          "Close",
+          "Summer",
+          "Winter",
+          "Remote",
+          "Local",
+          "Start",
+          "Stop"
+        ]
+      },
+      NOTIFY_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["Alarm", "Event", "AckNotikication"]
+      },
+      ALARM_VALUE: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [0, 1]
+      }
+    },
+    BINARY_OUTPUT: {
+      DEVICE_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["0-10=0-100", "NTC10K", "NTC20K", "BI", "Hide"]
+      },
+      INACTIVE_TEXT: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [
+          "Off",
+          "On",
+          "Alarm",
+          "Normal",
+          "Manual",
+          "Auto",
+          "Open",
+          "Close",
+          "Summer",
+          "Winter",
+          "Remote",
+          "Local",
+          "Start",
+          "Stop"
+        ]
+      },
+      ACTIVE_TEXT: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [
+          "Off",
+          "On",
+          "Alarm",
+          "Normal",
+          "Manual",
+          "Auto",
+          "Open",
+          "Close",
+          "Summer",
+          "Winter",
+          "Remote",
+          "Local",
+          "Start",
+          "Stop"
+        ]
+      },
+      NOTIFY_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["Alarm", "Event", "AckNotikication"]
+      }
+    },
     BINARY_VALUE: {
-      isAdd: true
+      isAdd: true,
+      DEVICE_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["0-10=0-100", "NTC10K", "NTC20K", "BI", "Hide"]
+      },
+      INACTIVE_TEXT: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [
+          "Off",
+          "On",
+          "Alarm",
+          "Normal",
+          "Manual",
+          "Auto",
+          "Open",
+          "Close",
+          "Summer",
+          "Winter",
+          "Remote",
+          "Local",
+          "Start",
+          "Stop"
+        ]
+      },
+      ACTIVE_TEXT: {
+        isEdit: true,
+        inputType: "select",
+        inputData: [
+          "Off",
+          "On",
+          "Alarm",
+          "Normal",
+          "Manual",
+          "Auto",
+          "Open",
+          "Close",
+          "Summer",
+          "Winter",
+          "Remote",
+          "Local",
+          "Start",
+          "Stop"
+        ]
+      },
+      NOTIFY_TYPE: {
+        isEdit: true,
+        inputType: "autoComplete",
+        inputData: ["Alarm", "Event", "AckNotikication"]
+      }
     },
     SCHEDULE: {
       isAdd: true
@@ -64,7 +252,7 @@ class EquipmentState extends BaseState {
       }
     }
   }
-  
+
   @action addDeviceObj(key) {
     let pattern = /(\d)+:(\d)+:(\d)+$/;
     if (pattern.test(key)) {

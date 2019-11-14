@@ -75,7 +75,12 @@ class Menus extends MenuController {
     return (
       <React.Fragment>
         <div className="logo" />
-        <Menu theme="dark" mode="horizontal" style={{ lineHeight: "40px" }}>
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          style={{ lineHeight: "40px" }}
+          forceSubMenuRender
+        >
           {this.props.menustate.menuList.map((e, i) => {
             return (
               <Dropdown

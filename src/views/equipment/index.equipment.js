@@ -206,7 +206,6 @@ const ModalAttribute = inject("appstate")(
         let objType = iter.next();
         // 如果已经没有值了，直接退出递归函数
         if (objType.value) {
-          console.log(objType);
           return getEquObjAttribute({
             sources,
             maxapdu,
@@ -244,9 +243,6 @@ const ModalAttribute = inject("appstate")(
                       }
                     });
                   }
-                });
-                equipmentData.set(deviceFind.key - 1, {
-                  ...deviceFind
                 });
               }
               getAllAttribute(iter);
@@ -683,8 +679,8 @@ class Equipment extends React.Component {
             return;
           }
           // 存储whois IAm报文
-          let data = udpData["iAmData"];
-          if (data) {
+          if (udpData["iAmData"]) {
+            let data = udpData["iAmData"];
             // 如果equipmentData里面有该设备了则不进行插入操作
             let isThere = this.props.appstate.equipmentData.findIndex(item => {
               return data["deviceId"] === item.deviceid;
