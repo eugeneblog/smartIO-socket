@@ -17,7 +17,8 @@ import {
   Modal,
   Select,
   TreeSelect,
-  AutoComplete
+  AutoComplete,
+  Tag
 } from "antd";
 import { observer, inject } from "mobx-react";
 import {
@@ -25,13 +26,71 @@ import {
   setDeviceData,
   delDeviceData
 } from "../../api/index.api";
-import { BACNET_OBJECT_TYPE } from "../../utils/BAC_DECODE_TEXT";
+import {
+  BACNET_OBJECT_TYPE,
+  BACNET_ENGINEERING_UNITS
+} from "../../utils/BAC_DECODE_TEXT";
+import { getPropertyIdText } from "../../utils/util";
 const { TabPane } = Tabs;
 const { Option } = Select;
 const { TreeNode, DirectoryTree } = Tree;
 const EditableContext = React.createContext();
 
 const EditableCell = props => {
+  const [treeData, setTreeData] = useState([
+    { id: 1, pId: 0, title: "Area", value: "Area", selectable: false },
+    { id: 2, pId: 0, title: "Currency", value: "Currency", selectable: false },
+    {
+      id: 3,
+      pId: 0,
+      title: "Electrical",
+      value: "Electrical",
+      selectable: false
+    },
+    { id: 4, pId: 0, title: "Energy", value: "Energy", selectable: false },
+    { id: 5, pId: 0, title: "Enthalpy", value: "Enthalpy", selectable: false },
+    { id: 6, pId: 0, title: "Entropy", value: "Entropy", selectable: false },
+    { id: 7, pId: 0, title: "Force", value: "Force", selectable: false },
+    {
+      id: 8,
+      pId: 0,
+      title: "Frequency",
+      value: "Frequency",
+      selectable: false
+    },
+    { id: 9, pId: 0, title: "Humidity", value: "Humidity", selectable: false },
+    { id: 10, pId: 0, title: "Length", value: "Length", selectable: false },
+    { id: 11, pId: 0, title: "Light", value: "Light", selectable: false },
+    { id: 12, pId: 0, title: "Mass", value: "Mass", selectable: false },
+    {
+      id: 13,
+      pId: 0,
+      title: "Mass Flow ",
+      value: "Mass Flow ",
+      selectable: false
+    },
+    { id: 14, pId: 0, title: "Power", value: "Power", selectable: false },
+    { id: 15, pId: 0, title: "Pressure", value: "Pressure", selectable: false },
+    {
+      id: 16,
+      pId: 0,
+      title: "Temperature",
+      value: "Temperature",
+      selectable: false
+    },
+    { id: 17, pId: 0, title: "Time", value: "Time", selectable: false },
+    { id: 18, pId: 0, title: "Torque", value: "Torque", selectable: false },
+    { id: 19, pId: 0, title: "Velocity", value: "Velocity", selectable: false },
+    { id: 20, pId: 0, title: "Volume", value: "Volume", selectable: false },
+    {
+      id: 21,
+      pId: 0,
+      title: "Volumetric Flow",
+      value: "Volumetric Flow",
+      selectable: false
+    },
+    { id: 22, pId: 0, title: "Other", value: "Other", selectable: false }
+  ]);
   const getInput = () => {
     const { inputType, inputData } = props.record;
 
@@ -44,45 +103,40 @@ const EditableCell = props => {
         />
       );
     } else if (inputType === "treeSelect") {
-      const recursiveTree = (parent, treeData) => {
-        /**
-         *  @param{string} parent - 父节点key
-         *  @param{json} treeData - tree节点数据集合
-         *  @return{jsx}
-         **/
-        return treeData.map((item, index) => {
-          let key = !parent ? index : `${parent}-${index}`;
-          // 判断是否有子节点
-          if (!Array.isArray(item.value)) {
-            return (
-              <TreeSelect.TreeNode
-                key={key}
-                title={item.name}
-                value={item.value}
-              ></TreeSelect.TreeNode>
-            );
-          }
-          return (
-            <TreeSelect.TreeNode
-              selectable={false}
-              key={key}
-              value={item.name}
-              title={item.name}
-            >
-              {recursiveTree(key, item.value)}
-            </TreeSelect.TreeNode>
-          );
-        });
+      const genTreeNode = (parentId, groupName, isLeaf = false) => {
+        let units = [];
+        if (inputData[groupName]) {
+          let unitsArr = inputData[groupName];
+          units = Object.keys(unitsArr).map((item, key) => {
+            return {
+              id: `${parentId}-${key}`,
+              pId: parentId,
+              value: unitsArr[item],
+              title: item,
+              isLeaf
+            };
+          });
+        }
+        return units;
       };
+      const onLoadData = treeNode =>
+        new Promise(resolve => {
+          const { id, value } = treeNode.props;
+          setTimeout(() => {
+            setTreeData(treeData.concat([...genTreeNode(id, value, true)]));
+            resolve();
+          }, 300);
+        });
       return (
         <TreeSelect
+          treeDataSimpleMode
           style={{ width: "100%" }}
           dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
           placeholder="Please select"
           showSearch
-        >
-          {recursiveTree(null, inputData)}
-        </TreeSelect>
+          loadData={onLoadData}
+          treeData={treeData}
+        />
       );
     } else if (inputType === "select") {
       return (
@@ -148,13 +202,25 @@ class EditableTable extends React.Component {
         dataIndex: "attrName",
         key: "attrName",
         width: "25%",
-        editable: true
+        editable: false
       },
       {
         title: "value",
         dataIndex: "value",
         key: "value",
         width: "25%",
+        render: (text, record) => {
+          return (
+            <div>
+              <span>{text}</span>
+              {record.mark ? (
+                <Tag color="green" style={{ marginLeft: "10px" }}>
+                  {this.getMark(text)}
+                </Tag>
+              ) : null}
+            </div>
+          );
+        },
         editable: true
       },
       {
@@ -215,6 +281,8 @@ class EditableTable extends React.Component {
 
   isEditing = record => record.key === this.state.editingKey;
   isHover = record => record.key === this.state.hoverKey;
+  getMark = val =>
+    getPropertyIdText(BACNET_ENGINEERING_UNITS, Number(val)) || "null";
 
   cancel = () => {
     this.setState({ editingKey: "" });
@@ -321,14 +389,6 @@ class EditableTable extends React.Component {
 }
 
 const EditableFormTable = Form.create()(EditableTable);
-// 根据propertyId 获取对应的字符串
-function getPropertyIdText(obj, id, compare = (a, b) => a === b) {
-  let val = Object.keys(obj).find(k => {
-    return compare(obj[k], id);
-  });
-  return val;
-}
-
 // Tree 组件， 左侧视图
 const RenderTreeNode = inject(allStore => allStore.appstate)(
   observer(props => {

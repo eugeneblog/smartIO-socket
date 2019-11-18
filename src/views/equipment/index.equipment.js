@@ -29,6 +29,7 @@ import {
 import StorageEqu from "./StorageEqu";
 import ConfigModal from "./configmodal";
 import DeviceSvg from "../../svg/devicelink.svg";
+// import { websocketStart } from '../../utils/websocketRequest'
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 const { TreeNode } = Tree;
