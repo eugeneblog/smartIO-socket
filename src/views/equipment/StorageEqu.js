@@ -26,6 +26,7 @@ import {
   setDeviceData,
   delDeviceData
 } from "../../api/index.api";
+import { Menu, Item, contextMenu } from "react-contexify";
 import {
   BACNET_OBJECT_TYPE,
   BACNET_ENGINEERING_UNITS
@@ -35,6 +36,21 @@ const { TabPane } = Tabs;
 const { Option } = Select;
 const { TreeNode, DirectoryTree } = Tree;
 const EditableContext = React.createContext();
+
+const MyAwesomeMenu = () => {
+  const addModuleClick = ({ event, props }) => {
+    Modal.confirm({
+      title: "Add the module",
+      icon: <Icon type="apartment" />
+    });
+  };
+
+  return (
+    <Menu id="storageMenu">
+      <Item onClick={addModuleClick}>Add Module</Item>
+    </Menu>
+  );
+};
 
 const EditableCell = props => {
   const [treeData, setTreeData] = useState([
@@ -208,7 +224,7 @@ class EditableTable extends React.Component {
         title: "value",
         dataIndex: "value",
         key: "value",
-        width: "25%",
+        width: "30%",
         render: (text, record) => {
           return (
             <div>
@@ -403,7 +419,13 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
           }
           return (
             <TreeNode
-              title={item.text ? item.text : item.objectName}
+              title={
+                item.text
+                  ? `${item.text} ${
+                      item.children.length ? `(${item.children.length})` : ""
+                    }`
+                  : `${item.objectName}`
+              }
               key={key}
               isLeaf={!item.children.length ? true : false}
             >
@@ -415,9 +437,31 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       // prefix = null
       return null;
     };
-
+    const onRightHandle = e => {
+      const menuId = "storageMenu";
+      const { eventKey } = e.node.props;
+      e.node.onSelect(e.event);
+      e.event.preventDefault();
+      // 获取被右击的节点, 只有父节点才能响应右键
+      if (eventKey.split(":").length < 2) {
+        contextMenu.show({
+          id: menuId,
+          event: e.event,
+          props: {
+            foo: "bar"
+          }
+        });
+      }
+      return;
+    };
     return (
       <DirectoryTree
+        expandedKeys={props.expandedKeys}
+        defaultExpandedKeys={
+          props.expandedKeys.length ? props.expandedKeys : []
+        }
+        onRightClick={onRightHandle}
+        onExpand={(selectedKeys, event) => props.onExpand(selectedKeys, event)}
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
       >
         {RecursiveTree(props.equipmentstate.getTreeData.slice())}
@@ -630,6 +674,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
     const [panes, setPanes] = useState([
       { title: "Tab 1", content: [], key: "1" }
     ]);
+    const [expandedKeys, setExpandedKeys] = useState([]);
 
     useEffect(() => {
       async function asyncFn() {
@@ -640,6 +685,11 @@ const StorageEqu = inject(allStore => allStore.appstate)(
       }
       asyncFn();
     }, [props]);
+
+    const onExpand = expandedKeys => {
+      console.log("onExpand", expandedKeys);
+      setExpandedKeys(expandedKeys);
+    };
 
     const onSelectHandle = (key, event) => {
       // 记录当下选择的对象
@@ -698,10 +748,15 @@ const StorageEqu = inject(allStore => allStore.appstate)(
               }}
             >
               {props.equipmentstate.getTreeData.length ? (
-                <RenderTreeNode onSelect={onSelectHandle} />
+                <RenderTreeNode
+                  onExpand={onExpand}
+                  onSelect={onSelectHandle}
+                  expandedKeys={expandedKeys}
+                />
               ) : (
                 <Skeleton active />
               )}
+              <MyAwesomeMenu />
             </div>
           </Col>
           <Col span={18}>

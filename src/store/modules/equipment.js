@@ -707,6 +707,70 @@ class EquipmentState extends BaseState {
     }
     return data;
   }
+
+  // 将对象列表转换成treeNode数据结构
+  @action getObjListTreeNode(allData) {
+    // 类型为8的对象 所有属性
+    const device_info_attr = allData.filter(item => item.objPropertyId !== 76);
+    // 其他所有对象列表
+    const obj_list = allData.filter(item => item.objPropertyId === 76)[0].value;
+
+    // 数组对象去重
+    var myOrderedArray = obj_list.reduce(function(accumulator, currentValue) {
+      if (
+        accumulator.findIndex(
+          ele => ele.object_type === currentValue.object_type
+        ) === -1
+      ) {
+        accumulator.push(currentValue);
+      }
+      return accumulator;
+    }, []);
+    const recursiveObjList = (data, pId) => {
+      return data.map((item, key) => {
+        if (item.children) {
+          return {
+            title: `${item.object_type_text}: ${item.value}`,
+            key: `${pId}-${key}`,
+            children: recursiveObjList(item.children, `${pId}-${key}`)
+          };
+        }
+        return {
+          title: `${item.object_type_text}: ${item.value}`,
+          key: `${pId}-${key}`
+        };
+      });
+    };
+    const treeData = [
+      {
+        title: "Device_info",
+        key: "0-0",
+        children: device_info_attr.map(item => {
+          return {
+            title: `${item.object_type_text}: ${item.value}`,
+            key: `0-0-${item.key}`
+          };
+        })
+      },
+      {
+        title: "Object_list",
+        key: "0-1",
+        selectable: false,
+        // 分组
+        children: myOrderedArray.map((item, key) => {
+          return {
+            title: `${item.object_type_text}`,
+            key: `0-1-${key}`,
+            children: recursiveObjList(
+              obj_list.filter(ele => ele.object_type === item.object_type),
+              `0-1-${key}`
+            )
+          };
+        })
+      }
+    ];
+    return treeData
+  }
 }
 
 let equipmentState = new EquipmentState();

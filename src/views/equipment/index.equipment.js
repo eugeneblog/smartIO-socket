@@ -45,112 +45,6 @@ let selEquKeys = [];
 let selEquRows = [];
 
 let timer = null;
-// table > tree 节点
-function EquipmentTableTree(record) {
-  if (!record.property_values) {
-    return <div>Click search to get the device object</div>;
-  }
-  const treeData = record.property_values;
-  let treeList = [];
-  // 改变原始数据结构，在数据上进行分类
-  let Obj_list = {
-    object_type_text: undefined
-  };
-  let Other_list = {
-    key: "0-0-0",
-    object_type_text: "Device info",
-    children: []
-  };
-  // 拆分objlist
-  function breakUp(arr) {
-    let result = [];
-    arr.forEach((item, index) => {
-      if (!arr[index + 1]) {
-        return;
-      }
-      if (item.object_type !== arr[index + 1].object_type) {
-        let obj_group = {
-          object_type: item.object_type,
-          key: `0-0-0-${index}`,
-          object_type_text: item.object_type_text,
-          children: []
-        };
-        result.push(obj_group);
-      }
-    });
-    result.forEach(item => {
-      // 过滤不相同类型的type
-      let type = item.object_type;
-      let childNode = arr.filter((item, key) => {
-        item.key = `0-0-0-0-${key}`;
-        return type === item.object_type;
-      });
-      item.children.push(...childNode);
-    });
-    return result;
-  }
-  treeData.forEach((list, key) => {
-    if (list.objPropertyId === 76) {
-      // 再根据obj_type 细分
-      let childResult = breakUp(list.value);
-      Obj_list.objPropertyId = list.objPropertyId;
-      Obj_list.children = [...childResult];
-      Obj_list.key = `0-0-1`;
-      return;
-    }
-    if (list.objPropertyId === 70) {
-      Obj_list.object_type_text = list.value;
-      return;
-    }
-    list.key = `0-0-0-${key}`;
-    Other_list.children.push(list);
-  });
-  treeList.push(Other_list, Obj_list);
-
-  function renderTreeNodes(data) {
-    if (!data) {
-      return;
-    }
-    return data.map(node => {
-      if (node.children) {
-        let val = node.value ? node.value : "";
-        return (
-          <TreeNode
-            title={
-              <span>
-                {node.object_type_text}: {val}
-              </span>
-            }
-            key={node.key}
-          >
-            {renderTreeNodes(node.children)}
-          </TreeNode>
-        );
-      } else {
-        let val = node.value;
-        if (typeof val === "object") {
-          val = "...obj";
-        }
-        return (
-          <TreeNode
-            title={
-              <span>
-                {node.object_type_text}: {val}
-              </span>
-            }
-            key={node.key}
-          />
-        );
-      }
-    });
-  }
-
-  return (
-    <Tree showLine autoExpandParent={false}>
-      {renderTreeNodes(treeList)}
-    </Tree>
-  );
-}
 
 // 属性进度条
 const ProgressOf = props => {
@@ -314,6 +208,7 @@ class EquipmentTable extends React.Component {
       modalData: undefined
     };
   }
+
   render() {
     return (
       <React.Fragment>
@@ -323,7 +218,7 @@ class EquipmentTable extends React.Component {
           dataSource={this.props.appstate.equipmentData.slice()}
           pagination={false}
           expandRowByClick={false}
-          expandedRowRender={record => EquipmentTableTree(record)}
+          expandedRowRender={record => this.EquipmentTableTree(record)}
           onExpand={this.onExpandClickHandle}
           expandIcon={this.expandIconRender}
           expandedRowKeys={this.state.expandeRow}
@@ -341,6 +236,40 @@ class EquipmentTable extends React.Component {
       </React.Fragment>
     );
   }
+
+  // table 下的treeNode
+  EquipmentTableTree = record => {
+    const allData = record.property_values;
+    const treeData = this.props.equipmentstate.getObjListTreeNode(allData);
+
+    const renderTreeNode = data => {
+      return data.map(item => {
+        if (item.children) {
+          return (
+            <TreeNode
+              title={item.title}
+              key={item.key}
+              dataRef={item}
+              {...item}
+            >
+              {renderTreeNode(item.children)}
+            </TreeNode>
+          );
+        }
+        return <TreeNode key={item.key} {...item} />;
+      });
+    };
+
+    const onCheck = (checkedKeys, info) => {
+      console.log("onCheck", checkedKeys, info);
+    };
+
+    return (
+      <Tree showLine autoExpandParent={false} onCheck={onCheck}>
+        {renderTreeNode(treeData)}
+      </Tree>
+    );
+  };
   // 展开事件
   onExpandClickHandle = (expanded, record) => {
     if (expanded) {
@@ -510,22 +439,167 @@ class Equipment extends React.Component {
   }
   // 上传到数据库
   uploadClickHandle = (selequ, allequ) => {
+    let checkedObjs = [];
     // 如果没有选择设备，直接return并且提示
     if (!selEquRows.length) {
       message.warning("Please select at least one device !!!");
       return;
     }
+    const ModalTree = () => {
+      const onCheck = (checkedKeys, e) => {
+        // 过滤父亲节点
+        const pattern = /^(\d)+:(\d)+:(\d)+$/;
+        const { checkedNodes } = e;
+        // 过滤除对象以外所有不想干的节点
+        if (checkedKeys.length) {
+          let objArr = checkedNodes.filter(item => pattern.test(item.key));
+          // 全选
+          const readHash = data => {
+            let obj = {};
+            data.forEach(item => {
+              obj[item.props.objName] = item.props.value;
+            });
+            return obj
+          };
+          checkedObjs = objArr.map(item => {
+            const __defaultHash = {
+              OBJECT_TYPE: item.key.split(":")[1],
+              OBJECT_INSTANCE: item.key.split(":")[2]
+            };
+            return {
+              key: item.key,
+              hash: !item.props.children
+                ? __defaultHash
+                : readHash(item.props.children)
+            };
+          });
+          // 组装好数据，给发送到后端做准备，数据格式 [{key, subKey, val}...]
+        }
+        return;
+      };
+      const treeData = selEquRows.map((item, key) => {
+        if (item.property_values) {
+          // 过滤除obj_list 以外的所有对象
+          const obj_list = item.property_values.filter(
+            list => list.objPropertyId === 76
+          )[0].value;
+          // 提取device属性
+          const device_data = item.property_values.filter(
+            item => item.objPropertyId !== 76
+          );
+          obj_list.forEach(ele => {
+            if (ele.object_type === 8) {
+              ele.children = device_data;
+            }
+          });
+          // 数组对象去重
+          var myOrderedArray = obj_list.reduce(function(
+            accumulator,
+            currentValue
+          ) {
+            if (
+              accumulator.findIndex(
+                ele => ele.object_type === currentValue.object_type
+              ) === -1
+            ) {
+              accumulator.push(currentValue);
+            }
+            return accumulator;
+          },
+          []);
+          const recursiveObjList = (data, pId) => {
+            // if (pId.split(":").length <= 2) {
+            return data.map((item, key) => {
+              if (item.children) {
+                return {
+                  title: `${item.object_type_text}: ${item.value}`,
+                  key: `${pId}:${key}`,
+                  children: recursiveObjList(item.children, `${pId}:${key}`)
+                };
+              }
+              return {
+                title: `${item.object_type_text}: ${item.value}`,
+                key: `${pId}:${key}`,
+                objName: item.object_type_text,
+                value: item.value,
+                checkable: pId.split(":").length >= 3 ? false : true
+              };
+            });
+            // }
+            // return;
+          };
+          return {
+            title: `${item.deviceid}`,
+            key: item.deviceid,
+            children: myOrderedArray.map(group => {
+              return {
+                title: `${group.object_type_text}`,
+                key: `${item.deviceid}:${group.object_type}`,
+                children: recursiveObjList(
+                  obj_list.filter(ele => ele.object_type === group.object_type),
+                  `${item.deviceid}:${group.object_type}`
+                )
+              };
+            })
+          };
+        }
+        // 没有读取对象列表的情况默认添加类型为8的对象
+        return {
+          title: `${item.deviceid}`,
+          key,
+          value: item.deviceid,
+          children: [
+            {
+              title: "Device",
+              key: `${item.deviceid}:8:0`,
+              children: [
+                {
+                  key: `${item.deviceid}:8:0:0`,
+                  title: `DEVICE_NAME: ${item.deviceid}`,
+                  objName: "DEVICE_NAME",
+                  value: item.deviceid,
+                  checkable: false
+                }
+              ]
+            }
+          ]
+        };
+      });
+      const renderTreeNodes = data =>
+        data.map(item => {
+          if (item.children) {
+            return (
+              <TreeNode title={item.title} key={item.key} dataRef={item}>
+                {renderTreeNodes(item.children)}
+              </TreeNode>
+            );
+          }
+          return <TreeNode key={item.key} {...item} />;
+        });
+      return (
+        <Tree
+          checkable
+          showLine
+          autoExpandParent={false}
+          onCheck={onCheck}
+          defaultExpandParent
+          defaultCheckedKeys={[]}
+        >
+          {renderTreeNodes(treeData)}
+        </Tree>
+      );
+    };
     confirm({
       title: "Commit the data to the database",
+      content: <ModalTree />,
       onOk: () => {
-        console.log(selEquRows);
-        let selData = selEquRows[0];
-        // console.log(JSON.stringify(deviceData))
+        /**
+         * @method uploadDataToRedis
+         * @param{json} keys - redis key 格式: divice:objType:objNum
+         */
+        console.log(checkedObjs);
         return uploadDataToRedis({
-          deviceid: selData["deviceid"],
-          property_values: selData["property_values"] || []
-        }).then(result => {
-          console.log(result);
+          keys: [...checkedObjs]
         });
       }
     });
@@ -694,7 +768,7 @@ class Equipment extends React.Component {
                 }
               ];
               let key = index++;
-              console.log(key)
+              console.log(key);
               this.props.appstate.equipmentData.push({
                 key,
                 deviceid: data["deviceId"],

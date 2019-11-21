@@ -3,8 +3,9 @@
 import React from "react";
 import "./index.menu.css";
 import { observer, inject } from "mobx-react";
-import { Menu, Dropdown, notification } from "antd";
+import { Menu, Dropdown, notification, Modal, Icon, Radio, Select } from "antd";
 const SubMenu = Menu.SubMenu;
+const { Option } = Select;
 
 // 菜单点击事件
 const menuOnClick = function({ item, key }) {
@@ -18,20 +19,73 @@ const menuOnClick = function({ item, key }) {
 class MenuController extends React.Component {
   constructor() {
     super();
-    this.state = {};
+    this.state = {
+      exportSelVal: 1
+    };
   }
 
   // 获取udp广播消息
-  bacnetDisHandle = me => {
-    // 发送后台请求
-    console.log("click");
-  };
+  bacnetDisHandle = me => {};
 
   // 软件版本信息
   aboutHandle = me => {
     notification.open({
       message: "Smart Socket",
       description: "Version: 1.0.0"
+    });
+  };
+
+  // export 导出
+  exportHandle = me => {
+    const radioStyle = {
+      display: "block",
+      height: "30px",
+      lineHeight: "30px"
+    };
+    const onChange = e => {
+      this.setState({
+        exportSelVal: e.target.value
+      });
+      modal.update({
+        content: <SelectOpt value={this.state.exportSelVal} />
+      });
+    };
+    const SelectEqu = props => {
+      const optData = this.props.equipmentstate.getTreeData;
+      return (
+        <Select style={props.style}>
+          {optData.length
+            ? optData.map((item, key) => {
+                return (
+                  <Option placeholder="Please select equipment" key={key} value={item.objectName}>
+                    {item.objectName}
+                  </Option>
+                );
+              })
+            : null}
+        </Select>
+      );
+    };
+    const SelectOpt = () => (
+      <Radio.Group onChange={onChange} value={this.state.exportSelVal}>
+        <Radio style={radioStyle} value={1}>
+          Export all
+        </Radio>
+        <Radio style={radioStyle} value={2}>
+          Export section
+          {this.state.exportSelVal === 2 ? (
+            <SelectEqu style={{ width: 100, marginLeft: 10 }} />
+          ) : null}
+        </Radio>
+      </Radio.Group>
+    );
+    const modal = Modal.confirm({
+      title: "Export all devices to XML files",
+      icon: <Icon type="snippets" />,
+      content: <SelectOpt value={this.state.exportSelVal} />,
+      onOk: () => {
+        console.log(this.state);
+      }
     });
   };
 }

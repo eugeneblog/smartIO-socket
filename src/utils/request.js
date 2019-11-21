@@ -21,11 +21,9 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 发送请求前做些什么
     return config;
   },
   error => {
-    // 请求错误做些什么
     console.log(error);
     Promise.reject(error);
   }
