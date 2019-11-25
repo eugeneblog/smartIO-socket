@@ -18,13 +18,18 @@ import {
   Select,
   TreeSelect,
   AutoComplete,
-  Tag
+  Tag,
+  Progress,
+  notification
 } from "antd";
 import { observer, inject } from "mobx-react";
 import {
   readDeviceData,
   setDeviceData,
-  delDeviceData
+  delDeviceData,
+  readExtenModule,
+  writeExtenModule,
+  delAllRedisData
 } from "../../api/index.api";
 import { Menu, Item, contextMenu } from "react-contexify";
 import {
@@ -37,20 +42,127 @@ const { Option } = Select;
 const { TreeNode, DirectoryTree } = Tree;
 const EditableContext = React.createContext();
 
-const MyAwesomeMenu = () => {
-  const addModuleClick = ({ event, props }) => {
-    Modal.confirm({
-      title: "Add the module",
-      icon: <Icon type="apartment" />
+/**
+ * @method{CollectionCreateForm} - Modal form 组件
+ */
+const CollectionCreateForm = Form.create({ name: "form_in_modal" })(
+  // eslint-disable-next-line
+  class extends React.Component {
+    constructor() {
+      super();
+      this.state = {
+        moduleFiles: null
+      };
+    }
+    render() {
+      const { visible, onCancel, onCreate, form } = this.props;
+      const { getFieldDecorator } = form;
+      const { moduleFiles } = this.state;
+      return (
+        <Modal
+          visible={visible}
+          title={this.props.title}
+          okText="Create"
+          onCancel={onCancel}
+          onOk={onCreate}
+        >
+          <Form layout="vertical">
+            <Form.Item label="Select Module:">
+              {getFieldDecorator("moduleName", {
+                rules: [{ required: true, message: "Please input your note!" }],
+                initialValue: moduleFiles ? moduleFiles[0] : null
+              })(
+                <Select>
+                  {moduleFiles
+                    ? moduleFiles.map((item, key) => (
+                        <Option key={key} value={item}>
+                          {item.split(".")[0]}
+                        </Option>
+                      ))
+                    : null}
+                </Select>
+              )}
+            </Form.Item>
+            <Form.Item label="Select Count: ">
+              {getFieldDecorator("moduleCount", {
+                rules: [{ required: true, message: "Please input your note!" }],
+                initialValue: "2"
+              })(
+                <AutoComplete
+                  dataSource={["2", "3", "4", "5", "6", "7"]}
+                  placeholder="Please select module count"
+                />
+              )}
+            </Form.Item>
+          </Form>
+        </Modal>
+      );
+    }
+    componentDidMount() {
+      readExtenModule().then(res => {
+        const result = res["data"];
+        this.setState({
+          moduleFiles: result["data"]
+        });
+      });
+    }
+  }
+);
+
+class CollectionsPage extends React.Component {
+  handleCreate = () => {
+    const { form } = this.formRef.props;
+    form.validateFields((err, values) => {
+      if (err) {
+        return;
+      }
+      console.log("Received values of form: ", values);
+      // 还需要验证是否有模块存在
+
+      // 写入数据库
+      writeExtenModule({
+        deviceId: this.props.deviceId,
+        ...values
+      }).then(res => {
+        console.log(res);
+      });
+      form.resetFields();
+      this.props.onCancel();
     });
   };
 
-  return (
-    <Menu id="storageMenu">
-      <Item onClick={addModuleClick}>Add Module</Item>
-    </Menu>
-  );
-};
+  saveFormRef = formRef => {
+    this.formRef = formRef;
+  };
+
+  render() {
+    return (
+      <CollectionCreateForm
+        wrappedComponentRef={this.saveFormRef}
+        visible={this.props.visible}
+        title={`Create extension modules${this.props.deviceId}`}
+        onCancel={this.props.onCancel}
+        onCreate={this.handleCreate}
+      />
+    );
+  }
+}
+
+/**
+ * @method {MyAwesomeMenu} 右键菜单
+ */
+const MyAwesomeMenu = props => (
+  <Menu id="storageMenu">
+    <Item onClick={props.addModuleClick}>Add Module</Item>
+    <Item onClick={props.delModuleClick}>Delete Module</Item>
+    <Item onClick={props.applyToDevice}>apply to equipment</Item>
+  </Menu>
+);
+
+/**
+ * @method {EditableCell} Table > select组件
+ * @method {EditableTable} Table 组件
+ */
 
 const EditableCell = props => {
   const [treeData, setTreeData] = useState([
@@ -204,7 +316,6 @@ const EditableCell = props => {
 
   return <EditableContext.Consumer>{renderCell}</EditableContext.Consumer>;
 };
-
 // Table 组件
 @inject(allStore => allStore.appstate)
 @observer
@@ -392,7 +503,7 @@ class EditableTable extends React.Component {
         <Table
           scroll={{ y: 540 }}
           components={components}
-          dataSource={this.props.equipmentstate.getAttributeData.slice()}
+          dataSource={this.props.tableData || []}
           columns={columns}
           rowClassName="editable-row"
           size="small"
@@ -419,6 +530,18 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
           }
           return (
             <TreeNode
+              selectable={item.children.length ? false : true}
+              icon={
+                item.children.length ? (
+                  <Icon
+                    type="folder-open"
+                    theme="twoTone"
+                    twoToneColor="#ffb818"
+                  />
+                ) : (
+                  <Icon type="file" theme="twoTone" />
+                )
+              }
               title={
                 item.text
                   ? `${item.text} ${
@@ -440,7 +563,6 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
     const onRightHandle = e => {
       const menuId = "storageMenu";
       const { eventKey } = e.node.props;
-      e.node.onSelect(e.event);
       e.event.preventDefault();
       // 获取被右击的节点, 只有父节点才能响应右键
       if (eventKey.split(":").length < 2) {
@@ -448,7 +570,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
           id: menuId,
           event: e.event,
           props: {
-            foo: "bar"
+            deviceId: e.node.props.eventKey
           }
         });
       }
@@ -457,6 +579,8 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
     return (
       <DirectoryTree
         expandedKeys={props.expandedKeys}
+        switcherIcon={<Icon type="down" />}
+        multiple
         defaultExpandedKeys={
           props.expandedKeys.length ? props.expandedKeys : []
         }
@@ -612,6 +736,16 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
       asyncFn();
     };
 
+    // 清空数据库
+    const delAllClickHandle = () => {
+      Modal.confirm({
+        title: "Are you sure to clear all the data？",
+        onOk() {
+          delAllRedisData();
+        }
+      });
+    };
+
     return (
       <Tabs
         hideAdd
@@ -624,7 +758,10 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
           <TabPane tab={pane.title} key={pane.key}>
             <Row>
               <Col span={18}>
-                <EditableFormTable hashKey={pane.hashKey} />
+                <EditableFormTable
+                  tableData={pane.content}
+                  hashKey={pane.hashKey}
+                />
               </Col>
               <Col span={6}>
                 <div style={{ padding: "10px" }}>
@@ -633,12 +770,19 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
                     block
                     style={{ marginTop: "10px" }}
                     icon="plus"
-                    disabled={disabled}
                     onClick={addObjCLickHandle}
                   >
                     Add Object
                   </Button>
-
+                  <Button
+                    type="primary"
+                    block
+                    icon="reload"
+                    style={{ marginTop: "10px" }}
+                    onClick={reloadClickHandle}
+                  >
+                    overloading
+                  </Button>
                   <Button
                     type="danger"
                     block
@@ -650,13 +794,13 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
                     Delete Object
                   </Button>
                   <Button
-                    type="primary"
+                    type="danger"
                     block
-                    icon="reload"
+                    icon="delete"
                     style={{ marginTop: "10px" }}
-                    onClick={reloadClickHandle}
+                    onClick={delAllClickHandle}
                   >
-                    overloading
+                    Delete all data
                   </Button>
                 </div>
               </Col>
@@ -675,6 +819,61 @@ const StorageEqu = inject(allStore => allStore.appstate)(
       { title: "Tab 1", content: [], key: "1" }
     ]);
     const [expandedKeys, setExpandedKeys] = useState([]);
+    const [visible, setVisible] = useState(false);
+    const [deviceId, setDeviceId] = useState(null);
+    const showModal = () => {
+      setVisible(true);
+    };
+    const onCancel = () => {
+      setVisible(false);
+    };
+    // 添加模块
+    const addModuleClick = ({ event, props }) => {
+      setDeviceId(props["deviceId"]);
+      showModal();
+    };
+    // 删除模块
+    const delModuleClick = ({ event, props }) => {
+      Modal.confirm({
+        title: "Delete module",
+        content: <div></div>
+      })
+      console.log(props);
+    };
+
+    // 应用到设备
+    const applyToDevice = ({ event, props }) => {
+      const key = "updatable";
+      // 自动关闭时间
+      let duration = null;
+      let timer = null;
+      // 进度
+      let percent = 0;
+      notification.open({
+        key,
+        message: "appling in the device...",
+        description: <Progress percent={percent} status="active" />,
+        duration
+      });
+      timer = setInterval(() => {
+        if (percent === 100) {
+          clearInterval(timer);
+          duration = 1;
+        }
+        percent += 10;
+        notification.open({
+          key,
+          message: "appling in the device...",
+          description: (
+            <Progress
+              percent={percent}
+              status={percent < 100 ? "active" : "success"}
+            />
+          ),
+          duration
+        });
+      }, 100);
+    };
 
     useEffect(() => {
       async function asyncFn() {
@@ -687,7 +886,6 @@ const StorageEqu = inject(allStore => allStore.appstate)(
     }, [props]);
 
     const onExpand = expandedKeys => {
-      console.log("onExpand", expandedKeys);
       setExpandedKeys(expandedKeys);
     };
 
@@ -695,35 +893,33 @@ const StorageEqu = inject(allStore => allStore.appstate)(
       // 记录当下选择的对象
       props.equipmentstate.setSelected(key[0]);
       // 控制属性界面的显示
-      setPanes([{ title: key, key: "1" }]);
+      setPanes([{ title: key[0], key: "1" }]);
       // 使用正则匹配key格式
       let pattern = /(\d)+:(\d)+:(\d)+$/;
       let match = pattern.test(key[0]);
-
       if (match) {
         // 发送请求，读取属性内容
         readDeviceData({
           key: key[0]
         }).then(res => {
-          if (res.data.errno > -1) {
-            let redisData = res.data["data"];
-            let tableData = Object.keys(redisData).map((name, key) => {
-              return {
-                attrName: name,
-                value: redisData[name],
-                key
-              };
-            });
-            props.equipmentstate.attributeData = tableData;
-            setPanes([{ title: key, key: "1", hashKey: key[0] }]);
-          } else {
-            props.equipmentstate.attributeData = [];
-            setPanes([{ title: key, key: "1", hashKey: key[0] }]);
-          }
+          let redisData = res.data["data"];
+          let tableData = Object.keys(redisData).map((name, key) => {
+            return {
+              attrName: name,
+              value: redisData[name],
+              key
+            };
+          });
+          props.equipmentstate.attributeData = tableData;
+          setPanes([
+            {
+              title: key[0],
+              key: "1",
+              hashKey: key[0],
+              content: props.equipmentstate.getAttributeData
+            }
+          ]);
         });
-      } else {
-        // 没有匹配
-        setPanes([{ title: key, key: "1", hashKey: key[0] }]);
       }
     };
 
@@ -743,7 +939,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
               style={{
                 padding: "10px",
                 borderRight: "1px solid #ebedf0",
-                maxHeight: "640px",
+                maxHeight: "680px",
                 overflow: "scroll"
               }}
             >
@@ -756,13 +952,23 @@ const StorageEqu = inject(allStore => allStore.appstate)(
               ) : (
                 <Skeleton active />
               )}
-              <MyAwesomeMenu />
             </div>
           </Col>
           <Col span={18}>
             <AttributesPanel panes={panes} />
           </Col>
         </Row>
+        <MyAwesomeMenu
+          addModuleClick={addModuleClick}
+          applyToDevice={applyToDevice}
+          delModuleClick={delModuleClick}
+        />
+        <CollectionsPage
+          deviceId={deviceId}
+          visible={visible}
+          showModal={showModal}
+          onCancel={onCancel}
+        />
       </div>
     );
   })

@@ -149,3 +149,28 @@ export function addDeviceData(data) {
     method: "POST"
   })
 }
+// 清空数据库
+export function delAllRedisData() {
+  return request({
+    url: "/api/socket/db/delAll",
+    method: "GET"
+  })
+}
+
+// 读取扩展模块
+export function readExtenModule(params) {
+  return request({
+    params,
+    url: "/api/socket/module/read",
+    method: "GET"
+  })
+}
+
+// 将扩展模块存入redis
+export function writeExtenModule(data) {
+  return request({
+    data,
+    url: "/api/socket/module/save",
+    method: "POST"
+  })
+}

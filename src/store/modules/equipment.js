@@ -675,7 +675,7 @@ class EquipmentState extends BaseState {
   // 过滤attributeData, 增加一些控制属性
   @computed get getAttributeData() {
     let data = [];
-    let pattern = /(\d)+:(\d)+$/;
+    let pattern = /(\d)+:(\d):(\d)+$/;
     let match = pattern.test(this.selectedObjType);
     if (this.attributeData && match) {
       data = this.attributeData.map(item => {

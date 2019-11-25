@@ -24,9 +24,6 @@ class MenuController extends React.Component {
     };
   }
 
-  // 获取udp广播消息
-  bacnetDisHandle = me => {};
-
   // 软件版本信息
   aboutHandle = me => {
     notification.open({
