@@ -174,3 +174,21 @@ export function writeExtenModule(data) {
     method: "POST"
   })
 }
+
+// 删除扩展模块
+export function delExtenModule(data) {
+  return request({
+    data,
+    url: "/api/socket/module/del",
+    method: "POST"
+  })
+}
+
+// 查询
+export function findExtenModule(params) {
+  return request({
+    params,
+    url: "/api/socket/module/find",
+    method: "GET"
+  })
+}

@@ -666,10 +666,18 @@ class EquipmentState extends BaseState {
       childrenResult.sort(compare);
       return childrenResult;
     }
-    let treeData = objData;
-    // 排序
+    const treeData = objData;
+    
     treeData.sort(compare);
     return treeData;
+  }
+
+  // 过滤模块, number大于20的都是模块
+  @computed get getModules() {
+    return this.dataSource.filter(item => {
+      const pattern = /(\d)+:(\d)+:(\d)+$/
+      return pattern.test(item) && item.split(":")[2] > 20
+    })
   }
 
   // 过滤attributeData, 增加一些控制属性

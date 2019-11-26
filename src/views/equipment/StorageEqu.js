@@ -20,7 +20,8 @@ import {
   AutoComplete,
   Tag,
   Progress,
-  notification
+  notification,
+  Badge
 } from "antd";
 import { observer, inject } from "mobx-react";
 import {
@@ -29,7 +30,8 @@ import {
   delDeviceData,
   readExtenModule,
   writeExtenModule,
-  delAllRedisData
+  delAllRedisData,
+  delExtenModule
 } from "../../api/index.api";
 import { Menu, Item, contextMenu } from "react-contexify";
 import {
@@ -88,10 +90,13 @@ const CollectionCreateForm = Form.create({ name: "form_in_modal" })(
                 rules: [{ required: true, message: "Please input your note!" }],
                 initialValue: "2"
               })(
-                <AutoComplete
-                  dataSource={["2", "3", "4", "5", "6", "7"]}
-                  placeholder="Please select module count"
-                />
+                <Select placeholder="Please select module count">
+                  {this.props.moduleNum.map((item, key) => (
+                    <Option value={item.id} key={key} disabled={item.disabled}>
+                      {item.id}
+                    </Option>
+                  ))}
+                </Select>
               )}
             </Form.Item>
           </Form>
@@ -109,25 +114,47 @@ const CollectionCreateForm = Form.create({ name: "form_in_modal" })(
   }
 );
 
+@inject(allStore => allStore.appstate)
+@observer
 class CollectionsPage extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      moduleNum: [
+        { id: "2" },
+        { id: "3" },
+        { id: "4" },
+        { id: "5" },
+        { id: "6" },
+        { id: "7" }
+      ]
+    };
+  }
   handleCreate = () => {
     const { form } = this.formRef.props;
     form.validateFields((err, values) => {
       if (err) {
         return;
       }
-      console.log("Received values of form: ", values);
-      // 还需要验证是否有模块存在
-
-      // 写入数据库
       writeExtenModule({
         deviceId: this.props.deviceId,
         ...values
       }).then(res => {
-        console.log(res);
+        form.resetFields();
+        let _this = this;
+        _this.props.onCancel();
+        // 刷新
+        _this.props.equipmentstate.dataSource = [];
+        _this.props.equipmentstate.attributeData = [];
+        async function asyncFn() {
+          let result = await readDeviceData({ key: "*" });
+          let data = result["data"];
+          let deviceAll = data["data"];
+          _this.props.equipmentstate.dataSource = deviceAll;
+        }
+        // 重新请求
+        asyncFn();
       });
-      form.resetFields();
-      this.props.onCancel();
     });
   };
 
@@ -136,8 +163,30 @@ class CollectionsPage extends React.Component {
   };
 
   render() {
+    // 读取已经存在的模块
+    const modules = [
+      ...new Set(
+        this.props.equipmentstate.getModules.map(item => item.split(":")[2][0])
+      )
+    ];
+    let modulesNum = [];
+    if (modules.length) {
+      modulesNum = this.state.moduleNum.map(item => {
+        // 查询
+        const find = modules.findIndex(mod => mod === item.id);
+        if (find > -1) {
+          return {
+            ...item,
+            disabled: true
+          };
+        }
+        return item;
+      });
+    }
+
     return (
       <CollectionCreateForm
+        moduleNum={modulesNum}
         wrappedComponentRef={this.saveFormRef}
         visible={this.props.visible}
         title={`Create extension modules${this.props.deviceId}`}
@@ -523,14 +572,54 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       if (treeData.length) {
         return treeData.map(item => {
           let key;
+          let modules;
+          let nodeData = {};
           if (!prefix) {
             key = `${item.objectName}`;
           } else {
             key = `${prefix}:${item.objectName}`;
           }
+          const pattern = /^(\d)+$/;
+          if (pattern.test(key)) {
+            const allModules = props.equipmentstate.getModules;
+            if (allModules) {
+              const uniqu = {};
+              const deviceModule = allModules.filter(
+                node => node.split(":")[0] === item.objectName
+              );
+              deviceModule.forEach(item => {
+                uniqu[item.split(":")[2][0]] = item;
+              });
+              modules = Object.keys(uniqu);
+              nodeData.modules = modules;
+              nodeData.modulesKey = deviceModule;
+            }
+          }
+          const title = (
+            <span>
+              {item.text
+                ? `${item.text} ${
+                    item.children.length ? `(${item.children.length})` : ""
+                  }`
+                : `${item.objectName}`}
+              {modules ? (
+                <Badge
+                  style={{
+                    backgroundColor: "#fff",
+                    color: "#999",
+                    boxShadow: "0 0 0 1px #d9d9d9 inset",
+                    marginLeft: 5
+                  }}
+                  count={modules.length}
+                />
+              ) : null}
+            </span>
+          );
+
           return (
             <TreeNode
               selectable={item.children.length ? false : true}
+              nodeData={nodeData}
               icon={
                 item.children.length ? (
                   <Icon
@@ -542,13 +631,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
                   <Icon type="file" theme="twoTone" />
                 )
               }
-              title={
-                item.text
-                  ? `${item.text} ${
-                      item.children.length ? `(${item.children.length})` : ""
-                    }`
-                  : `${item.objectName}`
-              }
+              title={title}
               key={key}
               isLeaf={!item.children.length ? true : false}
             >
@@ -570,7 +653,8 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
           id: menuId,
           event: e.event,
           props: {
-            deviceId: e.node.props.eventKey
+            deviceId: e.node.props.eventKey,
+            nodeData: e.node.props.nodeData
           }
         });
       }
@@ -821,6 +905,16 @@ const StorageEqu = inject(allStore => allStore.appstate)(
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [visible, setVisible] = useState(false);
     const [deviceId, setDeviceId] = useState(null);
+    useEffect(() => {
+      async function asyncFn() {
+        let result = await readDeviceData({ key: "*" });
+        let data = result["data"];
+        let deviceAll = data["data"];
+        props.equipmentstate.dataSource = deviceAll;
+      }
+      asyncFn();
+    }, [props]);
+
     const showModal = () => {
       setVisible(true);
     };
@@ -833,14 +927,55 @@ const StorageEqu = inject(allStore => allStore.appstate)(
       showModal();
     };
     // 删除模块
-    const delModuleClick = ({ event, props }) => {
+    const delModuleClick = e => {
+      const deviceId = e.props.deviceId;
+      const nodeData = e.props.nodeData;
+      const modulesKey = nodeData["modulesKey"];
+      let selectVal = nodeData["modules"][0];
+      function handleChange(value) {
+        selectVal = value;
+      }
+      const ModalSelect = props => (
+        <Select
+          style={{ width: "100%" }}
+          defaultValue={nodeData["modules"][0]}
+          onChange={handleChange}
+        >
+          {nodeData["modules"].map(item => {
+            return (
+              <Option key={item} value={item}>
+                {item}
+              </Option>
+            );
+          })}
+        </Select>
+      );
       Modal.confirm({
-        title: "Delete module",
-        content: <div></div>
-      })
-      console.log(props);
+        title: "delete device modules",
+        content: <ModalSelect selectVal={selectVal} />,
+        onOk() {
+          // 删除模块
+          delExtenModule({
+            deviceId,
+            modules: modulesKey.filter(
+              item => item.split(":")[2][0] === selectVal
+            )
+          }).then(() => {
+            // 刷新
+            props.equipmentstate.dataSource = [];
+            props.equipmentstate.attributeData = [];
+            async function asyncFn() {
+              let result = await readDeviceData({ key: "*" });
+              let data = result["data"];
+              let deviceAll = data["data"];
+              props.equipmentstate.dataSource = deviceAll;
+            }
+            // 重新请求
+            asyncFn();
+          });
+        }
+      });
     };
-
     // 应用到设备
     const applyToDevice = ({ event, props }) => {
       const key = "updatable";
@@ -874,16 +1009,6 @@ const StorageEqu = inject(allStore => allStore.appstate)(
         });
       }, 100);
     };
-
-    useEffect(() => {
-      async function asyncFn() {
-        let result = await readDeviceData({ key: "*" });
-        let data = result["data"];
-        let deviceAll = data["data"];
-        props.equipmentstate.dataSource = deviceAll;
-      }
-      asyncFn();
-    }, [props]);
 
     const onExpand = expandedKeys => {
       setExpandedKeys(expandedKeys);
