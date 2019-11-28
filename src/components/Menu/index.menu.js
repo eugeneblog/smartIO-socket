@@ -116,6 +116,9 @@ class MenuController extends React.Component {
       return uploadModules(formData).then(res => {
         const data = res["data"].data;
         if (data.status === "done") {
+          _this.setState({
+            fileList: []
+          })
           message.success(`file ${data.fileName} upload succesed !`);
         } else {
           message.error(`file ${data.fileName} upload failed !`);
@@ -164,7 +167,7 @@ class MenuController extends React.Component {
                 <UploadModule {...props} fileList={_this.state.fileList} />
               ),
               onOk() {
-                return new Promise((resolve) => {
+                return new Promise(resolve => {
                   setTimeout(resolve, 1000);
                 }).then(() => {
                   handleUpload();
@@ -184,9 +187,10 @@ class MenuController extends React.Component {
       content: <UploadModule {...props} fileList={_this.state.fileList} />,
       onOk() {
         if (!_this.state.fileList.length) {
-          message.error(`Please select at least one file !`)
-          return Promise.reject()
+          message.error(`Please select at least one file !`);
+          return Promise.reject();
         }
+        modal.destroy();
       },
       okText: "Upload"
     });
