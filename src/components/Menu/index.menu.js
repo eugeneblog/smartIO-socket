@@ -3,7 +3,18 @@
 import React from "react";
 import "./index.menu.css";
 import { observer, inject } from "mobx-react";
-import { Menu, Dropdown, notification, Modal, Icon, Radio, Select } from "antd";
+import {
+  Menu,
+  Dropdown,
+  notification,
+  Modal,
+  Icon,
+  Radio,
+  Select,
+  message
+} from "antd";
+import { uploadModules } from "../../api/index.api";
+import { UploadModule } from "./MenuComponents";
 const SubMenu = Menu.SubMenu;
 const { Option } = Select;
 
@@ -20,7 +31,8 @@ class MenuController extends React.Component {
   constructor() {
     super();
     this.state = {
-      exportSelVal: 1
+      exportSelVal: 1,
+      fileList: []
     };
   }
 
@@ -54,7 +66,11 @@ class MenuController extends React.Component {
           {optData.length
             ? optData.map((item, key) => {
                 return (
-                  <Option placeholder="Please select equipment" key={key} value={item.objectName}>
+                  <Option
+                    placeholder="Please select equipment"
+                    key={key}
+                    value={item.objectName}
+                  >
                     {item.objectName}
                   </Option>
                 );
@@ -83,6 +99,96 @@ class MenuController extends React.Component {
       onOk: () => {
         console.log(this.state);
       }
+    });
+  };
+
+  // 导入模块
+  importModule = me => {
+    let _this = this;
+    const { fileList } = _this.state;
+    let modal = null;
+    const handleUpload = () => {
+      const { fileList } = this.state;
+      const formData = new FormData();
+      fileList.forEach(file => {
+        formData.append("files", file);
+      });
+      return uploadModules(formData).then(res => {
+        const data = res["data"].data;
+        if (data.status === "done") {
+          message.success(`file ${data.fileName} upload succesed !`);
+        } else {
+          message.error(`file ${data.fileName} upload failed !`);
+        }
+      });
+    };
+    let props = {
+      accept: ".xml, .json", // 接受的文件类型
+      multiple: true, // 支持多选
+      onRemove: file => {
+        _this.setState(
+          state => {
+            const index = state.fileList.indexOf(file);
+            const newFileList = state.fileList.slice();
+            newFileList.splice(index, 1);
+            return {
+              fileList: newFileList
+            };
+          },
+          () =>
+            modal.update({
+              content: (
+                <UploadModule {...props} fileList={_this.state.fileList} />
+              )
+            })
+        );
+      },
+      beforeUpload: file => {
+        // 限制文件类型 json/xml 以及 文件大小
+        const isJsonOrXml =
+          file.type === "application/json" || file.type === "application/xml";
+        const isLt2M = file.size / 1000 / 1000 < 2;
+        if (!isJsonOrXml) {
+          message.error("You can only upload JSON/XML file!");
+        }
+        if (!isLt2M) {
+          message.error("File must smaller than 2MB!");
+        }
+        _this.setState(
+          state => ({
+            fileList: [...state.fileList, file]
+          }),
+          () => {
+            modal.update({
+              content: (
+                <UploadModule {...props} fileList={_this.state.fileList} />
+              ),
+              onOk() {
+                return new Promise((resolve) => {
+                  setTimeout(resolve, 1000);
+                }).then(() => {
+                  handleUpload();
+                  modal.destroy();
+                });
+              }
+            });
+          }
+        );
+        return false;
+      },
+      fileList
+    };
+    modal = Modal.info({
+      title: "Import extension module",
+      maskClosable: true,
+      content: <UploadModule {...props} fileList={_this.state.fileList} />,
+      onOk() {
+        if (!_this.state.fileList.length) {
+          message.error(`Please select at least one file !`)
+          return Promise.reject()
+        }
+      },
+      okText: "Upload"
     });
   };
 }

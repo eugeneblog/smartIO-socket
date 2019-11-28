@@ -87,8 +87,7 @@ const CollectionCreateForm = Form.create({ name: "form_in_modal" })(
             </Form.Item>
             <Form.Item label="Select Count: ">
               {getFieldDecorator("moduleCount", {
-                rules: [{ required: true, message: "Please input your note!" }],
-                initialValue: "2"
+                rules: [{ required: true, message: "Please input your note!" }]
               })(
                 <Select placeholder="Please select module count">
                   {this.props.moduleNum.map((item, key) => (
@@ -169,7 +168,7 @@ class CollectionsPage extends React.Component {
         this.props.equipmentstate.getModules.map(item => item.split(":")[2][0])
       )
     ];
-    let modulesNum = [];
+    let modulesNum = this.state.moduleNum;
     if (modules.length) {
       modulesNum = this.state.moduleNum.map(item => {
         // 查询
@@ -410,7 +409,7 @@ class EditableTable extends React.Component {
               <EditableContext.Consumer>
                 {form => (
                   <a
-                    onClick={() => this.save(form, record.key)}
+                    onClick={() => this.save(form, record.key, record)}
                     style={{ marginRight: 8 }}
                   >
                     Save
@@ -464,32 +463,21 @@ class EditableTable extends React.Component {
     this.setState({ editingKey: "" });
   };
 
-  save(form, key) {
+  save(form, key, record) {
     form.validateFields((error, row) => {
       if (error) {
         return;
       }
-      const newData = [...this.props.equipmentstate.getAttributeData];
-      const index = newData.findIndex(item => key === item.key);
-      if (index > -1) {
-        const item = newData[index];
-        newData.splice(index, 1, {
-          ...item,
-          ...row
-        });
-        // 保存到数据库
-        setDeviceData({
-          key: this.props.hashKey,
-          subKey: newData[index].attrName,
-          val: newData[index].value
-        }).then(res => {
-          // 客户端同步更新
-          this.props.equipmentstate.attributeData = newData;
-          this.setState({ editingKey: "" });
-        });
-      } else {
+      // 保存到数据库
+      setDeviceData({
+        key: this.props.hashKey,
+        subKey: record.attrName,
+        val:row.value
+      }).then(res => {
+        // 客户端同步更新
+        record.value = row.value
         this.setState({ editingKey: "" });
-      }
+      });
     });
   }
 
@@ -691,19 +679,8 @@ const ModalTreeSelect = props => {
 const AttributesPanel = inject(allStore => allStore.appstate)(
   observer(props => {
     const [activeKey, setActiveKey] = useState(props.panes[0].key);
-    const [disabled, setDisabled] = useState(true);
     const pane = props.panes[0];
     const keys = pane.hashKey ? pane.hashKey.split(":") : pane.hashKey;
-
-    useEffect(() => {
-      if (keys && keys[1]) {
-        let prdConfig = props.equipmentstate.getProductConfig(keys[1]);
-        let isDisabled = prdConfig ? !prdConfig.isAdd : true;
-        setDisabled(isDisabled);
-      } else {
-        setDisabled(true);
-      }
-    }, [keys, props]);
 
     const onChange = activeKey => {
       setActiveKey(activeKey);
@@ -711,9 +688,11 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
 
     // 增加对象
     const addObjCLickHandle = () => {
-      // 获取要增加对象的设备号 key首部
-      const deviceid = keys[0];
+      if (!keys) {
+        return
+      }
       if (keys[1]) {
+        const deviceid = keys[0];
         const objKey = keys.slice(0, 2);
         let text = `device:${deviceid} ${getPropertyIdText(
           BACNET_OBJECT_TYPE,

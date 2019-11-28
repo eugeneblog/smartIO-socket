@@ -36,9 +36,14 @@ class MenuState extends BaseState {
         },
         "-",
         {
-          text: "Import...",
-          shortcutKey: "Ctrl+Alt+I",
-          handle: "importHandle"
+          text: "Import",
+          children: [
+            {
+              text: "import module...",
+              shortcutKey: null,
+              handle: "importModule"
+            }
+          ]
         },
         {
           text: "Export...",

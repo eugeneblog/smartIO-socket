@@ -649,7 +649,7 @@ class Equipment extends React.Component {
           isLoading: true
         });
         return sendUdpMes({
-          ip: "0.0.0.0",
+          ip: config.NET_CONFIG.MAIN.IP,
           port: config.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
           mes: mes,
           local_port: config.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
@@ -685,8 +685,6 @@ class Equipment extends React.Component {
       return;
     }
     if (this.socket) {
-      // this.socket.close();
-      // this.props.appstate.equipmentData = [];
       // 开启websocket连接, 获取要发送的信息, 发送udp消息
       getWhoMsg()
         .then(res => {
@@ -704,7 +702,7 @@ class Equipment extends React.Component {
         .then(mes => {
           // 发送udp消息
           return sendUdpMes({
-            ip: "0.0.0.0",
+            ip: selectedChannelData.NET_CONFIG.MAIN.IP,
             port: selectedChannelData.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
             mes: mes,
             local_port: selectedChannelData.NET_CONFIG.MAIN.LOCAL_PORT["#text"],

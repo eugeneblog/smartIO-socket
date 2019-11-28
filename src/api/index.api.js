@@ -133,12 +133,12 @@ export function setDeviceData(params) {
 }
 
 // 从数据库中删除数据
-export function delDeviceData(params){
+export function delDeviceData(params) {
   return request({
     params,
     url: "/api/socket/db/delDevice",
     method: "GET"
-  })
+  });
 }
 
 // 从数据库中增加数据
@@ -147,14 +147,14 @@ export function addDeviceData(data) {
     data,
     url: "/api/socket/db/addDevice",
     method: "POST"
-  })
+  });
 }
 // 清空数据库
 export function delAllRedisData() {
   return request({
     url: "/api/socket/db/delAll",
     method: "GET"
-  })
+  });
 }
 
 // 读取扩展模块
@@ -163,7 +163,7 @@ export function readExtenModule(params) {
     params,
     url: "/api/socket/module/read",
     method: "GET"
-  })
+  });
 }
 
 // 将扩展模块存入redis
@@ -172,7 +172,7 @@ export function writeExtenModule(data) {
     data,
     url: "/api/socket/module/save",
     method: "POST"
-  })
+  });
 }
 
 // 删除扩展模块
@@ -181,14 +181,15 @@ export function delExtenModule(data) {
     data,
     url: "/api/socket/module/del",
     method: "POST"
-  })
+  });
 }
 
-// 查询
-export function findExtenModule(params) {
+// 模块上传
+export function uploadModules(data) {
   return request({
-    params,
-    url: "/api/socket/module/find",
-    method: "GET"
-  })
+    data,
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    url: "/api/socket/upload/module",
+    method: "POST"
+  });
 }
