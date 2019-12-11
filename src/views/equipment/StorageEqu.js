@@ -19,9 +19,9 @@ import {
   TreeSelect,
   AutoComplete,
   Tag,
-  Progress,
-  notification,
-  Badge
+  Badge,
+  message,
+  Progress
 } from "antd";
 import { observer, inject } from "mobx-react";
 import {
@@ -31,14 +31,17 @@ import {
   readExtenModule,
   writeExtenModule,
   delAllRedisData,
-  delExtenModule
+  delExtenModule,
+  readAllDeviceData,
+  appliedTOdevice,
+  sendFilePkg
 } from "../../api/index.api";
 import { Menu, Item, contextMenu } from "react-contexify";
 import {
   BACNET_OBJECT_TYPE,
   BACNET_ENGINEERING_UNITS
 } from "../../utils/BAC_DECODE_TEXT";
-import { getPropertyIdText } from "../../utils/util";
+import { getPropertyIdText, formateXml } from "../../utils/util";
 const { TabPane } = Tabs;
 const { Option } = Select;
 const { TreeNode, DirectoryTree } = Tree;
@@ -195,7 +198,6 @@ class CollectionsPage extends React.Component {
     );
   }
 }
-
 /**
  * @method {MyAwesomeMenu} 右键菜单
  */
@@ -204,6 +206,7 @@ const MyAwesomeMenu = props => (
     <Item onClick={props.addModuleClick}>Add Module</Item>
     <Item onClick={props.delModuleClick}>Delete Module</Item>
     <Item onClick={props.applyToDevice}>apply to equipment</Item>
+    <Item onClick={props.exportData}>Backup as file</Item>
   </Menu>
 );
 
@@ -472,10 +475,10 @@ class EditableTable extends React.Component {
       setDeviceData({
         key: this.props.hashKey,
         subKey: record.attrName,
-        val:row.value
+        val: row.value
       }).then(res => {
         // 客户端同步更新
-        record.value = row.value
+        record.value = row.value;
         this.setState({ editingKey: "" });
       });
     });
@@ -689,7 +692,7 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
     // 增加对象
     const addObjCLickHandle = () => {
       if (!keys) {
-        return
+        return;
       }
       if (keys[1]) {
         const deviceid = keys[0];
@@ -875,6 +878,15 @@ const AttributesPanel = inject(allStore => allStore.appstate)(
   })
 );
 
+const AppliedModal = props => {
+  return (
+    <Modal title="Appled in the device..." {...props}>
+      <span>Click the start button to start the application</span>
+      <Progress percent={props.percent} status="active" />
+    </Modal>
+  );
+};
+
 // 父组件
 const StorageEqu = inject(allStore => allStore.appstate)(
   observer(props => {
@@ -882,8 +894,12 @@ const StorageEqu = inject(allStore => allStore.appstate)(
       { title: "Tab 1", content: [], key: "1" }
     ]);
     const [expandedKeys, setExpandedKeys] = useState([]);
+    const [appliedVisible, setAppliedVisible] = useState(false);
     const [visible, setVisible] = useState(false);
+    const [percent, setPercent] = useState(0);
     const [deviceId, setDeviceId] = useState(null);
+    const [isLoading, setIsLoading] = useState(false)
+
     useEffect(() => {
       async function asyncFn() {
         let result = await readDeviceData({ key: "*" });
@@ -955,38 +971,135 @@ const StorageEqu = inject(allStore => allStore.appstate)(
         }
       });
     };
+
+    async function apply() {
+      let start = 0;
+      // 转换成xml数据
+      const xmlData = await redisGenerateXML(deviceId);
+      // 发送文件长度
+      const applied = await appliedTOdevice({ deviceId, xmlData });
+      const data = applied["data"].data;
+      // 递归函数
+      const recursiveSendFile = (pkgLen, start, fileData, deviceId) => {
+        sendFilePkg({
+          pkgLen: data.pkgLen,
+          start,
+          fileData: xmlData,
+          deviceId
+        })
+          .then(res => {
+            setIsLoading(true)
+            const { errno } = res["data"].data;
+            if (errno !== -1) {
+              // 累加start
+              if (start + pkgLen < xmlData.length) {
+                start += pkgLen;
+                let percent = Math.trunc((start / xmlData.length) * 100);
+                setPercent(percent);
+                recursiveSendFile(pkgLen, start, fileData, deviceId);
+              } else {
+                message.success("Application successfully");
+                setAppliedVisible(false);
+                setPercent(0);
+                setIsLoading(false)
+                return;
+              }
+            } else {
+              recursiveSendFile(pkgLen, start, xmlData, deviceId);
+            }
+          })
+          .catch(err => {
+            recursiveSendFile(pkgLen, start, xmlData, deviceId);
+          });
+      };
+      recursiveSendFile(data.pkgLen, start, xmlData, deviceId);
+    }
+
     // 应用到设备
-    const applyToDevice = ({ event, props }) => {
-      const key = "updatable";
-      // 自动关闭时间
-      let duration = null;
-      let timer = null;
-      // 进度
-      let percent = 0;
-      notification.open({
-        key,
-        message: "appling in the device...",
-        description: <Progress percent={percent} status="active" />,
-        duration
+    const applyToDevice = e => {
+      if (!props.appstate.selectedChannel) {
+        message.warn("Select the channel configuration");
+        return;
+      }
+      setDeviceId(e.props.deviceId);
+      setAppliedVisible(true);
+    };
+    // 导出为文件
+    const exportData = e => {
+      redisGenerateXML(e.props.deviceId).then(data => {
+        // 下载文件
+        const link = document.createElement("a");
+        const blob = new Blob([data], { type: "text/xml" });
+        const fileName = `${e.props.deviceId}.xml`;
+        link.setAttribute("download", fileName);
+        link.href = window.URL.createObjectURL(blob);
+        link.click();
       });
-      timer = setInterval(() => {
-        if (percent === 100) {
-          clearInterval(timer);
-          duration = 1;
-        }
-        percent += 10;
-        notification.open({
-          key,
-          message: "appling in the device...",
-          description: (
-            <Progress
-              percent={percent}
-              status={percent < 100 ? "active" : "success"}
-            />
-          ),
-          duration
+    };
+
+    // redis数据转成xml
+    const redisGenerateXML = deviceName => {
+      // 获取所有设备下的key
+      const deviceObj = props.equipmentstate.getDeviceObjKey(deviceName, {
+        "0": true,
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "17": true
+      });
+      return readAllDeviceData({ keys: deviceObj }).then(res => {
+        const result = res["data"];
+        // 统计类型出现的次数
+        let objType = deviceObj.reduce(function(allNames, name) {
+          let type = name.split(":")[1];
+          if (type in allNames) {
+            allNames[type]++;
+          } else {
+            allNames[type] = 1;
+          }
+          return allNames;
+        }, {});
+        // 排序
+        let nodes = result.sort((a, b) => {
+          let keyNum1 = Number(a.keys.split(":").join(""));
+          let keyNum2 = Number(b.keys.split(":").join(""));
+          if (keyNum1 < keyNum2) {
+            return -1;
+          } else {
+            return 1;
+          }
         });
-      }, 100);
+        let xmlNodes = nodes.map(node => {
+          const attrsData = node.data;
+          let number = node.keys;
+          let attrs = "";
+          for (const key in attrsData) {
+            if (attrsData.hasOwnProperty(key)) {
+              const val = attrsData[key];
+              attrs += `<${key}>${val}</${key}>\n`;
+            }
+          }
+          return `<key number="${number}">
+            ${attrs}
+          </key>`;
+        });
+        // 生成xml 字符串
+        let xmlStr = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+        <root>
+          <Version>1</Version>
+          <AI_count>${objType["0"]}</AI_count>
+          <AO_count>${objType["1"]}</AO_count>
+          <AV_count>${objType["2"]}</AV_count>
+          <BI_count>${objType["3"]}</BI_count>
+          <BO_count>${objType["4"]}</BO_count>
+          <BV_count>${objType["5"]}</BV_count>
+          <SCHEDULE_count>${objType["17"]}</SCHEDULE_count>
+          ${xmlNodes.join("")}
+        </root>`;
+        return formateXml(xmlStr);
+      });
     };
 
     const onExpand = expandedKeys => {
@@ -1066,12 +1179,21 @@ const StorageEqu = inject(allStore => allStore.appstate)(
           addModuleClick={addModuleClick}
           applyToDevice={applyToDevice}
           delModuleClick={delModuleClick}
+          exportData={exportData}
         />
         <CollectionsPage
           deviceId={deviceId}
           visible={visible}
           showModal={showModal}
           onCancel={onCancel}
+        />
+        <AppliedModal
+          visible={appliedVisible}
+          onCancel={() => setAppliedVisible(false)}
+          onOk={() => apply()}
+          percent={percent}
+          okText="Start"
+          okButtonProps={{loading: isLoading}}
         />
       </div>
     );

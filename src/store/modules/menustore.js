@@ -46,9 +46,19 @@ class MenuState extends BaseState {
           ]
         },
         {
-          text: "Export...",
-          shortcutKey: "Ctrl+Alt+E",
-          handle: "exportHandle"
+          text: "Export",
+          children: [
+            {
+              disabled: false,
+              text: "xml...",
+              shortcutKey: null,
+              handle: "exportXmlHandle"
+            },{
+              text: "redis file...",
+              shortcutKey: null,
+              handle: "exportRedisFile"
+            }
+          ]
         },
         "-",
         {

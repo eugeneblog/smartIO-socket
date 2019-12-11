@@ -667,7 +667,7 @@ class EquipmentState extends BaseState {
       return childrenResult;
     }
     const treeData = objData;
-    
+
     treeData.sort(compare);
     return treeData;
   }
@@ -675,9 +675,9 @@ class EquipmentState extends BaseState {
   // 过滤模块, number大于20的都是模块
   @computed get getModules() {
     return this.dataSource.filter(item => {
-      const pattern = /(\d)+:(\d)+:(\d)+$/
-      return pattern.test(item) && item.split(":")[2] > 20
-    })
+      const pattern = /(\d)+:(\d)+:(\d)+$/;
+      return pattern.test(item) && item.split(":")[2] > 20;
+    });
   }
 
   // 过滤attributeData, 增加一些控制属性
@@ -714,6 +714,21 @@ class EquipmentState extends BaseState {
       });
     }
     return data;
+  }
+
+  /**
+   * 传入设备号，返回该设备下的所有对象key值
+   * @param {string} device
+   */
+  @action getDeviceObjKey(device, isNeed = {}) {
+    return this.dataSource.filter(item => {
+      const pattern = /(\d)+:(\d)+:(\d)+$/;
+      return (
+        pattern.test(item) &&
+        item.split(":")[0] === device &&
+        isNeed[item.split(":")[1]]
+      );
+    });
   }
 
   // 将对象列表转换成treeNode数据结构
@@ -777,7 +792,7 @@ class EquipmentState extends BaseState {
         })
       }
     ];
-    return treeData
+    return treeData;
   }
 }
 

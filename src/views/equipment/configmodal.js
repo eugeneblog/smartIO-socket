@@ -13,10 +13,6 @@ const steps = [
   },
   {
     title: "Find Router"
-  },
-  {
-    title: "Search",
-    content: "Second-content"
   }
 ];
 
@@ -26,7 +22,6 @@ class ConfigModal extends React.Component {
     super(props);
     this.state = {
       current: 0,
-      selctConfig: "",
       findNetProgress: 0
     };
   }
@@ -46,7 +41,7 @@ class ConfigModal extends React.Component {
             )}
             {current < steps.length - 1 && (
               <Button
-                disabled={!this.state.selctConfig}
+                disabled={!this.props.appstate.selectedChannel}
                 type="primary"
                 onClick={() => this.next()}
               >
@@ -72,14 +67,13 @@ class ConfigModal extends React.Component {
   }
 
   doneHandle = e => {
-    this.props.handleOk(e, this.state);
+    this.props.handleOk();
     this.setState({
       current: 0
     });
   };
 
   selectHandle = (val, opt) => {
-    console.log("select", val);
     const { channelDataSource } = this.props.appstate;
     let config;
     if (!channelDataSource.ROOT) {
@@ -88,8 +82,9 @@ class ConfigModal extends React.Component {
     config = channelDataSource.ROOT.CHANNEL.filter(item => {
       return item.ITEM_NAME === val.key;
     });
+    this.props.appstate.selectedChannel = val.key
+    this.props.appstate.selectedChannelData = config
     this.setState({
-      selctConfig: val.key,
       config: { ...config[0] }
     });
   };
@@ -109,8 +104,8 @@ class ConfigModal extends React.Component {
             <Select
               labelInValue
               defaultValue={
-                this.state.selctConfig
-                  ? { key: this.state.selctConfig }
+                this.props.appstate.selectedChannel
+                  ? { key: this.props.appstate.selectedChannel }
                   : undefined
               }
               placeholder="Select a channel"
@@ -127,25 +122,6 @@ class ConfigModal extends React.Component {
             </Select>
           </div>
         );
-      case "Search":
-        if (this.state.config) {
-          let netConfig = this.state.config.NET_CONFIG;
-          const { MAC, NAME, LOCAL_PORT, REMOTE_PORT } = netConfig.MAIN;
-          return (
-            <div label="Main" style={{ textAlign: "left", padding: "10px" }}>
-              local_port: {LOCAL_PORT["#text"]}
-              <br />
-              remote_port: {REMOTE_PORT["#text"]}
-              <br />
-              mac: {MAC}
-              <br />
-              name: {NAME}
-              <br />
-            </div>
-          );
-        } else {
-          return null;
-        }
       case "Find Router":
         return (
           <div className="equipment-find-router">

@@ -63,6 +63,15 @@ export function sendUdpMes(data) {
   });
 }
 
+// 初始化udp套接字
+export function initUdpSocket(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/init",
+    method: "POST"
+  })
+}
+
 // 获取路由
 export function getUdpNetNum(data) {
   return request({
@@ -73,18 +82,11 @@ export function getUdpNetNum(data) {
 }
 
 // 获取who_msg
-export function getWhoMsg() {
+export function getWhoMsg(data) {
   return request({
     url: "/api/socket/ffi/who",
-    method: "GET"
-  });
-}
-
-// 开启websocket连接
-export function startWebsocket() {
-  return request({
-    url: "/api/socket/websocket/start",
-    method: "GET"
+    method: "POST",
+    data
   });
 }
 
@@ -121,6 +123,14 @@ export function readDeviceData(data) {
     url: "/api/socket/db/getDevice",
     method: "POST"
   });
+}
+// 读取多个对象
+export function readAllDeviceData(data) {
+  return request({
+    data,
+    url: "/api/socket/db/getAllDevice",
+    method: "POST"
+  })
 }
 
 // 更改数据库hash值
@@ -192,4 +202,31 @@ export function uploadModules(data) {
     url: "/api/socket/upload/module",
     method: "POST"
   });
+}
+
+// 应用配置文件到设备
+export function appliedTOdevice(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/appliedXml",
+    method: "POST"
+  })
+}
+
+// 发送文件大小
+export function exportDeviceToXml(data) {
+  return request({
+    data,
+    url: "/api/socket/export/xml",
+    method: "POST"
+  })
+}
+
+// 发送文件
+export function sendFilePkg(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/sendFile",
+    method: "POST"
+  })
 }

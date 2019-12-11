@@ -20,11 +20,10 @@ import * as Socket from "socket.io-client";
 import "./index.equipment.css";
 import {
   getWhoMsg,
-  sendUdpMes,
-  startWebsocket,
   searchEquOneObj,
   getEquObjAttribute,
-  uploadDataToRedis
+  uploadDataToRedis,
+  initUdpSocket
 } from "../../api/index.api";
 import StorageEqu from "./StorageEqu";
 import ConfigModal from "./configmodal";
@@ -431,7 +430,8 @@ class Equipment extends React.Component {
     this.state = {
       configVisable: false,
       isLoading: false,
-      estate: false
+      estate: false,
+      equIndex: 0
     };
     this.mainColumns = [
       { title: "Sources", dataIndex: "sources", key: "sources" }
@@ -459,7 +459,7 @@ class Equipment extends React.Component {
             data.forEach(item => {
               obj[item.props.objName] = item.props.value;
             });
-            return obj
+            return obj;
           };
           checkedObjs = objArr.map(item => {
             const __defaultHash = {
@@ -477,7 +477,38 @@ class Equipment extends React.Component {
         }
         return;
       };
+
       const treeData = selEquRows.map((item, key) => {
+        const __default = [
+          {
+            key: `${item.deviceid}:8:0:0`,
+            title: `DEVICE_NAME: ${item.deviceid}`,
+            objName: "DEVICE_NAME",
+            value: item.deviceid,
+            checkable: false
+          },
+          {
+            key: `${item.deviceid}:8:0:1`,
+            title: `SOURCES: ${item.deviceid}`,
+            objName: "SOURCES",
+            value: item.sources,
+            checkable: false
+          },
+          {
+            key: `${item.deviceid}:8:0:2`,
+            title: `NET: ${item.sourceAddrNet}`,
+            objName: "NET",
+            value: item.sourceAddrNet,
+            checkable: false
+          },
+          {
+            key: `${item.deviceid}:8:0:3`,
+            title: `MAC: ${item.sourceAddrAdr}`,
+            objName: "MAC",
+            value: item.sourceAddrAdr,
+            checkable: false
+          }
+        ];
         if (item.property_values) {
           // 过滤除obj_list 以外的所有对象
           const obj_list = item.property_values.filter(
@@ -508,7 +539,6 @@ class Equipment extends React.Component {
           },
           []);
           const recursiveObjList = (data, pId) => {
-            // if (pId.split(":").length <= 2) {
             return data.map((item, key) => {
               if (item.children) {
                 return {
@@ -525,22 +555,45 @@ class Equipment extends React.Component {
                 checkable: pId.split(":").length >= 3 ? false : true
               };
             });
-            // }
-            // return;
           };
+
+          let children = myOrderedArray.map(group => {
+            return {
+              title: `${group.object_type_text}`,
+              key: `${item.deviceid}:${group.object_type}`,
+              children: recursiveObjList(
+                obj_list.filter(ele => ele.object_type === group.object_type),
+                `${item.deviceid}:${group.object_type}`
+              )
+            };
+          });
+          children[0].children[0].children.push(
+            {
+              key: Math.random() * new Date().getDate(),
+              title: `SOURCES: ${item.deviceid}`,
+              objName: "SOURCES",
+              value: item.sources,
+              checkable: false
+            },
+            {
+              key: Math.random() * new Date().getDate(),
+              title: `NET: ${item.sourceAddrNet}`,
+              objName: "NET",
+              value: item.sourceAddrNet,
+              checkable: false
+            },
+            {
+              key: Math.random() * new Date().getDate(),
+              title: `MAC: ${item.sourceAddrAdr}`,
+              objName: "MAC",
+              value: item.sourceAddrAdr,
+              checkable: false
+            }
+          );
           return {
             title: `${item.deviceid}`,
             key: item.deviceid,
-            children: myOrderedArray.map(group => {
-              return {
-                title: `${group.object_type_text}`,
-                key: `${item.deviceid}:${group.object_type}`,
-                children: recursiveObjList(
-                  obj_list.filter(ele => ele.object_type === group.object_type),
-                  `${item.deviceid}:${group.object_type}`
-                )
-              };
-            })
+            children
           };
         }
         // 没有读取对象列表的情况默认添加类型为8的对象
@@ -552,15 +605,7 @@ class Equipment extends React.Component {
             {
               title: "Device",
               key: `${item.deviceid}:8:0`,
-              children: [
-                {
-                  key: `${item.deviceid}:8:0:0`,
-                  title: `DEVICE_NAME: ${item.deviceid}`,
-                  objName: "DEVICE_NAME",
-                  value: item.deviceid,
-                  checkable: false
-                }
-              ]
+              children: __default
             }
           ]
         };
@@ -597,7 +642,6 @@ class Equipment extends React.Component {
          * @method uploadDataToRedis
          * @param{json} keys - redis key 格式: divice:objType:objNum
          */
-        console.log(checkedObjs);
         return uploadDataToRedis({
           keys: [...checkedObjs]
         });
@@ -605,12 +649,9 @@ class Equipment extends React.Component {
     });
   };
   // 搜索设备
-  searchEqu = (e, channel) => {
+  searchEqu = () => {
     // 获取选择的通道配置
-    const { selctConfig, config } = channel;
-    // 保存当前选择的通道以及通道信息
-    this.props.appstate.selectedChannel = selctConfig;
-    this.props.appstate.selectedChannelData = config;
+    const { selectedChannelData } = this.props.appstate;
     // 判断是否已经存在数据
     if (this.props.appstate.equipmentData.length) {
       confirm({
@@ -618,47 +659,18 @@ class Equipment extends React.Component {
         content: "You will empty the device and retrieve the device list",
         onOk: () => {
           this.props.appstate.equipmentTableData = [];
-          this.setState(
-            {
-              configVisable: false
-            },
-            () => {
-              // 开始新一轮设备搜索
-            }
-          );
-          return;
+          this.setState({
+            configVisable: false
+          });
         }
       });
       return;
     }
-    getWhoMsg()
-      .then(whoMsgRes => {
+    getWhoMsg({ ip: selectedChannelData.NET_CONFIG.MAIN.IP }).then(
+      whoMsgRes => {
         let data = whoMsgRes["data"];
-        let { bclcEncodeOriginalRes, pduData } = data;
-        pduData = pduData["data"].slice(0, bclcEncodeOriginalRes).map(item => {
-          return item.toString(16).length > 1
-            ? "0x" + item.toString(16)
-            : "0x0" + item.toString(16);
-        });
-        return pduData;
-      })
-      .then(mes => {
-        // 发送udp消息, table 为loading状态
-        this.setState({
-          configVisable: false,
-          isLoading: true
-        });
-        return sendUdpMes({
-          ip: config.NET_CONFIG.MAIN.IP,
-          port: config.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
-          mes: mes,
-          local_port: config.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
-          remote_port: config.NET_CONFIG.MAIN.REMOTE_PORT["#text"]
-        });
-      })
-      .then(udpData => {
-        const udpResult = udpData["data"];
-        if (udpResult.errno === 0) {
+        if (data.errno > -1) {
+          this.handleCancel();
           timer = setTimeout(() => {
             // 如果data 为空，则提示用户没有搜索到设备
             if (this.props.appstate.equipmentData.length === 0) {
@@ -669,63 +681,37 @@ class Equipment extends React.Component {
             this.setState({
               isLoading: false
             });
-          }, 1500);
+          }, 500);
         }
-      })
-      .catch(err => {
-        message.info("Failed to locate device");
-      });
+      }
+    );
   };
 
   // 重载设备
   discoveryHandle = e => {
-    const { selectedChannelData, selectedChannel } = this.props.appstate;
-    if (!selectedChannel) {
-      message.info("Please select the channel configuration first");
-      return;
-    }
-    if (this.socket) {
-      // 开启websocket连接, 获取要发送的信息, 发送udp消息
-      getWhoMsg()
-        .then(res => {
-          let data = res["data"];
-          let { bclcEncodeOriginalRes, pduData } = data;
-          pduData = pduData["data"]
-            .slice(0, bclcEncodeOriginalRes)
-            .map(item => {
-              return item.toString(16).length > 1
-                ? "0x" + item.toString(16)
-                : "0x0" + item.toString(16);
+    const { selectedChannelData } = this.props.appstate;
+    this.setState({
+      isLoading: true
+    });
+    getWhoMsg({ ip: selectedChannelData.NET_CONFIG.MAIN.IP }).then(
+      whoMsgRes => {
+        let data = whoMsgRes["data"];
+        if (data.errno > -1) {
+          this.handleCancel();
+          timer = setTimeout(() => {
+            // 如果data 为空，则提示用户没有搜索到设备
+            if (this.props.appstate.equipmentData.length === 0) {
+              message.warning(
+                "Timeout, please check network or configuration!"
+              );
+            }
+            this.setState({
+              isLoading: false
             });
-          return pduData;
-        })
-        .then(mes => {
-          // 发送udp消息
-          return sendUdpMes({
-            ip: selectedChannelData.NET_CONFIG.MAIN.IP,
-            port: selectedChannelData.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
-            mes: mes,
-            local_port: selectedChannelData.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
-            remote_port:
-              selectedChannelData.NET_CONFIG.MAIN.REMOTE_PORT["#text"]
-          });
-        });
-      this.connectSocket();
-      // 获取who_msg
-      this.setState({
-        configVisable: false,
-        isLoading: true
-      });
-      timer = setTimeout(() => {
-        // 如果data 为空，则提示用户没有搜索到设备
-        if (this.props.appstate.equipmentData.length === 0) {
-          message.warning("Timeout, please check network or configuration!");
+          }, 500);
         }
-        this.setState({
-          isLoading: false
-        });
-      }, 1500);
-    }
+      }
+    );
   };
 
   handleCancel = e => {
@@ -735,40 +721,39 @@ class Equipment extends React.Component {
   };
   // 连接websocket
   connectSocket() {
-    return startWebsocket().then(res => {
-      let data = res["data"];
-      let index = 0;
-      if (data.errno === 0) {
-        this.socket = Socket("http://localhost:8001");
-        this.socket.on("connect", () => {
-          this.setState({
-            estate: true
-          });
-          this.socket.emit("client message", { msg: "hi , server" });
+    this.socket = Socket("http://localhost:8001");
+    this.socket.on("connect", () => {
+      this.setState({
+        estate: true
+      });
+      this.socket.emit("client message", { msg: "hi , server" });
+    });
+    this.socket.on("server message", udpData => {
+      // 忽略空消息
+      if (!Object.keys(udpData).length) {
+        return;
+      }
+      // 存储whois IAm报文
+      if (udpData["iAmData"]) {
+        let data = udpData["iAmData"];
+        // 如果equipmentData里面有该设备了则不进行插入操作
+        let isThere = this.props.appstate.equipmentData.findIndex(item => {
+          return data["deviceId"] === item.deviceid;
         });
-        this.socket.on("server message", udpData => {
-          // 忽略空消息
-          if (!Object.keys(udpData).length) {
-            return;
-          }
-          // 存储whois IAm报文
-          if (udpData["iAmData"]) {
-            let data = udpData["iAmData"];
-            // 如果equipmentData里面有该设备了则不进行插入操作
-            let isThere = this.props.appstate.equipmentData.findIndex(item => {
-              return data["deviceId"] === item.deviceid;
-            });
-            if (isThere === -1) {
-              this.props.appstate.equipmentTableData = [
-                {
-                  key: 1,
-                  sources: data["address"] + ":" + data["port"]
-                }
-              ];
-              let key = index++;
-              console.log(key);
+        if (isThere === -1) {
+          this.props.appstate.equipmentTableData = [
+            {
+              key: 1,
+              sources: data["address"] + ":" + data["port"]
+            }
+          ];
+          this.setState(
+            {
+              equIndex: this.state.equIndex + 1
+            },
+            () => {
               this.props.appstate.equipmentData.push({
-                key,
+                key: this.state.equIndex,
                 deviceid: data["deviceId"],
                 maxapdu: data["maxapdu"],
                 segmenation: data["segment"],
@@ -778,51 +763,47 @@ class Equipment extends React.Component {
                 sourceAddrAdr: data["sourceAddrAdr"]
               });
             }
-            return;
-            // console.log(data)
-          }
-          // 存储 IAm-router报文
-          if (udpData["allNetWork"]) {
-            this.props.appstate.NetProgress = udpData["allNetWork"];
-          }
-          // 存储 对象列表报文
-          if (udpData["property_values"]) {
-            if (!udpData["property_values"].length) {
-              return;
-            }
-            this.props.equipmentstate.propertyDataSour = udpData;
-            this.props.appstate.equipmentData = this.props.appstate.equipmentData.map(
-              item => {
-                let len = udpData["sourceAddr"].len;
-                let mac = udpData["sourceAddr"].adr[len - 1];
-                let net = udpData["sourceAddr"].net;
-                if (
-                  item["sourceAddrNet"] === net &&
-                  item["sourceAddrAdr"] === mac
-                ) {
-                  item.object_type = udpData["object_type"];
-                  item.object_instance = udpData["object_inatance"];
-                  item.property_values = udpData.property_values.map(
-                    (item, index) => {
-                      return {
-                        key: index,
-                        ...item
-                      };
-                    }
-                  );
-                }
-                return item;
-              }
-            );
-            this.props.appstate.globalStatus = "ready";
-          }
-          console.log("server:", udpData);
-        });
-        this.socket.on("disconnect", () => {
-          console.log("client disconnect");
-        });
-        return true;
+          );
+        }
+        return;
+        // console.log(data)
       }
+      // 存储 IAm-router报文
+      if (udpData["allNetWork"]) {
+        this.props.appstate.NetProgress = udpData["allNetWork"];
+      }
+      // 存储 对象列表报文
+      if (udpData["property_values"]) {
+        if (!udpData["property_values"].length) {
+          return;
+        }
+        this.props.equipmentstate.propertyDataSour = udpData;
+        this.props.appstate.equipmentData = this.props.appstate.equipmentData.map(
+          item => {
+            let len = udpData["sourceAddr"].len;
+            let mac = udpData["sourceAddr"].adr[len - 1];
+            let net = udpData["sourceAddr"].net;
+            if (
+              item["sourceAddrNet"] === net &&
+              item["sourceAddrAdr"] === mac
+            ) {
+              item.object_type = udpData["object_type"];
+              item.object_instance = udpData["object_inatance"];
+              item.property_values = udpData.property_values.map(
+                (item, index) => {
+                  return {
+                    key: index,
+                    ...item
+                  };
+                }
+              );
+            }
+            return item;
+          }
+        );
+        this.props.appstate.globalStatus = "ready";
+      }
+      console.log("server:", udpData);
     });
   }
 
@@ -903,6 +884,18 @@ class Equipment extends React.Component {
   componentDidMount() {
     // 开启websocket连接
     this.connectSocket();
+    this.props.appstate
+      .setSelectedChannel()
+      .then(data => {
+        return initUdpSocket({
+          ip: data.NET_CONFIG.MAIN.IP,
+          local_port: data.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
+          remote_port: data.NET_CONFIG.MAIN.REMOTE_PORT["#text"]
+        });
+      })
+      .then(res => {
+        console.log("初始化udp 套接字");
+      });
   }
   // 关闭socket连接，清空该组件所有关联对象，防止内存泄漏
   componentWillUnmount() {

@@ -14,7 +14,7 @@ class AppState extends BaseState {
     modalLoading: false
   };
   @observable modalPaneltriggerName;
-  @observable modalComponent = <div>404 Not Found</div>;
+  @observable modalComponent = (<div>404 Not Found</div>);
   // 当前活动的视图, 默认是Facility
   @observable actionView = "Facility";
 
@@ -85,7 +85,7 @@ class AppState extends BaseState {
     }
   }
   // 被选择的channel
-  @observable selectedChannel;
+  @observable selectedChannel = "";
   @observable selectedChannelData;
 
   // 网络配置
@@ -98,6 +98,18 @@ class AppState extends BaseState {
 
   // 网络号
   @observable NetProgress = [];
+
+  // 设置当前通道配置
+  @action setSelectedChannel() {
+    // 获取所有通道, 默认为通道1
+    return getChannel().then(result => {
+      let data = result["data"].data;
+      const CHANNEL = data.ROOT.CHANNEL
+      this.selectedChannel = CHANNEL[0]['ITEM_NAME']
+      this.selectedChannelData = CHANNEL[0]
+      return this.selectedChannelData
+    });
+  }
 
   // 过滤网络号
   @action filterNetProgress() {

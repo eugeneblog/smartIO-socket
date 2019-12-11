@@ -3,20 +3,10 @@
 import React from "react";
 import "./index.menu.css";
 import { observer, inject } from "mobx-react";
-import {
-  Menu,
-  Dropdown,
-  notification,
-  Modal,
-  Icon,
-  Radio,
-  Select,
-  message
-} from "antd";
-import { uploadModules } from "../../api/index.api";
-import { UploadModule } from "./MenuComponents";
+import { Menu, Dropdown, notification, Modal, Icon, message } from "antd";
+import { uploadModules, exportDeviceToXml } from "../../api/index.api";
+import { UploadModule, ExportSelectOpt } from "./MenuComponents";
 const SubMenu = Menu.SubMenu;
-const { Option } = Select;
 
 // 菜单点击事件
 const menuOnClick = function({ item, key }) {
@@ -31,7 +21,7 @@ class MenuController extends React.Component {
   constructor() {
     super();
     this.state = {
-      exportSelVal: 1,
+      exportSelDevice: [],
       fileList: []
     };
   }
@@ -45,62 +35,49 @@ class MenuController extends React.Component {
   };
 
   // export 导出
-  exportHandle = me => {
-    const radioStyle = {
-      display: "block",
-      height: "30px",
-      lineHeight: "30px"
-    };
-    const onChange = e => {
+  exportXmlHandle = me => {
+    let modal = null;
+    const onChangeHandle = val => {
       this.setState({
-        exportSelVal: e.target.value
-      });
-      modal.update({
-        content: <SelectOpt value={this.state.exportSelVal} />
+        exportSelDevice: [val]
       });
     };
-    const SelectEqu = props => {
-      const optData = this.props.equipmentstate.getTreeData;
-      return (
-        <Select style={props.style}>
-          {optData.length
-            ? optData.map((item, key) => {
-                return (
-                  <Option
-                    placeholder="Please select equipment"
-                    key={key}
-                    value={item.objectName}
-                  >
-                    {item.objectName}
-                  </Option>
-                );
-              })
-            : null}
-        </Select>
-      );
-    };
-    const SelectOpt = () => (
-      <Radio.Group onChange={onChange} value={this.state.exportSelVal}>
-        <Radio style={radioStyle} value={1}>
-          Export all
-        </Radio>
-        <Radio style={radioStyle} value={2}>
-          Export section
-          {this.state.exportSelVal === 2 ? (
-            <SelectEqu style={{ width: 100, marginLeft: 10 }} />
-          ) : null}
-        </Radio>
-      </Radio.Group>
-    );
-    const modal = Modal.confirm({
+    console.log(this.props.equipmentstate.getTreeData);
+    modal = Modal.confirm({
       title: "Export all devices to XML files",
       icon: <Icon type="snippets" />,
-      content: <SelectOpt value={this.state.exportSelVal} />,
+      content: (
+        <ExportSelectOpt
+          style={{ width: "100%" }}
+          optList={this.props.equipmentstate.getTreeData || []}
+          placeholder="Select the device to export"
+          onChange={onChangeHandle}
+        />
+      ),
       onOk: () => {
-        console.log(this.state);
+        const { exportSelDevice } = this.state;
+        if (!exportSelDevice.length) {
+          return
+        }
+        return new Promise(resolve => {
+          setTimeout(resolve, 1000);
+        }).then(() => {
+          exportSelDevice.forEach(device => {
+            const datas = this.props.equipmentstate.getTreeData.find(list => device === list.objectName)
+            console.log(datas)
+          })
+          exportDeviceToXml().then(res => {
+            console.log(res);
+          });
+          modal.destroy();
+        });
       }
     });
   };
+
+  // redis文件导出
+  exportRedisFile = me => {
+  }
 
   // 导入模块
   importModule = me => {
@@ -118,7 +95,7 @@ class MenuController extends React.Component {
         if (data.status === "done") {
           _this.setState({
             fileList: []
-          })
+          });
           message.success(`file ${data.fileName} upload succesed !`);
         } else {
           message.error(`file ${data.fileName} upload failed !`);
@@ -211,7 +188,7 @@ class Menus extends MenuController {
         if (!item.children) {
           return (
             <Menu.Item
-              className="smartIO-menu"
+              className={item.disabled ? "smartIO-menu-disabled" : "smartIO-menu"}
               key={item.text}
               handle={item.handle}
               disabled={item.disabled ? true : false}
