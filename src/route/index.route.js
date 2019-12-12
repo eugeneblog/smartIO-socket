@@ -11,6 +11,8 @@ import Facillty from "../views/facillty/index.facillty.js";
 import ChannelPanel from "../views/channel/index.channel";
 import NotFoundPage from "../components/404/index.notfound";
 import Equipment from "../views/equipment/index.equipment";
+import Controller from "../views/controller/index.controller";
+import Schedule from "../views/schedule/index.schedule"
 
 let routes = [
   {
@@ -34,6 +36,15 @@ let routes = [
     )
   },
   {
+    path: "/controller",
+    exact: true,
+    sidebar: () => (
+      <div>
+        <Controller />
+      </div>
+    )
+  },
+  {
     path: "/channel",
     exact: true,
     sidebar: props => {
@@ -47,7 +58,12 @@ let routes = [
   {
     path: "/equipment",
     exact: true,
-    children: (props) => <Equipment router={props} />
+    children: props => <Equipment router={props} />
+  },
+  {
+    path: "/schedule",
+    exact: true,
+    children: props => <Schedule router={props}/>
   },
   {
     path: "*",

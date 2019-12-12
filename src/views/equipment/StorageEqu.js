@@ -1,9 +1,8 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Tree,
   PageHeader,
-  Skeleton,
   Row,
   Col,
   Tabs,
@@ -555,7 +554,7 @@ class EditableTable extends React.Component {
   }
 }
 
-const EditableFormTable = Form.create()(EditableTable);
+export const EditableFormTable = Form.create()(EditableTable);
 // Tree 组件， 左侧视图
 const RenderTreeNode = inject(allStore => allStore.appstate)(
   observer(props => {
@@ -663,7 +662,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
         onExpand={(selectedKeys, event) => props.onExpand(selectedKeys, event)}
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
       >
-        {RecursiveTree(props.equipmentstate.getTreeData.slice())}
+        {RecursiveTree(props.equipmentstate.getTreeData(props.equipmentstate.dataSource))}
       </DirectoryTree>
     );
   })
@@ -888,7 +887,7 @@ const AppliedModal = props => {
 };
 
 // 父组件
-const StorageEqu = inject(allStore => allStore.appstate)(
+export const StorageEqu = inject(allStore => allStore.appstate)(
   observer(props => {
     const [panes, setPanes] = useState([
       { title: "Tab 1", content: [], key: "1" }
@@ -898,17 +897,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
     const [visible, setVisible] = useState(false);
     const [percent, setPercent] = useState(0);
     const [deviceId, setDeviceId] = useState(null);
-    const [isLoading, setIsLoading] = useState(false)
-
-    useEffect(() => {
-      async function asyncFn() {
-        let result = await readDeviceData({ key: "*" });
-        let data = result["data"];
-        let deviceAll = data["data"];
-        props.equipmentstate.dataSource = deviceAll;
-      }
-      asyncFn();
-    }, [props]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const showModal = () => {
       setVisible(true);
@@ -988,7 +977,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
           deviceId
         })
           .then(res => {
-            setIsLoading(true)
+            setIsLoading(true);
             const { errno } = res["data"].data;
             if (errno !== -1) {
               // 累加start
@@ -1001,7 +990,7 @@ const StorageEqu = inject(allStore => allStore.appstate)(
                 message.success("Application successfully");
                 setAppliedVisible(false);
                 setPercent(0);
-                setIsLoading(false)
+                setIsLoading(false);
                 return;
               }
             } else {
@@ -1160,15 +1149,11 @@ const StorageEqu = inject(allStore => allStore.appstate)(
                 overflow: "scroll"
               }}
             >
-              {props.equipmentstate.getTreeData.length ? (
-                <RenderTreeNode
-                  onExpand={onExpand}
-                  onSelect={onSelectHandle}
-                  expandedKeys={expandedKeys}
-                />
-              ) : (
-                <Skeleton active />
-              )}
+              <RenderTreeNode
+                onExpand={onExpand}
+                onSelect={onSelectHandle}
+                expandedKeys={expandedKeys}
+              />
             </div>
           </Col>
           <Col span={18}>
@@ -1193,11 +1178,9 @@ const StorageEqu = inject(allStore => allStore.appstate)(
           onOk={() => apply()}
           percent={percent}
           okText="Start"
-          okButtonProps={{loading: isLoading}}
+          okButtonProps={{ loading: isLoading }}
         />
       </div>
     );
   })
 );
-
-export default StorageEqu;

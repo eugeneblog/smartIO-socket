@@ -580,8 +580,12 @@ class EquipmentState extends BaseState {
     ];
   }
 
-  @computed get getTreeData() {
-    if (!this.dataSource.length) {
+  /**
+   * 
+   * @param {array} dataSource 通过redis key值生成组件树
+   */
+  @action getTreeData(dataSource) {
+    if (!dataSource.length) {
       return [];
     }
     // 定义排序函数
@@ -597,7 +601,7 @@ class EquipmentState extends BaseState {
       return 0;
     };
     // 命名空间分离
-    let diviceid = this.dataSource.map((item, index) => {
+    let diviceid = dataSource.map((item, index) => {
       return {
         objectName: item.split(":")[0]
       };
@@ -616,7 +620,7 @@ class EquipmentState extends BaseState {
     let objData = Object.keys(unique).map((item, index) => {
       item = JSON.parse(item);
       // 查询
-      let deviceTypeArr = this.dataSource.filter(list => {
+      let deviceTypeArr = dataSource.filter(list => {
         return list.split(":")[0] === item.objectName;
       });
       return {
@@ -677,6 +681,16 @@ class EquipmentState extends BaseState {
     return this.dataSource.filter(item => {
       const pattern = /(\d)+:(\d)+:(\d)+$/;
       return pattern.test(item) && item.split(":")[2] > 20;
+    });
+  }
+  /**
+   * @param {object} type 根据类型获取对象列表
+   */
+  @action getConditionsModules(type = {}) {
+    return this.dataSource.filter(item => {
+      const pattern = /(\d)+:(\d)+:(\d)+$/;
+      const mType = item.split(":")[1]
+      return pattern.test(item) && type[mType]
     });
   }
 

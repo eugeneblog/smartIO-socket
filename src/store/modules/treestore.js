@@ -95,10 +95,10 @@ class TreeState extends BaseState {
           menu: { rname: true, addItem: true }
         },
         {
-          title: "Printer",
+          title: "Schedule",
           key: "0-1-0-2",
-          icon: "printer",
-          name: "printer",
+          icon: "schedule",
+          name: "schedule",
           menu: { rname: true, addItem: true }
         },
         {

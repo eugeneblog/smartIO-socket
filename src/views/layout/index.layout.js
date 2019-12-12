@@ -7,7 +7,8 @@ import {
   updateChannel,
   getAllType,
   getNetConfig,
-  getChannel
+  getChannel,
+  readDeviceData
 } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
 import { Layout, notification, Icon, BackTop, message } from "antd";
@@ -105,13 +106,21 @@ class HLayout extends React.Component {
   };
 
   init = () => {
+    let _this = this
+    async function asyncFn() {
+      let result = await readDeviceData({ key: "*" });
+      let data = result["data"].data;
+      _this.props.equipmentstate.dataSource = data;
+      console.log("%c连接redis[ok]", "color:green;font-weight:bold;");
+    }
+    asyncFn();
     // 加载通道信息
     getChannel().then(channelData => {
-      console.log("加载channel数据");
       let result = channelData.data;
       if (result.errno === 0) {
         let channelData = result["data"];
         this.props.appstate.channelDataSource = channelData;
+        console.log("%c加载channel数据[ok]", "color:green;font-weight:bold;");
       }
     });
     // 视图加载完毕后请求数据：获取type文件名

@@ -25,7 +25,7 @@ import {
   uploadDataToRedis,
   initUdpSocket
 } from "../../api/index.api";
-import StorageEqu from "./StorageEqu";
+import { StorageEqu } from "./StorageEqu";
 import ConfigModal from "./configmodal";
 import DeviceSvg from "../../svg/devicelink.svg";
 // import { websocketStart } from '../../utils/websocketRequest'
@@ -331,10 +331,26 @@ class EquipmentTable extends React.Component {
       object_instance,
       object_type
     }).then(result => {
-      let data = result["data"];
-      // 开始解析设备对象, 全局状态变为loading
-      this.props.appstate.globalStatus = "loading";
-      return data;
+      let data = result["data"].data;
+      this.props.equipmentstate.propertyDataSour = data;
+      this.props.appstate.equipmentData = this.props.appstate.equipmentData.map(
+        item => {
+          let len = data["sourceAddr"].len;
+          let mac = data["sourceAddr"].adr[len - 1];
+          let net = data["sourceAddr"].net;
+          if (item["sourceAddrNet"] === net && item["sourceAddrAdr"] === mac) {
+            item.object_type = data["object_type"];
+            item.object_instance = data["object_inatance"];
+            item.property_values = data.property_values.map((item, index) => {
+              return {
+                key: index,
+                ...item
+              };
+            });
+          }
+          return item;
+        }
+      );
     });
   };
 
@@ -353,7 +369,7 @@ class EquipmentTable extends React.Component {
 
   columns = [
     {
-      title: "DeviceId",
+      title: "Device",
       dataIndex: "deviceid",
       key: "deviceid",
       sortDirections: ["ascend"],
@@ -652,20 +668,6 @@ class Equipment extends React.Component {
   searchEqu = () => {
     // 获取选择的通道配置
     const { selectedChannelData } = this.props.appstate;
-    // 判断是否已经存在数据
-    if (this.props.appstate.equipmentData.length) {
-      confirm({
-        title: "Do you want ",
-        content: "You will empty the device and retrieve the device list",
-        onOk: () => {
-          this.props.appstate.equipmentTableData = [];
-          this.setState({
-            configVisable: false
-          });
-        }
-      });
-      return;
-    }
     getWhoMsg({ ip: selectedChannelData.NET_CONFIG.MAIN.IP }).then(
       whoMsgRes => {
         let data = whoMsgRes["data"];
@@ -771,37 +773,6 @@ class Equipment extends React.Component {
       // 存储 IAm-router报文
       if (udpData["allNetWork"]) {
         this.props.appstate.NetProgress = udpData["allNetWork"];
-      }
-      // 存储 对象列表报文
-      if (udpData["property_values"]) {
-        if (!udpData["property_values"].length) {
-          return;
-        }
-        this.props.equipmentstate.propertyDataSour = udpData;
-        this.props.appstate.equipmentData = this.props.appstate.equipmentData.map(
-          item => {
-            let len = udpData["sourceAddr"].len;
-            let mac = udpData["sourceAddr"].adr[len - 1];
-            let net = udpData["sourceAddr"].net;
-            if (
-              item["sourceAddrNet"] === net &&
-              item["sourceAddrAdr"] === mac
-            ) {
-              item.object_type = udpData["object_type"];
-              item.object_instance = udpData["object_inatance"];
-              item.property_values = udpData.property_values.map(
-                (item, index) => {
-                  return {
-                    key: index,
-                    ...item
-                  };
-                }
-              );
-            }
-            return item;
-          }
-        );
-        this.props.appstate.globalStatus = "ready";
       }
       console.log("server:", udpData);
     });
