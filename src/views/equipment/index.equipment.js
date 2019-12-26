@@ -22,8 +22,7 @@ import {
   getWhoMsg,
   searchEquOneObj,
   getEquObjAttribute,
-  uploadDataToRedis,
-  initUdpSocket
+  uploadDataToRedis
 } from "../../api/index.api";
 import { StorageEqu } from "./StorageEqu";
 import ConfigModal from "./configmodal";
@@ -109,6 +108,7 @@ const ModalAttribute = inject("appstate")(
           })
             .then(result => {
               let data = result["data"];
+              console.log(data);
               attributeIndex += 1;
               tryIndex = 0;
               props.appstate.equipmentstate.attributeIndex = attributeIndex;
@@ -369,9 +369,9 @@ class EquipmentTable extends React.Component {
 
   columns = [
     {
-      title: "Device",
-      dataIndex: "deviceid",
-      key: "deviceid",
+      title: "deviceName",
+      dataIndex: "deviceName",
+      key: "deviceName",
       sortDirections: ["ascend"],
       sortOrder: "ascend",
       defaultSortOrder: "ascend",
@@ -380,10 +380,15 @@ class EquipmentTable extends React.Component {
           <span style={{ color: "#3e90f7", fontWeight: "bold" }}>
             <Icon component={DeviceSvg} />
             &nbsp;
-            {record.deviceid}
+            {record.deviceName}
           </span>
         );
       }
+    },
+    {
+      title: "deviceId",
+      dataIndex: "deviceid",
+      key: "deviceid"
     },
     {
       title: "Mac",
@@ -498,9 +503,9 @@ class Equipment extends React.Component {
         const __default = [
           {
             key: `${item.deviceid}:8:0:0`,
-            title: `DEVICE_NAME: ${item.deviceid}`,
+            title: `DEVICE_NAME: ${item.deviceName}`,
             objName: "DEVICE_NAME",
-            value: item.deviceid,
+            value: item.deviceName,
             checkable: false
           },
           {
@@ -555,7 +560,8 @@ class Equipment extends React.Component {
           },
           []);
           const recursiveObjList = (data, pId) => {
-            return data.map((item, key) => {
+            return data.map((item, index) => {
+              const key = item.value
               if (item.children) {
                 return {
                   title: `${item.object_type_text}: ${item.value}`,
@@ -664,6 +670,44 @@ class Equipment extends React.Component {
       }
     });
   };
+
+  // 获取设备名称
+  getDeviceName = () => {
+    let iter = this.props.appstate.equipmentData[Symbol.iterator]();
+    const getObjName = (iter, index = 0) => {
+      const device = iter.next();
+      const value = device.value;
+      if (device.done) {
+        return;
+      }
+      getEquObjAttribute({
+        sources: value["sources"].split(":")[0],
+        maxapdu: value["maxapdu"],
+        sourceAddrNet: value["sourceAddrNet"],
+        sourceAddrAdr: value["sourceAddrAdr"],
+        deviceObjType: {
+          object_type: 8,
+          value: value["deviceid"],
+          property: 77
+        }
+      }).then(res => {
+        const attr = res["data"].data;
+        if (attr) {
+          const objectName = attr.obj_attribute
+            ? attr.obj_attribute[0].value
+            : value["deviceid"];
+          const newDeviceData = {
+            ...this.props.appstate.equipmentData[index],
+            deviceName: objectName
+          };
+          this.props.appstate.equipmentData.set(index, newDeviceData);
+          getObjName(iter, index + 1);
+        }
+      });
+    };
+    getObjName(iter, 0);
+  };
+
   // 搜索设备
   searchEqu = () => {
     // 获取选择的通道配置
@@ -680,6 +724,7 @@ class Equipment extends React.Component {
                 "Timeout, please check network or configuration!"
               );
             }
+            this.getDeviceName()
             this.setState({
               isLoading: false
             });
@@ -707,6 +752,7 @@ class Equipment extends React.Component {
                 "Timeout, please check network or configuration!"
               );
             }
+            this.getDeviceName()
             this.setState({
               isLoading: false
             });
@@ -749,6 +795,7 @@ class Equipment extends React.Component {
               sources: data["address"] + ":" + data["port"]
             }
           ];
+
           this.setState(
             {
               equIndex: this.state.equIndex + 1
@@ -758,16 +805,41 @@ class Equipment extends React.Component {
                 key: this.state.equIndex,
                 deviceid: data["deviceId"],
                 maxapdu: data["maxapdu"],
+                deviceName: "undefined",
                 segmenation: data["segment"],
                 vendorid: data["vendorId"],
                 sources: data["address"] + ":" + data["port"],
                 sourceAddrNet: data["sourceAddrNet"],
                 sourceAddrAdr: data["sourceAddrAdr"]
               });
+              // const getObjectName = async () => {
+              //   const res = await getEquObjAttribute({
+              //     sources: data["address"],
+              //     maxapdu: data["maxapdu"],
+              //     sourceAddrNet: data["sourceAddrNet"],
+              //     sourceAddrAdr: data["sourceAddrAdr"],
+              //     deviceObjType: {
+              //       object_type: 8,
+              //       value: data["deviceId"],
+              //       property: 77
+              //     }
+              //   });
+              //   const attr = res["data"].data;
+              //   const objectName = attr.obj_attribute
+              //     ? attr.obj_attribute[0].value
+              //     : data["deviceId"];
+              //   console.log(
+              //     data["sourceAddrAdr"],
+              //     data["deviceId"],
+              //     objectName
+              //   );
+              // };
+              // getObjectName();
             }
           );
         }
         return;
+
         // console.log(data)
       }
       // 存储 IAm-router报文
@@ -855,18 +927,6 @@ class Equipment extends React.Component {
   componentDidMount() {
     // 开启websocket连接
     this.connectSocket();
-    this.props.appstate
-      .setSelectedChannel()
-      .then(data => {
-        return initUdpSocket({
-          ip: data.NET_CONFIG.MAIN.IP,
-          local_port: data.NET_CONFIG.MAIN.LOCAL_PORT["#text"],
-          remote_port: data.NET_CONFIG.MAIN.REMOTE_PORT["#text"]
-        });
-      })
-      .then(res => {
-        console.log("初始化udp 套接字");
-      });
   }
   // 关闭socket连接，清空该组件所有关联对象，防止内存泄漏
   componentWillUnmount() {

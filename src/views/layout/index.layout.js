@@ -4,11 +4,7 @@ import Menus from "../../components/Menu/index.menu";
 import TreePane from "../../components/Tree/index.tree";
 import CollectionCreateForm from "../../components/Modal/index.modal";
 import {
-  updateChannel,
-  getAllType,
-  getNetConfig,
-  getChannel,
-  readDeviceData
+  updateChannel
 } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
 import { Layout, notification, Icon, BackTop, message } from "antd";
@@ -105,68 +101,6 @@ class HLayout extends React.Component {
     this.formRef = formRef;
   };
 
-  init = () => {
-    let _this = this
-    async function asyncFn() {
-      let result = await readDeviceData({ key: "*" });
-      let data = result["data"].data;
-      _this.props.equipmentstate.dataSource = data;
-      console.log("%c连接redis[ok]", "color:green;font-weight:bold;");
-    }
-    asyncFn();
-    // 加载通道信息
-    getChannel().then(channelData => {
-      let result = channelData.data;
-      if (result.errno === 0) {
-        let channelData = result["data"];
-        this.props.appstate.channelDataSource = channelData;
-        console.log("%c加载channel数据[ok]", "color:green;font-weight:bold;");
-      }
-    });
-    // 视图加载完毕后请求数据：获取type文件名
-    getAllType().then(typeResult => {
-      let result = typeResult.data;
-      if (result.errno === 0) {
-        let data = result["data"];
-        this.props.appstate.allType = data["allFiles"];
-        this.props.appstate.allTypeData = data["allFileData"];
-      }
-      console.log("%cgetAlltype...", "color:green;font-weight:bold;");
-    });
-    // 获取网络系统的网络配置
-    getNetConfig().then(result => {
-      if (result["data"].errno === 0) {
-        let data = result["data"].data;
-        this.props.appstate.netConfig = data.sysNetConfig || data.net.en0;
-        let netArr = [];
-        // 处理net数据，转换为数组，并分离ipv4地址和ipv6地址
-        for (const key in data.net) {
-          if (data.net.hasOwnProperty(key)) {
-            const element = data.net[key];
-            const ipv4 = element.filter(item => {
-              return item.family !== "IPv6";
-            });
-            const ipv6 = element.filter(item => {
-              return item.family !== "IPv4";
-            });
-            netArr.push({
-              [key]: { ...element },
-              name: key,
-              ipv4: { ...ipv4 },
-              ipv6: { ...ipv6 }
-            });
-          }
-        }
-        this.props.appstate.net = netArr;
-        console.log(
-          "%cgetAllNet_Config配置...",
-          "color:green;font-weight:bold;"
-        );
-        return;
-      }
-    });
-  };
-
   render() {
     return [
       <Layout key="layout" state={this.props.appstate.globalStatus}>
@@ -210,10 +144,6 @@ class HLayout extends React.Component {
         wrappedComponentRef={this.saveFormRef}
       />
     ];
-  }
-  // 在Layout视图构建完成数据初始化的工作
-  componentDidMount() {
-    this.init();
   }
 
   componentDidUpdate() {

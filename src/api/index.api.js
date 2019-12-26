@@ -54,15 +54,6 @@ export function generateEquXml(data) {
   });
 }
 
-// 发送udp广播消息
-export function sendUdpMes(data) {
-  return request({
-    data,
-    url: "/api/socket/udp/send",
-    method: "POST"
-  });
-}
-
 // 初始化udp套接字
 export function initUdpSocket(data) {
   return request({
@@ -159,6 +150,15 @@ export function addDeviceData(data) {
     method: "POST"
   });
 }
+
+// 从数据库中读取指定字段
+export function readDataBaseField(params) {
+  return request({
+    params,
+    url: "/api/socket/db/readField",
+    method: "GET"
+  })
+}
 // 清空数据库
 export function delAllRedisData() {
   return request({
@@ -227,6 +227,15 @@ export function sendFilePkg(data) {
   return request({
     data,
     url: "/api/socket/udp/sendFile",
+    method: "POST"
+  })
+}
+
+// 读取schedule属性
+export function searchSchedule(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/getschedule",
     method: "POST"
   })
 }

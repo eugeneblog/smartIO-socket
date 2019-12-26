@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { observer, inject } from "mobx-react";
 import {
   PageHeader,
@@ -19,7 +19,11 @@ import {
   Table
 } from "antd";
 import { getPropertyIdText } from "../../utils/util";
-import { readDeviceData, setDeviceData } from "../../api/index.api";
+import {
+  readDeviceData,
+  setDeviceData,
+  readDataBaseField
+} from "../../api/index.api";
 import { BACNET_ENGINEERING_UNITS } from "../../utils/BAC_DECODE_TEXT";
 const EditableContext = React.createContext();
 const { TreeNode, DirectoryTree } = Tree;
@@ -265,14 +269,35 @@ class EditableTable extends React.Component {
 }
 
 const EditableFormTable = Form.create()(EditableTable);
-
 // Tree 组件， 左侧视图
 const RenderTreeNode = inject(allStore => allStore.appstate)(
   observer(props => {
-    let dataSources = props.equipmentstate.getConditionsModules({
-      "15": true,
-      "8": true
-    });
+    const [treeData, setTreeData] = useState(
+      props.equipmentstate.getTreeData(
+        props.equipmentstate.getConditionsModules({
+          "15": true,
+          "8": true
+        })
+      )
+    );
+    useEffect(() => {
+      const allPromise = treeData.map(item => {
+        return readDataBaseField({
+          key: `${item.objectName}:8:${item.objectName}`,
+          subKey: "OBJECT_NAME"
+        });
+      });
+      Promise.all(allPromise).then(res => {
+        // 写入treeData
+        setTreeData(
+          treeData.map((item, index) => {
+            return { ...item, deviceName: res[index]["data"].value };
+          })
+        );
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const RecursiveTree = (treeData, prefix) => {
       if (treeData.length) {
         return treeData.map(item => {
@@ -300,13 +325,13 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
               nodeData.modulesKey = deviceModule;
             }
           }
-          const title = (
+          let title = (
             <span>
               {item.text
                 ? `${item.text} ${
                     item.children.length ? `(${item.children.length})` : ""
                   }`
-                : `${item.objectName}`}
+                : `${item.deviceName}`}
               {modules ? (
                 <Badge
                   style={{
@@ -359,7 +384,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
         onExpand={(selectedKeys, event) => props.onExpand(selectedKeys, event)}
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
       >
-        {RecursiveTree(props.equipmentstate.getTreeData(dataSources))}
+        {RecursiveTree(treeData)}
       </DirectoryTree>
     );
   })

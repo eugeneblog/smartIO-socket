@@ -601,9 +601,10 @@ class EquipmentState extends BaseState {
       return 0;
     };
     // 命名空间分离
-    let diviceid = dataSource.map((item, index) => {
+    let deviceid = dataSource.map((item, index) => {
       return {
-        objectName: item.split(":")[0]
+        objectName: item.split(":")[0],
+        deviceName: undefined
       };
     });
     // 去重
@@ -614,7 +615,7 @@ class EquipmentState extends BaseState {
       });
       return unique;
     }
-    let unique = duplicateRemoval(diviceid);
+    let unique = duplicateRemoval(deviceid);
 
     // 重组
     let objData = Object.keys(unique).map((item, index) => {
@@ -626,6 +627,7 @@ class EquipmentState extends BaseState {
       return {
         key: index,
         ...item,
+        deviceName: undefined,
         children: [...recursive(deviceTypeArr, 1)]
       };
     });

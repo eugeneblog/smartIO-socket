@@ -12,7 +12,7 @@ import ChannelPanel from "../views/channel/index.channel";
 import NotFoundPage from "../components/404/index.notfound";
 import Equipment from "../views/equipment/index.equipment";
 import Controller from "../views/controller/index.controller";
-import Schedule from "../views/schedule/index.schedule"
+import ScheduleView from "../views/schedule/index.schedule"
 
 let routes = [
   {
@@ -63,7 +63,7 @@ let routes = [
   {
     path: "/schedule",
     exact: true,
-    children: props => <Schedule router={props}/>
+    sidebar: props => <ScheduleView router={props}/>
   },
   {
     path: "*",
