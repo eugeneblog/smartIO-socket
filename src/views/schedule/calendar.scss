@@ -2,3 +2,11 @@
 @import '~@fullcalendar/daygrid/main.css';
 @import '~@fullcalendar/timegrid/main.css';
 @import '~@fullcalendar/list/main.css';
+
+.fc-time-grid .fc-slats td {
+    height: 1em;
+}
+
+.fc-ltr .fc-axis{
+    font-size: 12px;
+}

@@ -20,16 +20,17 @@ import interactionPlugin from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import listPlugin from "@fullcalendar/list";
+import AddSchedule from "./AddSchedule";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
-import 'tippy.js/animations/scale.css';
+import "tippy.js/animations/scale.css";
 import "./calendar.scss";
 const { TreeNode, DirectoryTree } = Tree;
 const { TabPane } = Tabs;
 
 const MyAwesomeMenu = props => (
   <Menu id="scheduleMenu">
-    <Item onClick={props.searchPropertiesClick}>searchProperties</Item>
+    <Item onClick={props.deleteEventHandle}>delete</Item>
   </Menu>
 );
 
@@ -173,15 +174,14 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
 // 右侧视图
 const ScheduleContent = inject(allStore => allStore.appstate)(
   observer(props => {
-    const handleDateClick = arg => {
-      console.log(arg);
-      // alert(arg.dateStr);
-    };
     const eventRender = info => {
+      info.el.oncontextmenu = e => props.onContextMenu(e, info)
+      info.el.ondblclick = e => props.onDblClick(e, info)
+      info.el.onclick = e => props.eventOnClick(e, info)
       tippy(info.el, {
         content: info.event.extendedProps.description,
-        trigger: "hover",
-        animation: 'scale'
+        trigger: "click",
+        animation: "scale"
       });
     };
     return !props.panesData ? (
@@ -206,7 +206,6 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
             <FullCalendar
               defaultView="timeGridWeek"
               eventLimit="true"
-              timeZone="UTC"
               nowIndicator="true"
               views={{
                 timeGrid: {
@@ -220,7 +219,20 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
                 timeGridPlugin,
                 listPlugin
               ]}
-              dateClick={handleDateClick}
+              editable={true}
+              timeZone="local"
+              scrollTime="08:00:00"
+              dateClick={props.handleDateClick}
+              eventResize={props.eventResize}
+              eventDrop={props.eventDrop}
+              select={props.handleDateSelect}
+              businessHours={{
+                daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+                startTime: "8:00", // a start time (10am in this example)
+                endTime: "22:00"
+              }}
+              weekNumbers={true}
+              weekNumbersWithinDays={true}
               header={{
                 left: "today prev,next",
                 center: "title",
@@ -245,6 +257,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const [loading, setLoading] = useState(false);
     const [selectedKeys, setSelectedKeys] = useState([]);
     const [event, setEvent] = useState([]);
+    const [visible, setVisible] = useState(false);
 
     // 获取指定周的时间
     const getWeekTime = day => {
@@ -258,6 +271,167 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       return now;
     };
 
+    // 日期格式化, 将 x:x:x 转换为 xx:xx:xx
+    const timeFormat = time => {
+      let pattern = /^(\d)+:(\d)+:(\d)+$/;
+      if (pattern.test(time)) {
+        let timeArr = time.split(":");
+        let h = timeArr[0].length > 1 ? timeArr[0] : `0${timeArr[0]}`;
+        let m = timeArr[1].length > 1 ? timeArr[1] : `0${timeArr[1]}`;
+        let s = timeArr[2].length > 1 ? timeArr[2] : `0${timeArr[2]}`;
+        return `${h}:${m}:${s}`;
+      }
+    };
+
+    // 时间点击
+    const handleDateClick = arg => {
+      return;
+      // setVisible(true);
+    };
+
+    // event ResizeStop
+    const eventResizeHandle = info => {
+      const eventData = info.event
+      const start = eventData.start
+      const end = eventData.end
+      const id = eventData.id
+      const nowEvent = event.map(list => {
+        if (list.id === id) {
+          list.start = start
+          list.end = end
+        }
+        return list
+      })
+      setEvent(nowEvent)
+    }
+
+    // event Drop
+    const eventDropHandle = info => {
+      const eventData = info.event
+      const start = eventData.start
+      const end = eventData.end
+      const id = eventData.id
+      const nowEvent = event.map(list => {
+        if (list.id === id) {
+          list.start = start
+          list.end = end
+        }
+        return list
+      })
+      setEvent(nowEvent)
+    }
+
+    // event ContextMenu
+    const onContextMenuHandle = e => {
+      const menuId = "scheduleMenu";
+      e.preventDefault();
+      contextMenu.show({
+        id: menuId,
+        event: e
+      });
+    };
+
+    // event DblClick
+    const onDblClickHandle = (e, info) => {
+      const primaryKey = info.event.extendedProps.primaryKey
+      setEvent(event.filter(list => list.primaryKey !== primaryKey))
+    }
+
+    // event Click
+    const eventOnClickHandle = (e, info) => {
+      console.log(info)
+    }
+
+    // 时间选择
+    const handleDateSelect = info => {
+      const start = info.startStr;
+      const end = info.endStr;
+      // 自定义event 用当前时间戳作为唯一主键
+      const now = new Date()
+      const primaryKey = `${now.getTime()}`
+      setEvent([
+        ...event,
+        {
+          primaryKey,
+          title: "Test",
+          start,
+          end,
+          backgroundColor: "red",
+          description: "This is a cool event"
+        }
+      ]);
+    };
+
+    const handleCancel = () => {
+      setVisible(false);
+    };
+
+    const handleCreate = function() {
+      const { form } = this.formRef.props;
+      form.validateFields((err, values) => {
+        if (err) {
+          return;
+        }
+        console.log("Received values of form: ", values);
+        form.resetFields();
+        setVisible(false);
+      });
+    };
+
+    // 处理周期时间
+    const weekTime = data => {
+      const weekData = data.listOfResult;
+      let event = [];
+      for (const key in weekData) {
+        const element = weekData[key];
+        let primaryKey;
+        let timeGroup = [];
+        // 一维数组转换为二维, 每个数组存放四个元素，分别是开始时间，结束时间
+        let timeArr = element.reduce((accumulator, currentValue, index) => {
+          timeGroup.push(currentValue);
+          if ((index + 1) % 4 === 0) {
+            accumulator.push(timeGroup);
+            timeGroup = [];
+          }
+          return accumulator;
+        }, []);
+
+        // 如果没有设定时间则跳出这次循环
+        if (!timeArr.length) {
+          event.push({id: key})
+          continue;
+        }
+        let date = getWeekTime(Number(key));
+        let year = date.getFullYear();
+        let month =
+          String(date.getMonth() + 1).length > 1
+            ? date.getMonth() + 1
+            : `0${date.getMonth() + 1}`;
+        let day =
+          String(date.getDate()).length > 1
+            ? date.getDate()
+            : `0${date.getDate()}`;
+        
+        timeArr.forEach((group, index) => {
+          let startTime = timeFormat(group[0])
+          let endTime = timeFormat(group[2])
+          // 用日期 + 事件index标示唯一的主键
+          primaryKey = `${year}-${month}-${day}-${index}`
+          event.push({
+            primaryKey,
+            id: key,
+            title: `${year}-${month}-${day}`,
+            start: `${year}-${month}-${day}T${startTime}`,
+            end: `${year}-${month}-${day}T${endTime}`,
+            backgroundColor: "#00afad",
+            description: "This is a cool event"
+          });
+        });
+      }
+      return event;
+    };
+
+    // 点击schedule Tree 事件
     const onSelectHandle = (key, event) => {
       if (loading) {
         return;
@@ -289,27 +463,12 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           })
             .then(res => {
               const data = res["data"].data;
-              if (pram.value === 123) {
-                // 生成周期时间表
-                const weekData = data.listOfResult;
-                let event = [];
-                for (const key in weekData) {
-                  if (weekData.hasOwnProperty(key)) {
-                    // const element = weekData[key];
-                    let date = getWeekTime(Number(key));
-                    event.push({
-                      title: "Test",
-                      start: `${date.getFullYear()}-${date.getMonth() +
-                        1}-${date.getDate()}T14:30:00`,
-                      backgroundColor: "green",
-                      description: "This is a cool event"
-                    });
-                  }
-                }
-                setEvent(event);
-                console.log(weekData);
-              }
               console.log(data);
+              if (pram.value === 123) {
+                let event = weekTime(data);
+                console.log(event)
+                setEvent(event);
+              }
               readSchedule(iter.next());
             })
             .catch(err => {
@@ -320,7 +479,9 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       }
     };
 
-    const searchPropertiesClick = e => {};
+    const deleteEventHandle = e => {
+      console.log("delete");
+    };
 
     return (
       <div
@@ -350,11 +511,26 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           </Col>
           <Col span={20}>
             <Spin tip="Loading" spinning={loading}>
-              <ScheduleContent panesData={panesData} eventSource={event} />
+              <ScheduleContent
+                panesData={panesData}
+                eventSource={event}
+                handleDateClick={handleDateClick}
+                handleDateSelect={handleDateSelect}
+                onContextMenu={onContextMenuHandle}
+                onDblClick={onDblClickHandle}
+                eventResize={eventResizeHandle}
+                eventDrop={eventDropHandle}
+                eventOnClick={eventOnClickHandle}
+              />
+              <AddSchedule
+                visible={visible}
+                onCancel={handleCancel}
+                onCreate={handleCreate}
+              />
             </Spin>
           </Col>
         </Row>
-        <MyAwesomeMenu searchPropertiesClick={searchPropertiesClick} />
+        <MyAwesomeMenu deleteEventHandle={deleteEventHandle} />
       </div>
     );
   })
