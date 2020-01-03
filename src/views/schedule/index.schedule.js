@@ -261,7 +261,6 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const [selectedKeys, setSelectedKeys] = useState([]);
     const [event, setEvent] = useState([]);
     const [visible, setVisible] = useState(false);
-    let [isBlocking, setIsBlocking] = useState(false);
 
     // 获取指定周的时间
     const getWeekTime = day => {
@@ -307,8 +306,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         return list;
       });
       setEvent(nowEvent);
-      props.appstate.isBlocking = true
-      setIsBlocking(true)
+      props.appstate.isBlocking = true;
     };
 
     // event Drop
@@ -325,8 +323,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         return list;
       });
       setEvent(nowEvent);
-      props.appstate.isBlocking = true
-      setIsBlocking(true)
+      props.appstate.isBlocking = true;
     };
 
     // event ContextMenu
@@ -343,8 +340,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const onDblClickHandle = (e, info) => {
       const primaryKey = info.event.extendedProps.primaryKey;
       setEvent(event.filter(list => list.primaryKey !== primaryKey));
-      props.appstate.isBlocking = true
-      setIsBlocking(true)
+      props.appstate.isBlocking = true;
     };
 
     // event Click
@@ -504,10 +500,17 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         style={{ borderBottom: "1px solid #ebedf0" }}
       >
         <Prompt
-          when={isBlocking}
-          message={location =>
-            `You haven't applied the changes. Are you sure you want to leave?`
-          }
+          message={(location) => {
+            if (props.appstate.isBlocking) {
+              let leave = window.confirm("You have not applied the modification, leaving the data will be lost, are you sure to continue?");
+              if (leave) {
+                props.appstate.isBlocking = false
+                return
+              }
+              return
+            }
+            return
+          }}
         />
         <PageHeader
           title="Schedule"
