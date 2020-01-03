@@ -12,6 +12,7 @@ import {
   Spin,
   Empty
 } from "antd";
+import { Prompt } from "react-router-dom";
 import { readDataBaseField, searchSchedule } from "../../api/index.api";
 import { Menu, Item, contextMenu } from "react-contexify";
 import FullCalendar from "@fullcalendar/react";
@@ -30,7 +31,9 @@ const { TabPane } = Tabs;
 
 const MyAwesomeMenu = props => (
   <Menu id="scheduleMenu">
-    <Item onClick={props.deleteEventHandle}>delete</Item>
+    <Item onClick={props.deleteEventHandle}>Delete</Item>
+    <Item onClick={props.copyEventHandle}>Copy</Item>
+    <Item onClick={props.pasteEventHandle}>Paste</Item>
   </Menu>
 );
 
@@ -175,9 +178,9 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
 const ScheduleContent = inject(allStore => allStore.appstate)(
   observer(props => {
     const eventRender = info => {
-      info.el.oncontextmenu = e => props.onContextMenu(e, info)
-      info.el.ondblclick = e => props.onDblClick(e, info)
-      info.el.onclick = e => props.eventOnClick(e, info)
+      info.el.oncontextmenu = e => props.onContextMenu(e, info);
+      info.el.ondblclick = e => props.onDblClick(e, info);
+      info.el.onclick = e => props.eventOnClick(e, info);
       tippy(info.el, {
         content: info.event.extendedProps.description,
         trigger: "click",
@@ -258,6 +261,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const [selectedKeys, setSelectedKeys] = useState([]);
     const [event, setEvent] = useState([]);
     const [visible, setVisible] = useState(false);
+    let [isBlocking, setIsBlocking] = useState(false);
 
     // 获取指定周的时间
     const getWeekTime = day => {
@@ -291,35 +295,39 @@ const ScheduleView = inject(allStore => allStore.appstate)(
 
     // event ResizeStop
     const eventResizeHandle = info => {
-      const eventData = info.event
-      const start = eventData.start
-      const end = eventData.end
-      const id = eventData.id
+      const eventData = info.event;
+      const start = eventData.start;
+      const end = eventData.end;
+      const id = eventData.id;
       const nowEvent = event.map(list => {
         if (list.id === id) {
-          list.start = start
-          list.end = end
+          list.start = start;
+          list.end = end;
         }
-        return list
-      })
-      setEvent(nowEvent)
-    }
+        return list;
+      });
+      setEvent(nowEvent);
+      props.appstate.isBlocking = true
+      setIsBlocking(true)
+    };
 
     // event Drop
     const eventDropHandle = info => {
-      const eventData = info.event
-      const start = eventData.start
-      const end = eventData.end
-      const id = eventData.id
+      const eventData = info.event;
+      const start = eventData.start;
+      const end = eventData.end;
+      const id = eventData.id;
       const nowEvent = event.map(list => {
         if (list.id === id) {
-          list.start = start
-          list.end = end
+          list.start = start;
+          list.end = end;
         }
-        return list
-      })
-      setEvent(nowEvent)
-    }
+        return list;
+      });
+      setEvent(nowEvent);
+      props.appstate.isBlocking = true
+      setIsBlocking(true)
+    };
 
     // event ContextMenu
     const onContextMenuHandle = e => {
@@ -333,22 +341,24 @@ const ScheduleView = inject(allStore => allStore.appstate)(
 
     // event DblClick
     const onDblClickHandle = (e, info) => {
-      const primaryKey = info.event.extendedProps.primaryKey
-      setEvent(event.filter(list => list.primaryKey !== primaryKey))
-    }
+      const primaryKey = info.event.extendedProps.primaryKey;
+      setEvent(event.filter(list => list.primaryKey !== primaryKey));
+      props.appstate.isBlocking = true
+      setIsBlocking(true)
+    };
 
     // event Click
     const eventOnClickHandle = (e, info) => {
-      console.log(info)
-    }
+      console.log(info);
+    };
 
     // 时间选择
     const handleDateSelect = info => {
       const start = info.startStr;
       const end = info.endStr;
       // 自定义event 用当前时间戳作为唯一主键
-      const now = new Date()
-      const primaryKey = `${now.getTime()}`
+      const now = new Date();
+      const primaryKey = `${now.getTime()}`;
       setEvent([
         ...event,
         {
@@ -398,7 +408,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
 
         // 如果没有设定时间则跳出这次循环
         if (!timeArr.length) {
-          event.push({id: key})
+          event.push({ id: key });
           continue;
         }
         let date = getWeekTime(Number(key));
@@ -411,12 +421,12 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           String(date.getDate()).length > 1
             ? date.getDate()
             : `0${date.getDate()}`;
-        
+
         timeArr.forEach((group, index) => {
-          let startTime = timeFormat(group[0])
-          let endTime = timeFormat(group[2])
+          let startTime = timeFormat(group[0]);
+          let endTime = timeFormat(group[2]);
           // 用日期 + 事件index标示唯一的主键
-          primaryKey = `${year}-${month}-${day}-${index}`
+          primaryKey = `${year}-${month}-${day}-${index}`;
           event.push({
             primaryKey,
             id: key,
@@ -466,7 +476,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
               console.log(data);
               if (pram.value === 123) {
                 let event = weekTime(data);
-                console.log(event)
+                console.log(event);
                 setEvent(event);
               }
               readSchedule(iter.next());
@@ -479,15 +489,26 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       }
     };
 
-    const deleteEventHandle = e => {
-      console.log("delete");
+    const deleteEventHandle = info => {
+      const primaryKey = info.event.extendedProps.primaryKey;
+      setEvent(event.filter(list => list.primaryKey !== primaryKey));
     };
+
+    const copyEventHandle = e => {};
+
+    const pasteEventHandle = e => {};
 
     return (
       <div
         className="equipment-divier"
         style={{ borderBottom: "1px solid #ebedf0" }}
       >
+        <Prompt
+          when={isBlocking}
+          message={location =>
+            `You haven't applied the changes. Are you sure you want to leave?`
+          }
+        />
         <PageHeader
           title="Schedule"
           style={{ borderBottom: "1px solid #ebedf0" }}
@@ -530,7 +551,11 @@ const ScheduleView = inject(allStore => allStore.appstate)(
             </Spin>
           </Col>
         </Row>
-        <MyAwesomeMenu deleteEventHandle={deleteEventHandle} />
+        <MyAwesomeMenu
+          deleteEventHandle={deleteEventHandle}
+          copyEventHandle={copyEventHandle}
+          pasteEventHandle={pasteEventHandle}
+        />
       </div>
     );
   })

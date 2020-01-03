@@ -35,7 +35,8 @@ import {
   appliedTOdevice,
   sendFilePkg
 } from "../../api/index.api";
-import { Menu, Item, contextMenu } from "react-contexify";
+import { Menu, Item, contextMenu, theme, animation, Separator } from "react-contexify";
+import "react-contexify/scss/main.scss";
 import {
   BACNET_OBJECT_TYPE,
   BACNET_ENGINEERING_UNITS
@@ -201,9 +202,10 @@ class CollectionsPage extends React.Component {
  * @method {MyAwesomeMenu} 右键菜单
  */
 const MyAwesomeMenu = props => (
-  <Menu id="storageMenu">
+  <Menu id="storageMenu" theme={theme.dark} animation={animation.zoom}>
     <Item onClick={props.addModuleClick}>Add Module</Item>
     <Item onClick={props.delModuleClick}>Delete Module</Item>
+    <Separator />
     <Item onClick={props.applyToDevice}>apply to equipment</Item>
     <Item onClick={props.exportData}>Backup as file</Item>
   </Menu>

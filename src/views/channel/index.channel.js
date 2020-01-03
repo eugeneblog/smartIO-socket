@@ -2,9 +2,10 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import PropertyPanel from "../../components/Property/index.property";
+import CollectionCreateForm from "../../components/Modal/index.modal";
 import { updateChannel } from "../../api/index.api";
 import { observer, inject } from "mobx-react";
-import { Table, Modal } from "antd";
+import { Table, Modal, Button, notification, Icon } from "antd";
 
 const { confirm } = Modal;
 
@@ -16,7 +17,8 @@ class ChannelPanel extends React.Component {
     super();
     this.state = {
       propertyData: [],
-      isPropertyShow: false
+      isPropertyShow: false,
+      visible: false
     };
   }
 
@@ -72,14 +74,115 @@ class ChannelPanel extends React.Component {
           return id !== key;
         });
         // 后端更新数据
-        updateChannel({newData: JSON.stringify(newData)}).then(result => {
-          const { errno } = result.data
+        updateChannel({ newData: JSON.stringify(newData) }).then(result => {
+          const { errno } = result.data;
           if (errno === 0) {
-            this.props.appstate.updateData()
+            this.props.appstate.updateData();
           }
         });
       }
     });
+  };
+
+  // 增加通道
+  addChannelClickHandle = () => {
+    this.setState({
+      visible: true
+    });
+  };
+
+  handleCreate = () => {
+    const { form } = this.formRef.props;
+    let { channelDataSource, channelTabData } = this.props.appstate;
+    const NODES = channelDataSource.ROOT.CHANNEL;
+    form.validateFields((err, values) => {
+      if (err) {
+        return;
+      }
+      console.log("Received values of form: ", values);
+      let len = channelTabData.length;
+      let endKey = len ? channelTabData[len - 1].attr.key : 0;
+      let key = len ? Number(endKey) + 1 : 1;
+      let typeName = values.selectConfig.replace(/.xml$/, "");
+      let xmlJsonData = {
+        DESCRIPTION: "null",
+        ITEM_NAME: values["radio-name"],
+        ITEM_NUMBER: key,
+        LAST_MODIFIED: Date.now(),
+        NET_CONFIG: this.getTypeStr(typeName),
+        TYPE: typeName || "localhost",
+        attr: {
+          key
+        }
+      };
+      let source = [];
+      if (NODES) {
+        source = NODES.length ? NODES.slice() : [{ ...NODES }];
+      }
+      // 将要插入的数据以json形式传送给后端
+      let formData = {
+        newData: JSON.stringify(source.concat(xmlJsonData))
+      };
+      // 通道信息写入xml
+      updateChannel(formData).then(result => {
+        let isAdd = result["data"].errno;
+        if (isAdd === 0) {
+          // 隐藏modal
+          this.setState({
+            visible: false
+          })
+          // 更新数据，同步到客户端
+          this.props.appstate.updateData();
+          notification.open({
+            message: "Message",
+            description: `You have successfully created new channel is: ${values.select}`,
+            icon: <Icon type="smile" style={{ color: "#108ee9" }} />
+          });
+        }
+      });
+    });
+  };
+
+  handleCancel = () => {
+    this.setState({
+      visible: false
+    });
+  };
+
+  getTypeStr = typeName => {
+    let typeData;
+    this.props.appstate.allTypeData.forEach(item => {
+      if (item.ROOT.NAME === typeName) {
+        let net = item.ROOT.NET;
+        typeData = {
+          MAIN: {
+            IP: net.IP,
+            MAC: "00:00:00:00:00:00",
+            NAME: item.ROOT.NAME,
+            PORT: {
+              "#text": net.PORT,
+              attr: {
+                type: "number"
+              }
+            }
+          },
+          PORT: {
+            TYPE: {
+              "#text": "WIFI",
+              attr: {
+                type: "netconfig"
+              }
+            },
+            UDPTIMEOUT: 1000
+          }
+        };
+      }
+    });
+    return typeData;
+  };
+
+  saveFormRef = formRef => {
+    this.formRef = formRef;
   };
 
   rowSelectionConfig = {
@@ -103,6 +206,12 @@ class ChannelPanel extends React.Component {
   render() {
     return (
       <div>
+        <div style={{ margin: 10 }}>
+          <Button type="primary" onClick={this.addChannelClickHandle}>
+            Add channel
+          </Button>
+        </div>
+
         <Table
           columns={this.columns}
           rowKey="ITEM_NUMBER"
@@ -111,9 +220,14 @@ class ChannelPanel extends React.Component {
           bordered={true}
           rowSelection={this.rowSelectionConfig}
         />
-        {this.state.isPropertyShow ? (
-          <PropertyPanel />
-        ) : null}
+        <CollectionCreateForm
+          key="modalpane"
+          onCreate={this.handleCreate}
+          wrappedComponentRef={this.saveFormRef}
+          visible={this.state.visible}
+          handleCancel={this.handleCancel}
+        />
+        {this.state.isPropertyShow ? <PropertyPanel /> : null}
       </div>
     );
   }

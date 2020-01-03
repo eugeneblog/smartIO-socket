@@ -96,6 +96,9 @@ class AppState extends BaseState {
   @observable equipmentData = [];
   @observable equipmentTableData = [];
 
+  // 是否阻止页面离开
+  @observable isBlocking = false;
+
   // 网络号
   @observable NetProgress = [];
 

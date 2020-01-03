@@ -7,12 +7,11 @@ import {
   withRouter
 } from "react-router-dom";
 import { HLayout } from "../views/layout/index.layout";
-import Facillty from "../views/facillty/index.facillty.js";
 import ChannelPanel from "../views/channel/index.channel";
 import NotFoundPage from "../components/404/index.notfound";
 import Equipment from "../views/equipment/index.equipment";
 import Controller from "../views/controller/index.controller";
-import ScheduleView from "../views/schedule/index.schedule"
+import ScheduleView from "../views/schedule/index.schedule";
 
 let routes = [
   {
@@ -21,19 +20,10 @@ let routes = [
     render: props => {
       return (
         <Redirect
-          to={{ pathname: "/facillty", state: { from: props.location } }}
+          to={{ pathname: "/equipment", state: { from: props.location } }}
         />
       );
     }
-  },
-  {
-    path: "/facillty",
-    exact: true,
-    sidebar: () => (
-      <div>
-        <Facillty />
-      </div>
-    )
   },
   {
     path: "/controller",
@@ -63,7 +53,7 @@ let routes = [
   {
     path: "/schedule",
     exact: true,
-    sidebar: props => <ScheduleView router={props}/>
+    sidebar: props => <ScheduleView router={props} />
   },
   {
     path: "*",
@@ -97,22 +87,18 @@ class MainRoute extends React.Component {
   render() {
     return (
       <Router>
-        <div className="App">
+        <Route exact path="/login" component={Comp} />
+        <HLayout history={this.props.history}>
           <Switch>
-            <Route exact path="/login" component={Comp} />
-            <HLayout>
-              <Switch>
-                {this.state.route.map((route, index) => (
-                  <Route
-                    key={index}
-                    {...route}
-                    component={route.sidebar ? route.sidebar : route.main}
-                  />
-                ))}
-              </Switch>
-            </HLayout>
+            {this.state.route.map((route, index) => (
+              <Route
+                key={index}
+                {...route}
+                component={route.sidebar ? route.sidebar : route.main}
+              />
+            ))}
           </Switch>
-        </div>
+        </HLayout>
       </Router>
     );
   }
@@ -122,8 +108,12 @@ const fakeAuth = {
   isLogin: true
 };
 
-const ShowTheLocationWithRouter = withRouter(({ history }) => {
-  return fakeAuth.isLogin ? <MainRoute /> : <p>You are not logged in.</p>;
+const ShowTheLocationWithRouter = withRouter(({ history, match, location }) => {
+  return fakeAuth.isLogin ? (
+    <MainRoute history={{history ,location}} />
+  ) : (
+    <p>You are not logged in.</p>
+  );
 });
 
 export default ShowTheLocationWithRouter;

@@ -42,7 +42,6 @@ class MenuController extends React.Component {
         exportSelDevice: [val]
       });
     };
-    console.log(this.props.equipmentstate.getTreeData);
     modal = Modal.confirm({
       title: "Export all devices to XML files",
       icon: <Icon type="snippets" />,

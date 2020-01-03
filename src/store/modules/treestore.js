@@ -144,14 +144,15 @@ class TreeState extends BaseState {
       }
     }
   ];
-  @observable currentKeys = cookie.load('currentKeys') ? [cookie.load('currentKeys')] : ['0-0']
+  @observable currentKeys = cookie.load('currentKeys') ? cookie.load('currentKeys') : ['0-0-0']
 
   // 根据路由计算tree节点应该选中哪一个
   @action defaultSelectedKey(currentRouter) {
     const findNode = arr => {
       arr.forEach(item => {
-        if (item.name === (currentRouter || 'facillty')) {
-          this.currentKeys = [item.key]
+        let routeName = `/${item.name}`
+        if (routeName === currentRouter) {
+          this.currentKeys = item.key
           cookie.save('currentKeys', item.key, { path: '/' })
         }
         if (item.children) {

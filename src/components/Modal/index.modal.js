@@ -32,14 +32,6 @@ class ModalPanel extends React.Component {
       selectRadio: target.value
     });
   };
-
-  handleOk = e => {
-    this.props.appstate.setView("modalVisible", false);
-  };
-
-  handleCancel = e => {
-    this.props.appstate.setView("modalVisible", false);
-  };
   // 创建Items 子节点
   createItemNode = list => {
     // 如果addItem启用了就返回该节点，否则返回null , item.children是递归退出条件,否则一直递归调用
@@ -57,24 +49,22 @@ class ModalPanel extends React.Component {
 
   // 加载net_config
   createAllType = node => {
-    return node.map((item,index) => {
+    return node.map((item, index) => {
       return (
         <Option key={index} value={item}>
-          {item.replace(/.xml$/g, '')}
+          {item.replace(/.xml$/g, "")}
         </Option>
       );
     });
   };
 
   render() {
-    const { modalVisible, modalLoading } = this.props.appstate.showView;
-    const { modalPaneltriggerName, channelTabData } = this.props.appstate
-    const channelTabDataLen = channelTabData.length
+    const { modalLoading } = this.props.appstate.showView;
+    const { modalPaneltriggerName, channelTabData } = this.props.appstate;
+    const channelTabDataLen = channelTabData.length;
     // 给字符首字母转大写
     const modalTitle = modalPaneltriggerName
-      ? modalPaneltriggerName.replace(/(^\S)/, math =>
-          math.toLocaleUpperCase()
-        )
+      ? modalPaneltriggerName.replace(/(^\S)/, math => math.toLocaleUpperCase())
       : "Not Set Title";
     let { onCreate } = this.props;
     const { form } = this.props;
@@ -82,11 +72,11 @@ class ModalPanel extends React.Component {
     return (
       <Modal
         width={800}
-        visible={modalVisible}
+        visible={this.props.visible}
         title={modalTitle}
-        onCancel={this.handleCancel}
+        onCancel={this.props.handleCancel}
         footer={[
-          <Button key="back" onClick={this.handleCancel}>
+          <Button key="back" onClick={this.props.handleCancel}>
             Return
           </Button>,
           <Button
@@ -104,9 +94,7 @@ class ModalPanel extends React.Component {
             <Col span={10}>
               <Form.Item label="Add Items" hasFeedback>
                 {getFieldDecorator("selectItem", {
-                  rules: [
-                    { required: true, message: "Please select Item!" }
-                  ],
+                  rules: [{ required: true, message: "Please select Item!" }],
                   initialValue: modalPaneltriggerName
                 })(
                   <Select placeholder="Please select item">
@@ -116,28 +104,31 @@ class ModalPanel extends React.Component {
               </Form.Item>
               <Form.Item label="Net Type" hasFeedback>
                 {getFieldDecorator("selectConfig", {
-                  rules: [
-                    { required: true, message: "Please select Type!" }
-                  ],
+                  rules: [{ required: true, message: "Please select Type!" }],
                   initialValue: this.props.triggerName
                 })(
-                  <Select onSelect={this.typeSelectHandle} placeholder="Please select item">
-                    {
-                      this.createAllType(this.props.appstate.allType)
-                    }
+                  <Select
+                    onSelect={this.typeSelectHandle}
+                    placeholder="Please select item"
+                  >
+                    {this.createAllType(this.props.appstate.allType)}
                   </Select>
                 )}
               </Form.Item>
-              {
-                this.state.selectTypeContent 
-                ? <Form.Item>
-                  <Descriptions title={this.state.selectTypeContent.NAME.toLocaleUpperCase()}>
-                    <Descriptions.Item label="Ip">{this.state.selectTypeContent.NET.IP}</Descriptions.Item>
-                    <Descriptions.Item label="PORT">{this.state.selectTypeContent.NET.PORT}</Descriptions.Item>
+              {this.state.selectTypeContent ? (
+                <Form.Item>
+                  <Descriptions
+                    title={this.state.selectTypeContent.NAME.toLocaleUpperCase()}
+                  >
+                    <Descriptions.Item label="Ip">
+                      {this.state.selectTypeContent.NET.IP}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="PORT">
+                      {this.state.selectTypeContent.NET.PORT}
+                    </Descriptions.Item>
                   </Descriptions>
                 </Form.Item>
-                : null
-              }
+              ) : null}
             </Col>
             <Col span={1}>
               <Divider dashed style={{ height: "540px" }} type="vertical" />
@@ -151,7 +142,8 @@ class ModalPanel extends React.Component {
                     <Radio value="name">Use Name</Radio>
                     <Form.Item>
                       {getFieldDecorator("radio-name", {
-                        initialValue: `${modalTitle || 'CHANNEL DEFAULTNAME'}${channelTabDataLen + 1}`
+                        initialValue: `${modalTitle ||
+                          "CHANNEL DEFAULTNAME"}${channelTabDataLen + 1}`
                       })(
                         <Input disabled={this.state.selectRadio !== "name"} />
                       )}
@@ -192,17 +184,17 @@ class ModalPanel extends React.Component {
     );
   }
 
-  typeSelectHandle = (opt) => {
-    let typeName = opt.replace(/.xml$/, '')
+  typeSelectHandle = opt => {
+    let typeName = opt.replace(/.xml$/, "");
     this.props.appstate.allTypeData.forEach(item => {
-      if(item.ROOT.NAME === typeName) {
+      if (item.ROOT.NAME === typeName) {
         // 显示该类型的具体信息
         this.setState({
           selectTypeContent: item.ROOT
-        })
+        });
       }
-    })
-  }
+    });
+  };
 }
 
 const CollectionCreateForm = Form.create({ name: "form_in_modal" })(ModalPanel);

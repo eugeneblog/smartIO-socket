@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { HashRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import Store from "./store/index.store";
 import { Provider } from "mobx-react";
@@ -12,9 +12,9 @@ const rootNode = document.getElementById("root");
 const render = Component => {
   ReactDOM.render(
     <Provider appstate={appstate}>
-      <HashRouter>
+      <BrowserRouter>
         <Component />
-      </HashRouter>
+      </BrowserRouter>
     </Provider>,
     rootNode
   );

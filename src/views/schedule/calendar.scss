@@ -4,9 +4,13 @@
 @import '~@fullcalendar/list/main.css';
 
 .fc-time-grid .fc-slats td {
-    height: 1em;
+    height: 1.2em;
 }
 
 .fc-ltr .fc-axis{
     font-size: 12px;
+}
+
+.fc-license-message{
+    display: none;
 }
