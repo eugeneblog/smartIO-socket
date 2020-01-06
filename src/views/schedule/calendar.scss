@@ -7,10 +7,14 @@
     height: 1.2em;
 }
 
-.fc-ltr .fc-axis{
+.fc-ltr .fc-axis {
     font-size: 12px;
 }
 
-.fc-license-message{
+.fc-license-message {
     display: none;
+}
+
+.e-event-selected {
+    border: 2px solid #1790ff;
 }
