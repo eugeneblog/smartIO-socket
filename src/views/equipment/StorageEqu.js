@@ -650,7 +650,6 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
           }
         });
       }
-      return;
     };
     return (
       <DirectoryTree

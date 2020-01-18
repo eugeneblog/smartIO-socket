@@ -59,6 +59,7 @@ class TreeState extends BaseState {
         copy: true,
         cut: true
       },
+      isOpen: true,
       children: [
         {
           title: "GroupName",
@@ -79,6 +80,7 @@ class TreeState extends BaseState {
       menu: {
         copy: true
       },
+      isOpen: true,
       children: [
         {
           title: "Channel",
@@ -144,15 +146,15 @@ class TreeState extends BaseState {
       }
     }
   ];
-  @observable currentKeys = cookie.load('currentKeys') ? cookie.load('currentKeys') : ['0-0-0']
+  @observable currentKeys = cookie.load('currentKeys') ? cookie.load('currentKeys') : ['0-0-0'];
 
   // 根据路由计算tree节点应该选中哪一个
   @action defaultSelectedKey(currentRouter) {
     const findNode = arr => {
       arr.forEach(item => {
-        let routeName = `/${item.name}`
+        let routeName = `/${item.name}`;
         if (routeName === currentRouter) {
-          this.currentKeys = item.key
+          this.currentKeys = item.key;
           cookie.save('currentKeys', item.key, { path: '/' })
         }
         if (item.children) {

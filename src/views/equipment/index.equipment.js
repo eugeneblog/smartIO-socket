@@ -458,6 +458,7 @@ class Equipment extends React.Component {
       { title: "Sources", dataIndex: "sources", key: "sources" }
     ];
   }
+  
   // 上传到数据库
   uploadClickHandle = (selequ, allequ) => {
     let checkedObjs = [];
@@ -767,6 +768,7 @@ class Equipment extends React.Component {
       configVisable: false
     });
   };
+  
   // 连接websocket
   connectSocket() {
     this.socket = Socket("http://localhost:8001");

@@ -239,3 +239,12 @@ export function searchSchedule(data) {
     method: "POST"
   })
 }
+
+// 写入schedule
+export function writeShedule(data) {
+  return request({
+    data,
+    url: "/api/socket/udp/setschedule",
+    method: "POST"
+  })
+}
