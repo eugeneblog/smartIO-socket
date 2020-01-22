@@ -204,14 +204,37 @@ const ScheduleAttribute = props => {
 
 // 有效周期
 const EffectPeriod = (props) => {
+  const [startTime, setStartTime] = useState(moment('00:00:00', 'HH:mm:ss'));
+  const [endTime, setEndTime] = useState(moment('11:59:59', 'HH:mm:ss'));
+  
   const onPanelChange = (value, mode) => {
     console.log(value, mode);
   };
   
-  const onChangeDateHandle = (date, dateString) => {
-    console.log(date, dateString);
+  // 日期改变事件
+  const onChangeDateHandle = (date) => {
+    setStartTime(date[0]);
+    setEndTime(date[1]);
   };
   
+  const getMonthData = (value) => {
+    if (value.month() === 8) {
+      return 1394;
+    }
+  };
+  
+  // 自定义月渲染
+  const monthCellRender = (value) => {
+    const num = getMonthData(value);
+    return num ? (
+      <div className="notes-month">
+        <section>{num}</section>
+        <span>Backlog number</span>
+      </div>
+    ) : null;
+  };
+  
+  // 自定义头渲染
   const headerRender = ({value, type, onChange, onTypeChange}) => {
     const year = value.year();
     const options = [];
@@ -226,7 +249,15 @@ const EffectPeriod = (props) => {
       <div style={{padding: 10}}>
         <Row type="flex" justify="space-between">
           <Col>
-            <RangePicker onChange={onChangeDateHandle}/>
+            <RangePicker
+              onChange={onChangeDateHandle}
+              defaultValue={[startTime, endTime]}
+              showTime={{
+                hideDisabledOptions: true,
+                defaultValue: [startTime, endTime],
+              }}
+              format="YYYY-MM-DD HH:mm:ss"
+            />
           </Col>
           <Col>
             <Select
@@ -248,7 +279,7 @@ const EffectPeriod = (props) => {
   };
   
   return (
-    <Calendar mode={"year"} headerRender={headerRender} onPanelChange={onPanelChange}/>
+    <Calendar mode={"year"} headerRender={headerRender} onPanelChange={onPanelChange} monthCellRender={monthCellRender}/>
   )
 };
 
