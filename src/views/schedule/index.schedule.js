@@ -1,11 +1,10 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, {useState, useEffect} from "react";
-import {observer, inject} from "mobx-react";
+import React, { useState, useEffect } from "react";
+import { observer, inject } from "mobx-react";
 import {
   PageHeader,
   Row,
   Col,
-  Badge,
   Icon,
   Tree,
   Tabs,
@@ -16,10 +15,16 @@ import {
   message,
   Calendar,
   DatePicker,
-  Select
+  Select,
+  Badge,
+  Input
 } from "antd";
-import {Prompt} from "react-router-dom";
-import {readDataBaseField, searchSchedule, writeShedule} from "../../api/index.api";
+import { Prompt } from "react-router-dom";
+import {
+  readDataBaseField,
+  searchSchedule,
+  writeShedule
+} from "../../api/index.api";
 import {
   Menu,
   Item,
@@ -37,14 +42,15 @@ import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import listPlugin from "@fullcalendar/list";
 import "./calendar.scss";
 
-const {TreeNode, DirectoryTree} = Tree;
-const {RangePicker} = DatePicker;
-const {TabPane} = Tabs;
+const { TreeNode, DirectoryTree } = Tree;
+const { RangePicker } = DatePicker;
+const { TabPane } = Tabs;
+const { TextArea } = Input;
 
 const MyAwesomeMenu = props => (
   <Menu id="scheduleMenu" theme={theme.dark} animation={animation.zoom}>
     <Item onClick={props.deleteEventHandle}>Delete</Item>
-    <Separator/>
+    <Separator />
     <Item onClick={props.copyEventHandle}>Copy</Item>
     <Item onClick={props.pasteEventHandle}>Paste</Item>
   </Menu>
@@ -66,6 +72,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
         })
       )
     );
+
     useEffect(() => {
       const allPromise = treeData.map(item => {
         return readDataBaseField({
@@ -77,61 +84,28 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
         // 写入treeData
         setTreeData(
           treeData.map((item, index) => {
-            return {...item, deviceName: res[index]["data"].value};
+            return { ...item, deviceName: res[index]["data"].value };
           })
         );
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    
+
     const RecursiveTree = (treeData, prefix) => {
       if (treeData.length) {
         return treeData.map(item => {
           let key;
-          let modules;
           let nodeData = {};
-          if (!prefix) {
-            key = `${item.objectName}`;
-          } else {
-            key = `${prefix}:${item.objectName}`;
-          }
-          const pattern = /^(\d)+$/;
-          if (pattern.test(key)) {
-            const allModules = props.equipmentstate.getModules;
-            if (allModules) {
-              const uniqu = {};
-              const deviceModule = allModules.filter(
-                node => node.split(":")[0] === item.objectName
-              );
-              deviceModule.forEach(item => {
-                uniqu[item.split(":")[2][0]] = item;
-              });
-              modules = Object.keys(uniqu);
-              nodeData.modules = modules;
-              nodeData.modulesKey = deviceModule;
-            }
-          }
-          let title = (
+          key = !prefix ? `${item.objectName}` : `${prefix}:${item.objectName}`;
+          const title = (
             <span>
               {item.text
                 ? `${item.text} ${
-                  item.children.length ? `(${item.children.length})` : ""
-                }`
+                    item.children.length ? `(${item.children.length})` : ""
+                  }`
                 : `${item.deviceName}`}
-              {modules ? (
-                <Badge
-                  style={{
-                    backgroundColor: "#fff",
-                    color: "#999",
-                    boxShadow: "0 0 0 1px #d9d9d9 inset",
-                    marginLeft: 5
-                  }}
-                  count={modules.length}
-                />
-              ) : null}
             </span>
           );
-          
           return (
             <TreeNode
               selectable={item.children.length ? false : true}
@@ -144,7 +118,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
                     twoToneColor="#ffb818"
                   />
                 ) : (
-                  <Icon type="file" theme="twoTone"/>
+                  <Icon type="file" theme="twoTone" />
                 )
               }
               title={title}
@@ -159,10 +133,10 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       // prefix = null
       return null;
     };
-    
+
     return (
       <DirectoryTree
-        switcherIcon={<Icon type="down"/>}
+        switcherIcon={<Icon type="down" />}
         multiple
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
         selectedKeys={props.selectedKeys}
@@ -176,8 +150,8 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
 
 // 属性视图
 const ScheduleAttribute = props => {
-  const {visible, attrData} = props;
-  const {start, end} = attrData;
+  const { visible, attrData } = props;
+  const { start, end } = attrData;
   return visible ? (
     <Descriptions
       title={`${props.title} ${attrData.id ? attrData.id : ""}`}
@@ -187,44 +161,54 @@ const ScheduleAttribute = props => {
       column={1}
     >
       <Descriptions.Item label="Start time">
-        <TimePicker allowClear={false}
-                    onChange={(time, timeString) => props.timeChangeHandle(time, timeString, 'start', props.attrData)}
-                    format={'HH:mm'} id="startTime"
-                    value={moment(start, 'HH:mm:ss')}/>
+        <TimePicker
+          allowClear={false}
+          onChange={(time, timeString) =>
+            props.timeChangeHandle(time, timeString, "start", props.attrData)
+          }
+          format={"HH:mm"}
+          id="startTime"
+          value={moment(start, "HH:mm:ss")}
+        />
       </Descriptions.Item>
       <Descriptions.Item label="End time">
         <TimePicker
-          onChange={(time, timeString) => props.timeChangeHandle(time, timeString, 'end', props.attrData)}
-          allowClear={false} format={'HH:mm'} id="endTime"
-          value={moment(end, 'HH:mm:ss')}/>
+          onChange={(time, timeString) =>
+            props.timeChangeHandle(time, timeString, "end", props.attrData)
+          }
+          allowClear={false}
+          format={"HH:mm"}
+          id="endTime"
+          value={moment(end, "HH:mm:ss")}
+        />
       </Descriptions.Item>
     </Descriptions>
   ) : null;
 };
 
 // 有效周期
-const EffectPeriod = (props) => {
-  const [startTime, setStartTime] = useState(moment('00:00:00', 'HH:mm:ss'));
-  const [endTime, setEndTime] = useState(moment('11:59:59', 'HH:mm:ss'));
-  
+const EffectPeriod = props => {
+  const [startTime, setStartTime] = useState(moment("00:00:00", "HH:mm:ss"));
+  const [endTime, setEndTime] = useState(moment("11:59:59", "HH:mm:ss"));
+
   const onPanelChange = (value, mode) => {
     console.log(value, mode);
   };
-  
+
   // 日期改变事件
-  const onChangeDateHandle = (date) => {
+  const onChangeDateHandle = date => {
     setStartTime(date[0]);
     setEndTime(date[1]);
   };
-  
-  const getMonthData = (value) => {
+
+  const getMonthData = value => {
     if (value.month() === 8) {
       return 1394;
     }
   };
-  
+
   // 自定义月渲染
-  const monthCellRender = (value) => {
+  const monthCellRender = value => {
     const num = getMonthData(value);
     return num ? (
       <div className="notes-month">
@@ -233,20 +217,20 @@ const EffectPeriod = (props) => {
       </div>
     ) : null;
   };
-  
+
   // 自定义头渲染
-  const headerRender = ({value, type, onChange, onTypeChange}) => {
+  const headerRender = ({ value, type, onChange, onTypeChange }) => {
     const year = value.year();
     const options = [];
     for (let i = year - 10; i < year + 10; i += 1) {
       options.push(
         <Select.Option key={i} value={i} className="year-item">
           {i}
-        </Select.Option>,
+        </Select.Option>
       );
     }
     return (
-      <div style={{padding: 10}}>
+      <div style={{ padding: 10 }}>
         <Row type="flex" justify="space-between">
           <Col>
             <RangePicker
@@ -254,7 +238,7 @@ const EffectPeriod = (props) => {
               defaultValue={[startTime, endTime]}
               showTime={{
                 hideDisabledOptions: true,
-                defaultValue: [startTime, endTime],
+                defaultValue: [startTime, endTime]
               }}
               format="YYYY-MM-DD HH:mm:ss"
             />
@@ -277,25 +261,96 @@ const EffectPeriod = (props) => {
       </div>
     );
   };
-  
+
   return (
-    <Calendar mode={"year"} headerRender={headerRender} onPanelChange={onPanelChange} monthCellRender={monthCellRender}/>
-  )
+    <Calendar
+      mode={"year"}
+      headerRender={headerRender}
+      onPanelChange={onPanelChange}
+      monthCellRender={monthCellRender}
+    />
+  );
 };
+
+// 时间表基础信息
+const ScheduleBase = inject(allStore => allStore.appstate)(
+  observer(props => {
+    const {
+      OBJECT_NAME,
+      PRIORITY_FOR_WRITING,
+      PRESENT_VALUE,
+      SCHEDULE_DEFAULT,
+      DESCRIPTION
+    } = props.schedulestate.infoSchedule;
+    const priorityList = [
+      { name: "Manual-Life Safety", val: "1" },
+      { name: "Automatic-Life Safety", val: "2" },
+      { name: "Available", val: "3" },
+      { name: "Available", val: "4" },
+      { name: "Critical Equipment Control", val: "5" },
+      { name: "Minimum On/Off", val: "6" },
+      { name: "Available", val: "7" },
+      { name: "Manual Operator", val: "8" },
+      { name: "Available", val: "9" },
+      { name: "Available", val: "10" },
+      { name: "Available", val: "11" },
+      { name: "Available", val: "12" },
+      { name: "Available", val: "13" },
+      { name: "Available", val: "14" },
+      { name: "Available", val: "15" },
+      { name: "Available", val: "16" }
+    ];
+    const defaultValList = [
+      { name: "TAG_NULL", val: "0" },
+      { name: "TAG_BOOLEAN", val: "1" },
+      { name: "TAG_UNSIGNED_INT", val: "2" },
+      { name: "TAG_SIGNED_INT", val: "3" },
+      { name: "TAG_REAL", val: "4" },
+      { name: "TAG_DOUBLE", val: "5" },
+      { name: "TAG_ENUMERATED", val: "9" }
+    ];
+    return (
+      <Descriptions bordered>
+        <Descriptions.Item label="Object Name">{OBJECT_NAME}</Descriptions.Item>
+        <Descriptions.Item label="priority" span={2}>
+          <Select style={{ width: 200 }} defaultValue={PRIORITY_FOR_WRITING}>
+            {priorityList.map((item, key) => (
+              <Select.Option key={key} value={item.val}>
+                {`${item.val}.${item.name}`}
+              </Select.Option>
+            ))}
+          </Select>
+        </Descriptions.Item>
+        <Descriptions.Item label="The current value">
+          {PRESENT_VALUE}
+        </Descriptions.Item>
+        <Descriptions.Item label="The default value" span={2}>
+          <Select style={{ width: 200 }} defaultValue={SCHEDULE_DEFAULT}>
+            {defaultValList.map((item, key) => (
+              <Select.Option key={key} value={item.val}>
+                {item.name}
+              </Select.Option>
+            ))}
+          </Select>
+        </Descriptions.Item>
+        <Descriptions.Item label="Status" span={3}>
+          <Badge status="processing" text="Running" />
+        </Descriptions.Item>
+        <Descriptions.Item label="Describe">
+          <TextArea rows={4} defaultValue={DESCRIPTION} />
+        </Descriptions.Item>
+      </Descriptions>
+    );
+  })
+);
 
 // 右侧视图
 const ScheduleContent = inject(allStore => allStore.appstate)(
   observer(props => {
-    
     const eventRender = info => {
       info.el.oncontextmenu = e => props.onContextMenu(e, info);
       info.el.ondblclick = e => props.onDblClick(e, info);
       info.el.onclick = e => props.eventOnClick(e, info);
-      // tippy(info.el, {
-      //   content: info.event.extendedProps.description,
-      //   trigger: "click",
-      //   animation: "scale"
-      // });
     };
     const dayRender = info => {
       info.el.oncontextmenu = e => {
@@ -304,10 +359,10 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
       };
     };
     return !props.panesData ? (
-      <div style={{minHeight: "250px"}}>
+      <div style={{ minHeight: "250px" }}>
         <Empty
           description="Please select a schedule"
-          style={{paddingTop: "60px"}}
+          style={{ paddingTop: "60px" }}
         />
       </div>
     ) : (
@@ -315,7 +370,7 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
         <TabPane
           tab={
             <span>
-              <Icon type="calendar"/>
+              <Icon type="calendar" />
               Weekly Schedule
             </span>
           }
@@ -378,13 +433,24 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
         <TabPane
           tab={
             <span>
-              <Icon type="carry-out"/>
+              <Icon type="carry-out" />
               Effect Period
             </span>
           }
           key="2"
         >
           <EffectPeriod selectKey={props.selectKey} />
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <Icon type="container" />
+              The basic information
+            </span>
+          }
+          key="3"
+        >
+          <ScheduleBase />
         </TabPane>
       </Tabs>
     );
@@ -401,7 +467,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const [selectedEvent, setSelEvent] = useState([]);
     const [cache, setCache] = useState({});
     const [isShowAttr, setShowAttr] = useState(false);
-    
+
     // 获取指定周的时间
     const getWeekTime = day => {
       if (day === 7) {
@@ -413,7 +479,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       now.setDate(now.getDate() + (day - nowWeek));
       return now;
     };
-    
+
     // 日期格式化, 将 x:x:x 转换为 xx:xx:xx
     const timeFormat = time => {
       let pattern = /^(\d)+:(\d)+:(\d)+$/;
@@ -425,13 +491,13 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         return `${h}:${m}:${s}`;
       }
     };
-    
+
     // 时间点击
     const handleDateClick = arg => {
       return;
       // setVisible(true);
     };
-    
+
     // event ResizeStop
     const eventResizeHandle = info => {
       const eventData = info.event;
@@ -451,7 +517,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       setEvent(nowEvent);
       props.appstate.isBlocking = true;
     };
-    
+
     // event Drop
     const eventDropHandle = info => {
       const eventData = info.event;
@@ -468,7 +534,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       setEvent(nowEvent);
       props.appstate.isBlocking = true;
     };
-    
+
     // event ContextMenu
     const onContextMenuHandle = (e, info) => {
       const menuId = "scheduleMenu";
@@ -481,7 +547,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         }
       });
     };
-    
+
     // event DblClick
     const onDblClickHandle = (e, info) => {
       const primaryKey = info.event.extendedProps.primaryKey;
@@ -490,14 +556,14 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       setSelEvent({});
       setShowAttr(false);
     };
-    
+
     // event Click
     const eventOnClickHandle = (e, info) => {
-      const {extendedProps} = info.event;
+      const { extendedProps } = info.event;
       const primaryKey = extendedProps.primaryKey;
-      addActiveEvent(primaryKey, event)
+      addActiveEvent(primaryKey, event);
     };
-    
+
     // 时间选择
     const handleDateSelect = info => {
       const start = info.start;
@@ -516,7 +582,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       };
       addActiveEvent(primaryKey, [...event, newEvent]);
     };
-    
+
     // 处理周期时间
     const weekTime = data => {
       const weekData = data.listOfResult;
@@ -534,10 +600,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           }
           return accumulator;
         }, []);
-        
+
         // 如果没有设定时间则跳出这次循环
         if (!timeArr.length) {
-          event.push({id: key});
+          event.push({ id: key });
           continue;
         }
         let date = getWeekTime(Number(key));
@@ -547,7 +613,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           String(date.getDate()).length > 1
             ? date.getDate()
             : `0${date.getDate()}`;
-        
+
         timeArr.forEach((group, index) => {
           let startTime = timeFormat(group[0]);
           let startVal = group[1];
@@ -556,16 +622,30 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           let shour = startTime.split(":")[0];
           let smint = startTime.split(":")[1];
           let ssec = startTime.split(":")[2];
-          
+
           let ehour = endTime.split(":")[0];
           let emint = endTime.split(":")[1];
           let esec = endTime.split(":")[2];
-          
-          let start = new Date(Number(year), Number(month), Number(day), Number(shour), Number(smint), Number(ssec));
-          let end = new Date(Number(year), Number(month), Number(day), Number(ehour), Number(emint), Number(esec));
+
+          let start = new Date(
+            Number(year),
+            Number(month),
+            Number(day),
+            Number(shour),
+            Number(smint),
+            Number(ssec)
+          );
+          let end = new Date(
+            Number(year),
+            Number(month),
+            Number(day),
+            Number(ehour),
+            Number(emint),
+            Number(esec)
+          );
           // 用日期 + 事件index标示唯一的主键
           primaryKey = `${year}-${month}-${day}-${index}`;
-          
+
           event.push({
             primaryKey,
             id: key,
@@ -581,11 +661,13 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       }
       return event;
     };
-    
+
     // 点击schedule Tree 事件
     const onSelectHandle = (key, event) => {
       if (loading) {
-        message.warn('You operate too frequently, please wait for the program to load');
+        message.warn(
+          "You operate too frequently, please wait for the program to load"
+        );
         return;
       }
       setLoading(true);
@@ -602,10 +684,13 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         let propertyIdArr = [123, 38, 54, 105]; // 38, 54
         let iter = propertyIdArr[Symbol.iterator]();
         let values = iter.next();
+        // 检查设备是否在线
+
+        // 读取该设备下的时间表
         const readSchedule = (pram, errIndex) => {
           if (pram.done) {
             setLoading(false);
-            setPanesData([{title: key[0], key: "1"}]);
+            setPanesData([{ title: key[0], key: "1" }]);
             return;
           }
           searchSchedule({
@@ -622,53 +707,61 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                 let event = weekTime(data);
                 setEvent(event);
               }
+              if (pram.value === 105) {
+                data.listOfResult.forEach(list => {
+                  const attrName = list["object_type_text"];
+                  props.schedulestate.infoSchedule[attrName] = list.val;
+                });
+              }
               readSchedule(iter.next());
             })
             .catch(err => {
               if (errIndex > 2) {
-                return
+                return;
               }
-              readSchedule(values, errIndex += 1);
+              readSchedule(values, (errIndex += 1));
             });
         };
         readSchedule(values, 0);
       }
     };
-    
+
     // 右侧选项改变事件
     const timeChangeHandle = (time, timeStr, point, allData) => {
       const newTime = time.toString();
-      setEvent(event.map(item => {
-        if (item.id === allData.id) {
-          const newEvent = {
-            ...item,
-            [point]: new Date(newTime)
-          };
-          setSelEvent(newEvent);
-          return newEvent
-        }
-        return item
-      }));
+      setEvent(
+        event.map(item => {
+          if (item.id === allData.id) {
+            const newEvent = {
+              ...item,
+              [point]: new Date(newTime)
+            };
+            setSelEvent(newEvent);
+            return newEvent;
+          }
+          return item;
+        })
+      );
     };
-    
+
     // 右键删除
     const deleteEventHandle = e => {
-      const {info} = e.props;
-      const {extendedProps} = info.event;
+      const { info } = e.props;
+      const { extendedProps } = info.event;
       const primaryKey = extendedProps.primaryKey;
       setEvent(event.filter(list => list.primaryKey !== primaryKey));
       setSelEvent({});
       setShowAttr(false);
     };
-    
+
     // 拷贝
     const copyEventHandle = e => {
-      const {info} = e.props;
-      const {start, end, backgroundColor, title, allDay} = info.event;
-      const mirrorImg = {start, end, backgroundColor, title, allDay};
+      const { info } = e.props;
+      const { start, end, backgroundColor, title, allDay } = info.event;
+      const mirrorImg = { start, end, backgroundColor, title, allDay };
       setCache(mirrorImg);
     };
-    
+
     // 粘贴
     const pasteEventHandle = e => {
       // 判断cache是否有值
@@ -678,7 +771,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       }
       return;
     };
-    
+
     // 添加选中样式
     const addActiveEvent = (primaryKey, events) => {
       // 删除所有event样式
@@ -690,56 +783,72 @@ const ScheduleView = inject(allStore => allStore.appstate)(
             return {
               ...item,
               className: ""
-            }
+            };
           }
           setSelEvent(item);
           setShowAttr(true);
           return {
             ...item,
             className: "e-event-selected"
-          }
+          };
         }
         return {
           ...item,
           className: ""
-        }
+        };
       });
       setEvent(newEvent);
     };
-    
+
     // 应用到设备
-    const applidToDeviceHandle = (e) => {
+    const applidToDeviceHandle = e => {
       const originalKey = e.props.deviceId.split(":");
-      const scheduleData = Array.from([1,2,3,4,5,6,7], x => [{}]);
-      event.forEach((item) => {
+      const scheduleData = Array.from([1, 2, 3, 4, 5, 6, 7], x => [{}]);
+      event.forEach(item => {
         if (!item.start) {
-          return
+          return;
         }
         const week = item.start.getDay() === 0 ? 6 : item.start.getDay() - 1;
         if (scheduleData[week] && Object.keys(scheduleData[week][0]).length) {
           scheduleData[week].push({
             ...item
           });
-          return
+          return;
         }
-        scheduleData[week] = [{
-          ...item
-        }]
+        scheduleData[week] = [
+          {
+            ...item
+          }
+        ];
       });
-      console.log(scheduleData);
-      writeShedule({
-        deviceid: originalKey[0],
-        objecttype: originalKey[1],
-        objectnum: originalKey[2],
-        propertyid: 123,
-        scheduledata: scheduleData
-      }).then(res => {
-        console.log(res)
-      });
+      const datas = [scheduleData, props.schedulestate.infoSchedule];
+      const iter = datas[Symbol.iterator]();
+      const recursiveWrite = function(iter) {
+        const nextVal = iter.next();
+        if (nextVal.done) {
+          return;
+        }
+        writeShedule({
+          deviceid: originalKey[0],
+          objecttype: originalKey[1],
+          objectnum: originalKey[2],
+          propertyid: 123,
+          scheduledata: nextVal["value"]
+        })
+          .then(res => {
+            recursiveWrite(iter);
+            console.log(res);
+          })
+          .catch(err => {
+            console.log(err);
+            return
+          });
+      };
+      recursiveWrite(iter);
     };
-    
+
     // tree右键点击事件
-    const treeRightClickHandle = (e) => {
+    const treeRightClickHandle = e => {
       const menuId = "scheduleTreeMenu";
       const { eventKey } = e.node.props;
       e.event.preventDefault();
@@ -755,11 +864,11 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         });
       }
     };
-    
+
     return (
       <div
         className="equipment-divier"
-        style={{borderBottom: "1px solid #ebedf0"}}
+        style={{ borderBottom: "1px solid #ebedf0" }}
       >
         <Prompt
           message={location => {
@@ -778,7 +887,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         />
         <PageHeader
           title="Schedule"
-          style={{borderBottom: "1px solid #ebedf0"}}
+          style={{ borderBottom: "1px solid #ebedf0" }}
           subTitle="schedule Browser Manager"
         />
         <Row>
@@ -823,9 +932,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           copyEventHandle={copyEventHandle}
           pasteEventHandle={pasteEventHandle}
         />
-        <TreeRightMenu
-          applidToDevice={applidToDeviceHandle}
-        />
+        <TreeRightMenu applidToDevice={applidToDeviceHandle} />
       </div>
     );
   })
