@@ -13,11 +13,14 @@ class ScheduleState extends BaseState {
 
   // 周期时间表基本信息
   @observable infoSchedule = {
-    OBJECT_NAME: "",
-    PRIORITY_FOR_WRITING: "",
-    PRESENT_VALUE: "",
-    SCHEDULE_DEFAULT: "",
-    DESCRIPTION: ""
+    propertyid: 105,
+    data: {
+      OBJECT_NAME: "",
+      PRIORITY_FOR_WRITING: "",
+      PRESENT_VALUE: "",
+      SCHEDULE_DEFAULT: "",
+      DESCRIPTION: ""
+    }
   };
 
   // 有效周期

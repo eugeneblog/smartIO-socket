@@ -17,7 +17,10 @@ import {
   DatePicker,
   Select,
   Badge,
-  Input
+  Input,
+  Progress,
+  Modal,
+  InputNumber
 } from "antd";
 import { Prompt } from "react-router-dom";
 import {
@@ -275,13 +278,14 @@ const EffectPeriod = props => {
 // 时间表基础信息
 const ScheduleBase = inject(allStore => allStore.appstate)(
   observer(props => {
+    const [useComp, setUseComp] = useState(null)
     const {
       OBJECT_NAME,
       PRIORITY_FOR_WRITING,
       PRESENT_VALUE,
       SCHEDULE_DEFAULT,
       DESCRIPTION
-    } = props.schedulestate.infoSchedule;
+    } = props.schedulestate.infoSchedule.data;
     const priorityList = [
       { name: "Manual-Life Safety", val: "1" },
       { name: "Automatic-Life Safety", val: "2" },
@@ -309,11 +313,50 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
       { name: "TAG_DOUBLE", val: "5" },
       { name: "TAG_ENUMERATED", val: "9" }
     ];
+
+    const selectOnChange = (e, target) => {
+      props.schedulestate.infoSchedule.data[target] = e;
+    };
+
+    const textAreaChangeHand = ({ target: { value } }) => {
+      props.schedulestate.infoSchedule.data["DESCRIPTION"] = value;
+    };
+
+    const conditionsCom = (type) => {
+      switch (Number(type)) {
+        case 0:
+          return (
+            <Input
+              disabled
+              style={{ width: 100 }}
+              value="null"
+              placeholder="Ban on input"
+            />
+          );
+        case 1:
+          return (
+            <Select style={{ width: 100 }} defaultValue="true">
+              <Select.Option value="true">True</Select.Option>
+              <Select.Option value="false">False</Select.Option>
+            </Select>
+          );
+        default:
+          return (
+            <InputNumber style={{ width: 100 }} min={0} defaultValue={0} />
+          );
+      }
+    }
+
     return (
       <Descriptions bordered>
         <Descriptions.Item label="Object Name">{OBJECT_NAME}</Descriptions.Item>
         <Descriptions.Item label="priority" span={2}>
-          <Select style={{ width: 200 }} defaultValue={PRIORITY_FOR_WRITING}>
+          <Select
+            style={{ width: 200 }}
+            value={PRIORITY_FOR_WRITING}
+            onChange={e => selectOnChange(e, "PRIORITY_FOR_WRITING")}
+            defaultValue={PRIORITY_FOR_WRITING}
+          >
             {priorityList.map((item, key) => (
               <Select.Option key={key} value={item.val}>
                 {`${item.val}.${item.name}`}
@@ -325,19 +368,35 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
           {PRESENT_VALUE}
         </Descriptions.Item>
         <Descriptions.Item label="The default value" span={2}>
-          <Select style={{ width: 200 }} defaultValue={SCHEDULE_DEFAULT}>
-            {defaultValList.map((item, key) => (
-              <Select.Option key={key} value={item.val}>
-                {item.name}
-              </Select.Option>
-            ))}
-          </Select>
+          <Input.Group compact>
+            <Select
+              style={{ width: 200 }}
+              onChange={val => {
+                setUseComp(val);
+                return selectOnChange(val, "SCHEDULE_DEFAULT");
+              }}
+              value={SCHEDULE_DEFAULT || null}
+              defaultValue={SCHEDULE_DEFAULT || null}
+            >
+              {defaultValList.map((item, key) => (
+                <Select.Option key={key} value={item.val}>
+                  {item.name}
+                </Select.Option>
+              ))}
+            </Select>
+            {conditionsCom(useComp)}
+          </Input.Group>
         </Descriptions.Item>
         <Descriptions.Item label="Status" span={3}>
           <Badge status="processing" text="Running" />
         </Descriptions.Item>
         <Descriptions.Item label="Describe">
-          <TextArea rows={4} defaultValue={DESCRIPTION} />
+          <TextArea
+            value={DESCRIPTION || ""}
+            placeholder="Controlled autosize"
+            autosize={{ minRows: 3, maxRows: 5 }}
+            onChange={textAreaChangeHand}
+          />
         </Descriptions.Item>
       </Descriptions>
     );
@@ -710,7 +769,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
               if (pram.value === 105) {
                 data.listOfResult.forEach(list => {
                   const attrName = list["object_type_text"];
-                  props.schedulestate.infoSchedule[attrName] = list.val;
+                  props.schedulestate.infoSchedule.data[attrName] = list.val;
                 });
               }
               readSchedule(iter.next());
@@ -802,6 +861,28 @@ const ScheduleView = inject(allStore => allStore.appstate)(
 
     // 应用到设备
     const applidToDeviceHandle = e => {
+      console.log(e);
+      const modal = Modal.info({
+        title: "Click the start button to apply to the device",
+        okText: "Start",
+        content: (
+          <Progress
+            strokeColor={{
+              from: "#108ee9",
+              to: "#87d068"
+            }}
+            percent={0}
+            status="active"
+          />
+        ),
+        maskClosable: true,
+        okButtonProps: {
+          onClick: () => {
+            recursiveWrite(iter);
+          }
+        }
+      });
+      let now = 0;
       const originalKey = e.props.deviceId.split(":");
       const scheduleData = Array.from([1, 2, 3, 4, 5, 6, 7], x => [{}]);
       event.forEach(item => {
@@ -810,18 +891,33 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         }
         const week = item.start.getDay() === 0 ? 6 : item.start.getDay() - 1;
         if (scheduleData[week] && Object.keys(scheduleData[week][0]).length) {
-          scheduleData[week].push({
-            ...item
-          });
+          scheduleData[week].push({ ...item });
           return;
         }
-        scheduleData[week] = [
-          {
-            ...item
-          }
-        ];
+        scheduleData[week] = [{ ...item }];
       });
-      const datas = [scheduleData, props.schedulestate.infoSchedule];
+      const datas = [
+        { propertyid: 123, data: scheduleData },
+        {
+          propertyid: 88,
+          data: props.schedulestate.infoSchedule.data["PRIORITY_FOR_WRITING"]
+        },
+        {
+          propertyid: 77,
+          data: `schedule${originalKey[2]}`
+        },
+        {
+          propertyid: 28,
+          data: props.schedulestate.infoSchedule.data["DESCRIPTION"]
+        },
+        {
+          propertyid: 174,
+          data: {
+            type: "",
+            val: 3
+          }
+        }
+      ];
       const iter = datas[Symbol.iterator]();
       const recursiveWrite = function(iter) {
         const nextVal = iter.next();
@@ -832,19 +928,39 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           deviceid: originalKey[0],
           objecttype: originalKey[1],
           objectnum: originalKey[2],
-          propertyid: 123,
+          propertyid: nextVal["value"].propertyid,
           scheduledata: nextVal["value"]
         })
           .then(res => {
+            now += 1;
+            if (now === datas.length) {
+              setTimeout(() => {
+                modal.destroy();
+              }, 1000);
+            }
             recursiveWrite(iter);
+            modal.update({
+              content: (
+                <Progress
+                  strokeColor={{
+                    from: "#108ee9",
+                    to: "#87d068"
+                  }}
+                  percent={(now / datas.length) * 100}
+                  status="active"
+                />
+              ),
+              okButtonProps: {
+                loading: now < datas.length
+              }
+            });
             console.log(res);
           })
           .catch(err => {
             console.log(err);
-            return
+            return;
           });
       };
-      recursiveWrite(iter);
     };
 
     // tree右键点击事件

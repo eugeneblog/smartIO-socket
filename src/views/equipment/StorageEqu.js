@@ -47,9 +47,6 @@ const { Option } = Select;
 const { TreeNode, DirectoryTree } = Tree;
 const EditableContext = React.createContext();
 
-/**
- * @method{CollectionCreateForm} - Modal form 组件
- */
 const CollectionCreateForm = Form.create({ name: "form_in_modal" })(
   // eslint-disable-next-line
   class extends React.Component {
