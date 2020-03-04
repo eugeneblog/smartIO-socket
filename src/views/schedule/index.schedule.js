@@ -13,14 +13,14 @@ import {
   Descriptions,
   TimePicker,
   message,
-  Calendar,
   DatePicker,
   Select,
   Badge,
   Input,
   Progress,
   Modal,
-  InputNumber
+  InputNumber,
+  Radio
 } from "antd";
 import { Prompt } from "react-router-dom";
 import {
@@ -36,7 +36,8 @@ import {
   animation,
   Separator
 } from "react-contexify";
-import moment from "moment";
+import Moment from "moment";
+import { extendMoment } from "moment-range";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -45,6 +46,7 @@ import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import listPlugin from "@fullcalendar/list";
 import "./calendar.scss";
 
+const moment = extendMoment(Moment);
 const { TreeNode, DirectoryTree } = Tree;
 const { RangePicker } = DatePicker;
 const { TabPane } = Tabs;
@@ -59,11 +61,15 @@ const MyAwesomeMenu = props => (
   </Menu>
 );
 
-const TreeRightMenu = props => (
-  <Menu id="scheduleTreeMenu">
-    <Item onClick={props.applidToDevice}>Appled to device</Item>
-  </Menu>
-);
+const TreeRightMenu = props => {
+  return (
+    <Menu id="scheduleTreeMenu">
+      <Item onClick={props.applidToDevice} disabled={props.isDisabled}>
+        Appled to device
+      </Item>
+    </Menu>
+  );
+};
 
 // Tree 组件， 左侧视图
 const RenderTreeNode = inject(allStore => allStore.appstate)(
@@ -190,95 +196,81 @@ const ScheduleAttribute = props => {
 };
 
 // 有效周期
-const EffectPeriod = props => {
-  const [startTime, setStartTime] = useState(moment("00:00:00", "HH:mm:ss"));
-  const [endTime, setEndTime] = useState(moment("11:59:59", "HH:mm:ss"));
+const EffectPeriod = inject(allStore => allStore.appstate)(
+  observer(props => {
+    const [startTime, setStartTime] = useState(
+      moment(new Date(Date.now()), "HH:mm:ss")
+    );
+    const [endTime, setEndTime] = useState(
+      moment(new Date(2012, 4, 23), "HH:mm:ss")
+    );
+    const [radioVal, setRadioVal] = useState(1);
+    const [disabled, setDisabled] = useState(true);
 
-  const onPanelChange = (value, mode) => {
-    console.log(value, mode);
-  };
+    // 更新props有效周期数据
+    const setPropsEffectPeriod = () => {
+      const startYear = startTime.year();
+      const startMonth = startTime.month();
+      const startDay = startTime.day();
+      const endYear = endTime.year();
+      const endMonth = endTime.month();
+      const endDay = endTime.day();
 
-  // 日期改变事件
-  const onChangeDateHandle = date => {
-    setStartTime(date[0]);
-    setEndTime(date[1]);
-  };
+      props.schedulestate.effectPeriod = [
+        `${startYear}-${startMonth}-${startDay}`,
+        `${endYear}-${endMonth}-${endDay}`
+      ];
+    };
+    // 创建时长 (有效期)
+    const radioChange = e => {
+      const val = e.target.value;
+      if (val === 1) {
+        props.schedulestate.effectPeriod = ["2155-255-255", "2155-255-255"];
+      } else {
+        setPropsEffectPeriod();
+      }
+      // 自定义
+      setRadioVal(val);
+      setDisabled(val === 1 ? true : false);
+    };
 
-  const getMonthData = value => {
-    if (value.month() === 8) {
-      return 1394;
-    }
-  };
+    // 日期改变事件
+    const onChangeDateHandle = date => {
+      setPropsEffectPeriod();
+      setStartTime(date[0]);
+      setEndTime(date[1]);
+    };
 
-  // 自定义月渲染
-  const monthCellRender = value => {
-    const num = getMonthData(value);
-    return num ? (
-      <div className="notes-month">
-        <section>{num}</section>
-        <span>Backlog number</span>
-      </div>
-    ) : null;
-  };
-
-  // 自定义头渲染
-  const headerRender = ({ value, type, onChange, onTypeChange }) => {
-    const year = value.year();
-    const options = [];
-    for (let i = year - 10; i < year + 10; i += 1) {
-      options.push(
-        <Select.Option key={i} value={i} className="year-item">
-          {i}
-        </Select.Option>
-      );
-    }
     return (
-      <div style={{ padding: 10 }}>
-        <Row type="flex" justify="space-between">
-          <Col>
-            <RangePicker
-              onChange={onChangeDateHandle}
-              defaultValue={[startTime, endTime]}
-              showTime={{
-                hideDisabledOptions: true,
-                defaultValue: [startTime, endTime]
-              }}
-              format="YYYY-MM-DD HH:mm:ss"
-            />
-          </Col>
-          <Col>
-            <Select
-              size="small"
-              dropdownMatchSelectWidth={false}
-              className="my-year-select"
-              onChange={newYear => {
-                const now = value.clone().year(newYear);
-                onChange(now);
-              }}
-              value={String(year)}
-            >
-              {options}
-            </Select>
-          </Col>
-        </Row>
+      <div>
+        <Radio.Group onChange={radioChange} value={radioVal}>
+          <Radio value={1}>Infinity</Radio>
+          <Radio value={2}>The custom</Radio>
+        </Radio.Group>
+        <RangePicker
+          disabled={disabled}
+          onChange={onChangeDateHandle}
+          defaultValue={[startTime, endTime]}
+          showTime={{
+            hideDisabledOptions: true,
+            defaultValue: [startTime, endTime]
+          }}
+          ranges={{
+            Today: [moment(), moment()],
+            "This Month": [moment().startOf("month"), moment().endOf("month")],
+            "This Year": [moment().startOf("year"), moment().endOf("year")]
+          }}
+          format="YYYY-MM-DD HH:mm:ss"
+        />
       </div>
     );
-  };
-
-  return (
-    <Calendar
-      mode={"year"}
-      headerRender={headerRender}
-      onPanelChange={onPanelChange}
-      monthCellRender={monthCellRender}
-    />
-  );
-};
+  })
+);
 
 // 时间表基础信息
 const ScheduleBase = inject(allStore => allStore.appstate)(
   observer(props => {
-    const [useComp, setUseComp] = useState(null)
+    const [useComp, setUseComp] = useState(null);
     const {
       OBJECT_NAME,
       PRIORITY_FOR_WRITING,
@@ -322,30 +314,42 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
       props.schedulestate.infoSchedule.data["DESCRIPTION"] = value;
     };
 
-    const conditionsCom = (type) => {
+    const conditionsCom = (type, val) => {
       switch (Number(type)) {
-        case 0:
+        case 0: // 只能是null
           return (
             <Input
               disabled
               style={{ width: 100 }}
+              onChange={e => selectOnChange(e, "SCHEDULE_DEFAULT")}
               value="null"
               placeholder="Ban on input"
             />
           );
         case 1:
           return (
-            <Select style={{ width: 100 }} defaultValue="true">
-              <Select.Option value="true">True</Select.Option>
-              <Select.Option value="false">False</Select.Option>
+            <Select
+              style={{ width: 100 }}
+              onChange={e => selectOnChange(e, "SCHEDULE_DEFAULT")}
+              value={val ? 1 : 0}
+              defaultValue={1}
+            >
+              <Select.Option value={1}>True</Select.Option>
+              <Select.Option value={0}>False</Select.Option>
             </Select>
           );
         default:
           return (
-            <InputNumber style={{ width: 100 }} min={0} defaultValue={0} />
+            <InputNumber
+              onChange={e => selectOnChange(e, "SCHEDULE_DEFAULT")}
+              style={{ width: 100 }}
+              value={val}
+              min={0}
+              defaultValue={0}
+            />
           );
       }
-    }
+    };
 
     return (
       <Descriptions bordered>
@@ -373,10 +377,10 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
               style={{ width: 200 }}
               onChange={val => {
                 setUseComp(val);
-                return selectOnChange(val, "SCHEDULE_DEFAULT");
+                props.schedulestate.defaultType = val;
               }}
-              value={SCHEDULE_DEFAULT || null}
-              defaultValue={SCHEDULE_DEFAULT || null}
+              value={props.schedulestate.defaultType}
+              defaultValue={null}
             >
               {defaultValList.map((item, key) => (
                 <Select.Option key={key} value={item.val}>
@@ -384,7 +388,7 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
                 </Select.Option>
               ))}
             </Select>
-            {conditionsCom(useComp)}
+            {conditionsCom(useComp, SCHEDULE_DEFAULT)}
           </Input.Group>
         </Descriptions.Item>
         <Descriptions.Item label="Status" span={3}>
@@ -397,6 +401,53 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
             autosize={{ minRows: 3, maxRows: 5 }}
             onChange={textAreaChangeHand}
           />
+        </Descriptions.Item>
+      </Descriptions>
+    );
+  })
+);
+
+// 例外时间表内容
+const ExecptionTableData = props => {
+  const { tableData } = props;
+  console.log(tableData);
+  return <div>table data</div>;
+};
+
+// 例外时间表
+const Execption = inject(allStore => allStore.appstate)(
+  observer(props => {
+    const {
+      execptionTab,
+      selectExecption,
+      getSeleExecpTabDate
+    } = props.schedulestate;
+
+    const tabSelOnChange = target => {
+      // 读取该表下的所有内容
+      props.schedulestate.selectExecption = target;
+    };
+
+    return (
+      <Descriptions bordered>
+        <Descriptions.Item label="Select Table">
+          <Select
+            onChange={tabSelOnChange}
+            style={{ width: 200 }}
+            defaultValue={selectExecption}
+          >
+            {execptionTab.map((item, key) => (
+              <Select.Option value={item} key={key}>
+                {item}
+              </Select.Option>
+            ))}
+          </Select>
+        </Descriptions.Item>
+        <Descriptions.Item label="Select Table">
+          <Select style={{ width: 200 }}></Select>
+        </Descriptions.Item>
+        <Descriptions.Item label="Table Date">
+          <ExecptionTableData tableData={getSeleExecpTabDate} />
         </Descriptions.Item>
       </Descriptions>
     );
@@ -511,6 +562,17 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
         >
           <ScheduleBase />
         </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <Icon type="container" />
+              Execption
+            </span>
+          }
+          key="4"
+        >
+          <Execption />
+        </TabPane>
       </Tabs>
     );
   })
@@ -526,7 +588,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const [selectedEvent, setSelEvent] = useState([]);
     const [cache, setCache] = useState({});
     const [isShowAttr, setShowAttr] = useState(false);
-
+    const [selectDevice, setSelDevice] = useState(undefined);
     // 获取指定周的时间
     const getWeekTime = day => {
       if (day === 7) {
@@ -746,10 +808,11 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         // 检查设备是否在线
 
         // 读取该设备下的时间表
-        const readSchedule = (pram, errIndex) => {
+        const readSchedule = (pram, errIndex = 0) => {
           if (pram.done) {
             setLoading(false);
-            setPanesData([{ title: key[0], key: "1" }]);
+            setPanesData([{ title: deviceKey, key: "1" }]);
+            setSelDevice(deviceKey);
             return;
           }
           searchSchedule({
@@ -766,16 +829,31 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                 let event = weekTime(data);
                 setEvent(event);
               }
+              // 基础信息
               if (pram.value === 105) {
                 data.listOfResult.forEach(list => {
                   const attrName = list["object_type_text"];
+                  // 有效周期
+                  if (list.propertyId === 32) {
+                    const effectDate = list.val.replace(/\(.*?\)/g, "");
+                    props.schedulestate.effectPeriod.push(effectDate);
+                  }
                   props.schedulestate.infoSchedule.data[attrName] = list.val;
                 });
+              }
+              // 例外时间表
+              if (pram.value === 38) {
+                props.schedulestate.execption = data.listOfResult;
+                props.schedulestate.selectExecption = Object.keys(
+                  data.listOfResult
+                )[0];
               }
               readSchedule(iter.next());
             })
             .catch(err => {
+              console.log(errIndex);
               if (errIndex > 2) {
+                message.warn("Please checke you device");
                 return;
               }
               readSchedule(values, (errIndex += 1));
@@ -862,6 +940,22 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     // 应用到设备
     const applidToDeviceHandle = e => {
       console.log(e);
+      if (e.props.deviceId !== selectDevice) {
+        message.warn(
+          "The device applied is not consistent with the one selected"
+        );
+        return;
+      }
+
+      const startDate = props.schedulestate.effectPeriod[0].split("-");
+      const endDate = props.schedulestate.effectPeriod[1].split("-");
+      const startYear = startDate[0];
+      const startMonth = startDate[1];
+      const startDay = startDate[2];
+      const endYear = endDate[0];
+      const endMonth = endDate[1];
+      const endDay = endDate[2];
+
       const modal = Modal.info({
         title: "Click the start button to apply to the device",
         okText: "Start",
@@ -896,25 +990,43 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         }
         scheduleData[week] = [{ ...item }];
       });
+
       const datas = [
+        // 周期时间
         { propertyid: 123, data: scheduleData },
         {
+          // 优先级
           propertyid: 88,
           data: props.schedulestate.infoSchedule.data["PRIORITY_FOR_WRITING"]
         },
         {
+          // 对象名
           propertyid: 77,
           data: `schedule${originalKey[2]}`
         },
         {
+          // 描述
           propertyid: 28,
           data: props.schedulestate.infoSchedule.data["DESCRIPTION"]
         },
         {
+          // 默认值
           propertyid: 174,
           data: {
-            type: "",
-            val: 3
+            type: Number(props.schedulestate.defaultType),
+            val: props.schedulestate.infoSchedule.data["SCHEDULE_DEFAULT"]
+          }
+        },
+        {
+          // 有效周期
+          propertyid: 32,
+          data: {
+            startYear,
+            startMonth,
+            startDay,
+            endYear,
+            endMonth,
+            endDay
           }
         }
       ];
@@ -946,7 +1058,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                     from: "#108ee9",
                     to: "#87d068"
                   }}
-                  percent={(now / datas.length) * 100}
+                  percent={Math.ceil((now / datas.length) * 100)}
                   status="active"
                 />
               ),
@@ -1048,7 +1160,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           copyEventHandle={copyEventHandle}
           pasteEventHandle={pasteEventHandle}
         />
-        <TreeRightMenu applidToDevice={applidToDeviceHandle} />
+        <TreeRightMenu
+          applidToDevice={applidToDeviceHandle}
+          isDisabled={!selectDevice}
+        />
       </div>
     );
   })

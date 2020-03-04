@@ -9,6 +9,7 @@ const NavMenu = inject(allStore => allStore.appstate)(
   observer(props => {
     const [theme] = useState("dark");
     const [current, setCurrent] = useState();
+    console.log(current)
     let defaultOpenKeys = [];
     const handleClick = ({item, key, keyPath, domEvent}) => {
       // 路由阻止离开时不执行
