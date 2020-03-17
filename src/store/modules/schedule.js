@@ -29,14 +29,38 @@ class ScheduleState extends BaseState {
   @observable defaultType = "0";
 
   // 例外时间表
-  @observable execption = {};
+  @observable execption = {
+    table1: {
+      segment1: [{tag: 10, val: "2020-1-1(255)"}, {tag: 10, val: "2020-3-2(0)"}],
+      segment2: [],
+      segment3: [{tag: 2, val: 5}]
+    }
+  };
+  
+  // 新增例外时间表
+  @action createExecption() {
+    const newTable = {
+      segment1: [{tag: 10, val: "2020-1-1(255)"}, {tag: 10, val: "2020-3-2(0)"}],
+      segment2: [],
+      segment3: [{tag: 2, val: 5}]
+    };
+    const count = Object.keys(this.execption).length;
+    this.execption[`table${count + 1}`] = newTable;
+    this.selectExecption = `table${count + 1}`;
+  }
 
   // 当前选择的例外时间表
-  @observable selectExecption = '';
+  @observable selectExecption = 'table1';
 
   // 计算当前选择的表数据
   @computed get getSeleExecpTabDate() {
     return this.execption[this.selectExecption];
+  }
+  
+  // 更改例外时间表时间
+  @action setExecptioDate(date) {
+    this.execption[this.selectExecption].segment1 = date;
+    console.log(this.execption[this.selectExecption].segment1)
   }
 
   // 计算例外时间表所有表名

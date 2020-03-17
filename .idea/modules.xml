@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/smartIO-socket.iml" filepath="$PROJECT_DIR$/.idea/smartIO-socket.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../smartio-server/.idea/smartio-server.iml" filepath="$PROJECT_DIR$/../smartio-server/.idea/smartio-server.iml" />
     </modules>
   </component>
 </project>

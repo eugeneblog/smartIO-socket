@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, { useState, useEffect } from "react";
-import { observer, inject } from "mobx-react";
+import React, {useState, useEffect} from "react";
+import {observer, inject} from "mobx-react";
 import {
   PageHeader,
   Row,
@@ -20,9 +20,10 @@ import {
   Progress,
   Modal,
   InputNumber,
-  Radio
+  Radio,
+  Button
 } from "antd";
-import { Prompt } from "react-router-dom";
+import {Prompt} from "react-router-dom";
 import {
   readDataBaseField,
   searchSchedule,
@@ -37,25 +38,28 @@ import {
   Separator
 } from "react-contexify";
 import Moment from "moment";
-import { extendMoment } from "moment-range";
+import {extendMoment} from "moment-range";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import listPlugin from "@fullcalendar/list";
+import './index.scss'
 import "./calendar.scss";
 
+const InputGroup = Input.Group;
+
 const moment = extendMoment(Moment);
-const { TreeNode, DirectoryTree } = Tree;
-const { RangePicker } = DatePicker;
-const { TabPane } = Tabs;
-const { TextArea } = Input;
+const {TreeNode, DirectoryTree} = Tree;
+const {RangePicker} = DatePicker;
+const {TabPane} = Tabs;
+const {TextArea} = Input;
 
 const MyAwesomeMenu = props => (
   <Menu id="scheduleMenu" theme={theme.dark} animation={animation.zoom}>
     <Item onClick={props.deleteEventHandle}>Delete</Item>
-    <Separator />
+    <Separator/>
     <Item onClick={props.copyEventHandle}>Copy</Item>
     <Item onClick={props.pasteEventHandle}>Paste</Item>
   </Menu>
@@ -81,7 +85,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
         })
       )
     );
-
+    
     useEffect(() => {
       const allPromise = treeData.map(item => {
         return readDataBaseField({
@@ -93,13 +97,13 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
         // 写入treeData
         setTreeData(
           treeData.map((item, index) => {
-            return { ...item, deviceName: res[index]["data"].value };
+            return {...item, deviceName: res[index]["data"].value};
           })
         );
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
+    
     const RecursiveTree = (treeData, prefix) => {
       if (treeData.length) {
         return treeData.map(item => {
@@ -110,8 +114,8 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
             <span>
               {item.text
                 ? `${item.text} ${
-                    item.children.length ? `(${item.children.length})` : ""
-                  }`
+                  item.children.length ? `(${item.children.length})` : ""
+                }`
                 : `${item.deviceName}`}
             </span>
           );
@@ -127,7 +131,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
                     twoToneColor="#ffb818"
                   />
                 ) : (
-                  <Icon type="file" theme="twoTone" />
+                  <Icon type="file" theme="twoTone"/>
                 )
               }
               title={title}
@@ -142,10 +146,10 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       // prefix = null
       return null;
     };
-
+    
     return (
       <DirectoryTree
-        switcherIcon={<Icon type="down" />}
+        switcherIcon={<Icon type="down"/>}
         multiple
         onSelect={(selectedKeys, event) => props.onSelect(selectedKeys, event)}
         selectedKeys={props.selectedKeys}
@@ -159,8 +163,8 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
 
 // 属性视图
 const ScheduleAttribute = props => {
-  const { visible, attrData } = props;
-  const { start, end } = attrData;
+  const {visible, attrData} = props;
+  const {start, end} = attrData;
   return visible ? (
     <Descriptions
       title={`${props.title} ${attrData.id ? attrData.id : ""}`}
@@ -206,7 +210,7 @@ const EffectPeriod = inject(allStore => allStore.appstate)(
     );
     const [radioVal, setRadioVal] = useState(1);
     const [disabled, setDisabled] = useState(true);
-
+    
     // 更新props有效周期数据
     const setPropsEffectPeriod = () => {
       const startYear = startTime.year();
@@ -215,7 +219,7 @@ const EffectPeriod = inject(allStore => allStore.appstate)(
       const endYear = endTime.year();
       const endMonth = endTime.month();
       const endDay = endTime.day();
-
+      
       props.schedulestate.effectPeriod = [
         `${startYear}-${startMonth}-${startDay}`,
         `${endYear}-${endMonth}-${endDay}`
@@ -233,14 +237,14 @@ const EffectPeriod = inject(allStore => allStore.appstate)(
       setRadioVal(val);
       setDisabled(val === 1 ? true : false);
     };
-
+    
     // 日期改变事件
     const onChangeDateHandle = date => {
       setPropsEffectPeriod();
       setStartTime(date[0]);
       setEndTime(date[1]);
     };
-
+    
     return (
       <div>
         <Radio.Group onChange={radioChange} value={radioVal}>
@@ -279,48 +283,48 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
       DESCRIPTION
     } = props.schedulestate.infoSchedule.data;
     const priorityList = [
-      { name: "Manual-Life Safety", val: "1" },
-      { name: "Automatic-Life Safety", val: "2" },
-      { name: "Available", val: "3" },
-      { name: "Available", val: "4" },
-      { name: "Critical Equipment Control", val: "5" },
-      { name: "Minimum On/Off", val: "6" },
-      { name: "Available", val: "7" },
-      { name: "Manual Operator", val: "8" },
-      { name: "Available", val: "9" },
-      { name: "Available", val: "10" },
-      { name: "Available", val: "11" },
-      { name: "Available", val: "12" },
-      { name: "Available", val: "13" },
-      { name: "Available", val: "14" },
-      { name: "Available", val: "15" },
-      { name: "Available", val: "16" }
+      {name: "Manual-Life Safety", val: "1"},
+      {name: "Automatic-Life Safety", val: "2"},
+      {name: "Available", val: "3"},
+      {name: "Available", val: "4"},
+      {name: "Critical Equipment Control", val: "5"},
+      {name: "Minimum On/Off", val: "6"},
+      {name: "Available", val: "7"},
+      {name: "Manual Operator", val: "8"},
+      {name: "Available", val: "9"},
+      {name: "Available", val: "10"},
+      {name: "Available", val: "11"},
+      {name: "Available", val: "12"},
+      {name: "Available", val: "13"},
+      {name: "Available", val: "14"},
+      {name: "Available", val: "15"},
+      {name: "Available", val: "16"}
     ];
     const defaultValList = [
-      { name: "TAG_NULL", val: "0" },
-      { name: "TAG_BOOLEAN", val: "1" },
-      { name: "TAG_UNSIGNED_INT", val: "2" },
-      { name: "TAG_SIGNED_INT", val: "3" },
-      { name: "TAG_REAL", val: "4" },
-      { name: "TAG_DOUBLE", val: "5" },
-      { name: "TAG_ENUMERATED", val: "9" }
+      {name: "TAG_NULL", val: "0"},
+      {name: "TAG_BOOLEAN", val: "1"},
+      {name: "TAG_UNSIGNED_INT", val: "2"},
+      {name: "TAG_SIGNED_INT", val: "3"},
+      {name: "TAG_REAL", val: "4"},
+      {name: "TAG_DOUBLE", val: "5"},
+      {name: "TAG_ENUMERATED", val: "9"}
     ];
-
+    
     const selectOnChange = (e, target) => {
       props.schedulestate.infoSchedule.data[target] = e;
     };
-
-    const textAreaChangeHand = ({ target: { value } }) => {
+    
+    const textAreaChangeHand = ({target: {value}}) => {
       props.schedulestate.infoSchedule.data["DESCRIPTION"] = value;
     };
-
+    
     const conditionsCom = (type, val) => {
       switch (Number(type)) {
         case 0: // 只能是null
           return (
             <Input
               disabled
-              style={{ width: 100 }}
+              style={{width: 100}}
               onChange={e => selectOnChange(e, "SCHEDULE_DEFAULT")}
               value="null"
               placeholder="Ban on input"
@@ -329,7 +333,7 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
         case 1:
           return (
             <Select
-              style={{ width: 100 }}
+              style={{width: 100}}
               onChange={e => selectOnChange(e, "SCHEDULE_DEFAULT")}
               value={val ? 1 : 0}
               defaultValue={1}
@@ -342,7 +346,7 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
           return (
             <InputNumber
               onChange={e => selectOnChange(e, "SCHEDULE_DEFAULT")}
-              style={{ width: 100 }}
+              style={{width: 100}}
               value={val}
               min={0}
               defaultValue={0}
@@ -350,13 +354,13 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
           );
       }
     };
-
+    
     return (
       <Descriptions bordered>
         <Descriptions.Item label="Object Name">{OBJECT_NAME}</Descriptions.Item>
         <Descriptions.Item label="priority" span={2}>
           <Select
-            style={{ width: 200 }}
+            style={{width: 200}}
             value={PRIORITY_FOR_WRITING}
             onChange={e => selectOnChange(e, "PRIORITY_FOR_WRITING")}
             defaultValue={PRIORITY_FOR_WRITING}
@@ -374,7 +378,7 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
         <Descriptions.Item label="The default value" span={2}>
           <Input.Group compact>
             <Select
-              style={{ width: 200 }}
+              style={{width: 200}}
               onChange={val => {
                 setUseComp(val);
                 props.schedulestate.defaultType = val;
@@ -392,13 +396,13 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
           </Input.Group>
         </Descriptions.Item>
         <Descriptions.Item label="Status" span={3}>
-          <Badge status="processing" text="Running" />
+          <Badge status="processing" text="Running"/>
         </Descriptions.Item>
         <Descriptions.Item label="Describe">
           <TextArea
             value={DESCRIPTION || ""}
             placeholder="Controlled autosize"
-            autosize={{ minRows: 3, maxRows: 5 }}
+            autoSize={{minRows: 3, maxRows: 5}}
             onChange={textAreaChangeHand}
           />
         </Descriptions.Item>
@@ -407,47 +411,247 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
   })
 );
 
-// 例外时间表内容
-const ExecptionTableData = props => {
-  const { tableData } = props;
-  console.log(tableData);
-  return <div>table data</div>;
-};
 
 // 例外时间表
 const Execption = inject(allStore => allStore.appstate)(
   observer(props => {
+    const [event, setEvent] = useState([{
+      title: 'event1',
+      start: '2020-03-09T08:00:00',
+      end: '2020-03-09T12:30:00'
+    }]);
+    const [dataRange, setDateRange] = useState([]);
+    const [repetitionType, setRepetitionType] = useState("costom");
     const {
       execptionTab,
       selectExecption,
       getSeleExecpTabDate
     } = props.schedulestate;
-
+    
+    useEffect(() => {
+      timeToView(getSeleExecpTabDate.segment1)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    
+    const timeType = (dates) => {
+      if (!dates.length) {
+        return [
+          {
+            type: 'disposable',
+            text: 'disposable'
+          }, {
+            type: 'everyday',
+            text: 'everyday'
+          }, {
+            type: 'weekly',
+            text: 'weekly'
+          }, {
+            type: 'monthly',
+            text: 'monthly'
+          }, {
+            type: 'monthlyOf',
+            text: 'monthlyOf'
+          }, {
+            type: 'custom',
+            text: 'custom'
+          }]
+      }
+      const weekStr = ['Sunday', 'Monday', 'Tuesday','Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return [
+        {
+          type: 'disposable',
+          text: 'disposable'
+        }, {
+          type: 'everyday',
+          text: 'everyday'
+        }, {
+          type: 'weekly',
+          text: 'weekly'
+        }, {
+          type: 'monthly',
+          text: 'monthly'
+        }, {
+          type: 'monthlyOf',
+          text: `The ${Math.ceil(dates[0].date() / 7)} (${weekStr[dates[0].weekday()]})of each month`
+        }, {
+          type: 'custom',
+          text: 'custom'
+        }];
+    };
+    
+    // 根据时间类型生成不同的时间格式，用于返回后端
+    const timeTypeTranstion = function (type, time) {
+      const [start] = time;
+      switch (type) {
+        case "disposable":
+          return time.map(date => {
+            return {
+              val: `${date.year()}-${date.month()}-${date.date()}(${date.weekday()})`
+            }
+          });
+        case "everyday":
+          return [{val: '2155-255-255(255)'}];
+        case "weekly":
+          return [{val: `0-255-255(${start.weekday()})`}];
+        case "monthly":
+          return [{val: `0-255-${start.date()}(${start.weekday()})`}];
+        case "monthlyOf":
+          const howWeek = Math.floor(start.date() / 7);
+          return [{val: `0-${start.month() + 1}-${howWeek}(${start.weekday()})`}];
+        default:
+          return time;
+      }
+    };
+    
+    // 时间转换为类型
+    const timeToType = function (time) {
+      // 每一天
+      if (/^(2155)-(255)-(255)(\(255\))/.test(time)) {
+        return 'everyday'
+      }
+      // weekly 每一周
+      if (/^(0)-(255)-(255)\([0-6]\)/.test(time)) {
+        return 'weekly'
+      }
+      // monthly 每一月
+      if (/^(0)-(255)-([0-9])(\([0-6]\))/.test(time)) {
+        return 'monthly'
+      }
+      // monthlyOf 一个月之间， 例如(n月n个星期n天)
+      if (/^(0)-(\d{1,2})-(\d)(\([0-5]\))/.test(time)) {
+        return 'monthlyOf'
+      } else {
+        return null;
+      }
+    };
+    
+    // 根据时间格式改变视图
+    const timeToView = function (segment) {
+      // 区分有时间范围的时间格式和其他格式
+      if (segment.length < 2) {
+        const date = segment[0].val;
+        setDateRange([moment(Date.now()), moment(Date.now())]);
+        setRepetitionType(timeToType(date))
+      } else {
+        const [start, end] = segment;
+        setRepetitionType('disposable');
+        setDateRange([moment(start.val, 'YYYY-M-D'), moment(end.val, 'YYYY-M-D')]);
+      }
+    };
+    
+    // 时间范围选择
+    const onChangeDateHandle = (date) => {
+      setDateRange(date);
+      // setExecptioDate();
+      console.log(timeTypeTranstion(repetitionType, date))
+    };
+    
+    // 重复形式选择
+    const repetitionHandle = type => {
+      const transtionDate = timeTypeTranstion(type, dataRange);
+      setRepetitionType(type);
+      console.log(transtionDate);
+    };
+    
+    // 创建新的例外时间表
+    const createTab = () => {
+      props.schedulestate.createExecption();
+      message.success('New success')
+    };
+    
+    // 读取优先级
+    const readpriority = (segment) => {
+      const priorityData = [1, 2, 3, 4, 5];
+      const selectPriorityChange = val => {
+        // props
+        getSeleExecpTabDate.segment3 = [{tag: 10, val}];
+      };
+      return <Select style={{width: 200}} value={segment[0].val} onChange={selectPriorityChange}>
+        {
+          priorityData.map((item) => (<Select.Option key={item} value={item}>{item}</Select.Option>))
+        }
+      </Select>;
+    };
+    
     const tabSelOnChange = target => {
       // 读取该表下的所有内容
       props.schedulestate.selectExecption = target;
     };
-
+    
     return (
       <Descriptions bordered>
-        <Descriptions.Item label="Select Table">
-          <Select
-            onChange={tabSelOnChange}
-            style={{ width: 200 }}
-            defaultValue={selectExecption}
-          >
-            {execptionTab.map((item, key) => (
-              <Select.Option value={item} key={key}>
-                {item}
-              </Select.Option>
-            ))}
+        <Descriptions.Item label="Select Table" span={3}>
+          <InputGroup compact>
+            <Select
+              onChange={tabSelOnChange}
+              style={{width: 200}}
+              defaultValue={selectExecption}
+              value={selectExecption}
+            >
+              {execptionTab.slice(0).map((item, key) => (
+                <Select.Option value={item} key={key}>
+                  {item}
+                </Select.Option>
+              ))}
+            </Select>
+            <Button onClick={createTab}>New Table</Button>
+          </InputGroup>
+        </Descriptions.Item>
+        <Descriptions.Item label="Period" span={3}>
+          <RangePicker
+            onChange={onChangeDateHandle}
+            defaultValue={dataRange}
+            value={dataRange}
+            ranges={{
+              Today: [moment(), moment()],
+              "This Month": [
+                moment().startOf("month"),
+                moment().endOf("month")
+              ],
+              "This Year": [moment().startOf("year"), moment().endOf("year")]
+            }}
+            format="YYYY-MM-DD"
+          />
+        </Descriptions.Item>
+        <Descriptions.Item label="Repetition" span={3}>
+          <Select onChange={repetitionHandle} style={{width: 250}} defaultValue="disposable" value={repetitionType}>
+            {
+              timeType(dataRange)
+                .map(
+                  (item, key) =>
+                  <Select.Option key={key} value={item.type}>{item.text}</Select.Option>
+                )
+            }
           </Select>
         </Descriptions.Item>
-        <Descriptions.Item label="Select Table">
-          <Select style={{ width: 200 }}></Select>
+        <Descriptions.Item label="priority" span={3}>
+          {readpriority(getSeleExecpTabDate.segment3)}
         </Descriptions.Item>
-        <Descriptions.Item label="Table Date">
-          <ExecptionTableData tableData={getSeleExecpTabDate} />
+        <Descriptions.Item label="Config Info">
+          <FullCalendar
+            defaultView="timeGridDay"
+            events={event}
+            eventLimit="true"
+            nowIndicator="true"
+            plugins={[
+              timeGridPlugin
+            ]}
+            editable={true}
+            timeZone="local"
+            scrollTime="08:00:00"
+            businessHours={{
+              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+              startTime: "8:00", // a start time (10am in this example)
+              endTime: "22:00"
+            }}
+            header={{
+              left: " ",
+              center: " ",
+              right: " "
+            }}
+            themeSystem="bootstrap"
+            selectable={true}
+          />
         </Descriptions.Item>
       </Descriptions>
     );
@@ -469,10 +673,10 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
       };
     };
     return !props.panesData ? (
-      <div style={{ minHeight: "250px" }}>
+      <div style={{minHeight: "250px"}}>
         <Empty
           description="Please select a schedule"
-          style={{ paddingTop: "60px" }}
+          style={{paddingTop: "60px"}}
         />
       </div>
     ) : (
@@ -480,7 +684,7 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
         <TabPane
           tab={
             <span>
-              <Icon type="calendar" />
+              <Icon type="calendar"/>
               Weekly Schedule
             </span>
           }
@@ -543,35 +747,35 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
         <TabPane
           tab={
             <span>
-              <Icon type="carry-out" />
+              <Icon type="carry-out"/>
               Effect Period
             </span>
           }
           key="2"
         >
-          <EffectPeriod selectKey={props.selectKey} />
+          <EffectPeriod selectKey={props.selectKey}/>
         </TabPane>
         <TabPane
           tab={
             <span>
-              <Icon type="container" />
+              <Icon type="container"/>
               The basic information
             </span>
           }
           key="3"
         >
-          <ScheduleBase />
+          <ScheduleBase/>
         </TabPane>
         <TabPane
           tab={
             <span>
-              <Icon type="container" />
+              <Icon type="container"/>
               Execption
             </span>
           }
           key="4"
         >
-          <Execption />
+          <Execption/>
         </TabPane>
       </Tabs>
     );
@@ -600,7 +804,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       now.setDate(now.getDate() + (day - nowWeek));
       return now;
     };
-
+    
     // 日期格式化, 将 x:x:x 转换为 xx:xx:xx
     const timeFormat = time => {
       let pattern = /^(\d)+:(\d)+:(\d)+$/;
@@ -612,13 +816,13 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         return `${h}:${m}:${s}`;
       }
     };
-
+    
     // 时间点击
     const handleDateClick = arg => {
       return;
       // setVisible(true);
     };
-
+    
     // event ResizeStop
     const eventResizeHandle = info => {
       const eventData = info.event;
@@ -638,7 +842,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       setEvent(nowEvent);
       props.appstate.isBlocking = true;
     };
-
+    
     // event Drop
     const eventDropHandle = info => {
       const eventData = info.event;
@@ -655,7 +859,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       setEvent(nowEvent);
       props.appstate.isBlocking = true;
     };
-
+    
     // event ContextMenu
     const onContextMenuHandle = (e, info) => {
       const menuId = "scheduleMenu";
@@ -668,7 +872,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         }
       });
     };
-
+    
     // event DblClick
     const onDblClickHandle = (e, info) => {
       const primaryKey = info.event.extendedProps.primaryKey;
@@ -677,14 +881,14 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       setSelEvent({});
       setShowAttr(false);
     };
-
+    
     // event Click
     const eventOnClickHandle = (e, info) => {
-      const { extendedProps } = info.event;
+      const {extendedProps} = info.event;
       const primaryKey = extendedProps.primaryKey;
       addActiveEvent(primaryKey, event);
     };
-
+    
     // 时间选择
     const handleDateSelect = info => {
       const start = info.start;
@@ -703,7 +907,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       };
       addActiveEvent(primaryKey, [...event, newEvent]);
     };
-
+    
     // 处理周期时间
     const weekTime = data => {
       const weekData = data.listOfResult;
@@ -721,10 +925,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           }
           return accumulator;
         }, []);
-
+        
         // 如果没有设定时间则跳出这次循环
         if (!timeArr.length) {
-          event.push({ id: key });
+          event.push({id: key});
           continue;
         }
         let date = getWeekTime(Number(key));
@@ -734,7 +938,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           String(date.getDate()).length > 1
             ? date.getDate()
             : `0${date.getDate()}`;
-
+        
         timeArr.forEach((group, index) => {
           let startTime = timeFormat(group[0]);
           let startVal = group[1];
@@ -743,11 +947,11 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           let shour = startTime.split(":")[0];
           let smint = startTime.split(":")[1];
           let ssec = startTime.split(":")[2];
-
+          
           let ehour = endTime.split(":")[0];
           let emint = endTime.split(":")[1];
           let esec = endTime.split(":")[2];
-
+          
           let start = new Date(
             Number(year),
             Number(month),
@@ -766,7 +970,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           );
           // 用日期 + 事件index标示唯一的主键
           primaryKey = `${year}-${month}-${day}-${index}`;
-
+          
           event.push({
             primaryKey,
             id: key,
@@ -782,7 +986,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       }
       return event;
     };
-
+    
     // 点击schedule Tree 事件
     const onSelectHandle = (key, event) => {
       if (loading) {
@@ -806,12 +1010,12 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         let iter = propertyIdArr[Symbol.iterator]();
         let values = iter.next();
         // 检查设备是否在线
-
+        
         // 读取该设备下的时间表
         const readSchedule = (pram, errIndex = 0) => {
           if (pram.done) {
             setLoading(false);
-            setPanesData([{ title: deviceKey, key: "1" }]);
+            setPanesData([{title: deviceKey, key: "1"}]);
             setSelDevice(deviceKey);
             return;
           }
@@ -842,11 +1046,8 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                 });
               }
               // 例外时间表
-              if (pram.value === 38) {
+              if (pram.value === 38 && Object.keys(data.listOfResult).length) {
                 props.schedulestate.execption = data.listOfResult;
-                props.schedulestate.selectExecption = Object.keys(
-                  data.listOfResult
-                )[0];
               }
               readSchedule(iter.next());
             })
@@ -862,7 +1063,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         readSchedule(values, 0);
       }
     };
-
+    
     // 右侧选项改变事件
     const timeChangeHandle = (time, timeStr, point, allData) => {
       const newTime = time.toString();
@@ -880,25 +1081,25 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         })
       );
     };
-
+    
     // 右键删除
     const deleteEventHandle = e => {
-      const { info } = e.props;
-      const { extendedProps } = info.event;
+      const {info} = e.props;
+      const {extendedProps} = info.event;
       const primaryKey = extendedProps.primaryKey;
       setEvent(event.filter(list => list.primaryKey !== primaryKey));
       setSelEvent({});
       setShowAttr(false);
     };
-
+    
     // 拷贝
     const copyEventHandle = e => {
-      const { info } = e.props;
-      const { start, end, backgroundColor, title, allDay } = info.event;
-      const mirrorImg = { start, end, backgroundColor, title, allDay };
+      const {info} = e.props;
+      const {start, end, backgroundColor, title, allDay} = info.event;
+      const mirrorImg = {start, end, backgroundColor, title, allDay};
       setCache(mirrorImg);
     };
-
+    
     // 粘贴
     const pasteEventHandle = e => {
       // 判断cache是否有值
@@ -908,7 +1109,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       }
       return;
     };
-
+    
     // 添加选中样式
     const addActiveEvent = (primaryKey, events) => {
       // 删除所有event样式
@@ -936,7 +1137,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       });
       setEvent(newEvent);
     };
-
+    
     // 应用到设备
     const applidToDeviceHandle = e => {
       console.log(e);
@@ -946,7 +1147,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         );
         return;
       }
-
+      
       const startDate = props.schedulestate.effectPeriod[0].split("-");
       const endDate = props.schedulestate.effectPeriod[1].split("-");
       const startYear = startDate[0];
@@ -955,7 +1156,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       const endYear = endDate[0];
       const endMonth = endDate[1];
       const endDay = endDate[2];
-
+      
       const modal = Modal.info({
         title: "Click the start button to apply to the device",
         okText: "Start",
@@ -985,15 +1186,15 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         }
         const week = item.start.getDay() === 0 ? 6 : item.start.getDay() - 1;
         if (scheduleData[week] && Object.keys(scheduleData[week][0]).length) {
-          scheduleData[week].push({ ...item });
+          scheduleData[week].push({...item});
           return;
         }
-        scheduleData[week] = [{ ...item }];
+        scheduleData[week] = [{...item}];
       });
-
+      
       const datas = [
         // 周期时间
-        { propertyid: 123, data: scheduleData },
+        {propertyid: 123, data: scheduleData},
         {
           // 优先级
           propertyid: 88,
@@ -1028,10 +1229,15 @@ const ScheduleView = inject(allStore => allStore.appstate)(
             endMonth,
             endDay
           }
+        },
+        {
+          propertyid: 38,
+          data: props.schedulestate.execption
         }
       ];
+      
       const iter = datas[Symbol.iterator]();
-      const recursiveWrite = function(iter) {
+      const recursiveWrite = function (iter) {
         const nextVal = iter.next();
         if (nextVal.done) {
           return;
@@ -1074,11 +1280,11 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           });
       };
     };
-
+    
     // tree右键点击事件
     const treeRightClickHandle = e => {
       const menuId = "scheduleTreeMenu";
-      const { eventKey } = e.node.props;
+      const {eventKey} = e.node.props;
       e.event.preventDefault();
       // 获取被右击的节点, 只有父节点才能响应右键
       if (eventKey.split(":").length > 2) {
@@ -1092,11 +1298,11 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         });
       }
     };
-
+    
     return (
       <div
         className="equipment-divier"
-        style={{ borderBottom: "1px solid #ebedf0" }}
+        style={{borderBottom: "1px solid #ebedf0"}}
       >
         <Prompt
           message={location => {
@@ -1115,7 +1321,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         />
         <PageHeader
           title="Schedule"
-          style={{ borderBottom: "1px solid #ebedf0" }}
+          style={{borderBottom: "1px solid #ebedf0"}}
           subTitle="schedule Browser Manager"
         />
         <Row>
