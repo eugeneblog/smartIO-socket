@@ -1,7 +1,7 @@
-import { observable, computed, action } from "mobx";
-import { BaseState } from "../modules/appstore";
-import { BACNET_OBJECT_TYPE } from "../../utils/BAC_DECODE_TEXT";
-import { getPropertyIdText } from "../../utils/util";
+import {action, computed, observable} from "mobx";
+import {BaseState} from "../modules/appstore";
+import {BACNET_OBJECT_TYPE} from "../../utils/BAC_DECODE_TEXT";
+import {getPropertyIdText} from "../../utils/util";
 // const UNITS_DATA = objConverArray(BACNET_ENGINEERING_UNITS);
 // UNITS INPUT DATA
 const UNITS_DATA = {
@@ -691,7 +691,7 @@ class EquipmentState extends BaseState {
   @action getConditionsModules(type = {}) {
     return this.dataSource.filter(item => {
       const pattern = /(\d)+:(\d)+:(\d)+$/;
-      const mType = item.split(":")[1]
+      const mType = item.split(":")[1];
       return pattern.test(item) && type[mType]
     });
   }
@@ -735,6 +735,7 @@ class EquipmentState extends BaseState {
   /**
    * 传入设备号，返回该设备下的所有对象key值
    * @param {string} device
+   * @param isNeed
    */
   @action getDeviceObjKey(device, isNeed = {}) {
     return this.dataSource.filter(item => {
@@ -780,7 +781,7 @@ class EquipmentState extends BaseState {
         };
       });
     };
-    const treeData = [
+    return [
       {
         title: "Device_info",
         key: "0-0",
@@ -808,7 +809,6 @@ class EquipmentState extends BaseState {
         })
       }
     ];
-    return treeData;
   }
 }
 

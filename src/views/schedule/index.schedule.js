@@ -21,7 +21,9 @@ import {
   Modal,
   InputNumber,
   Radio,
-  Button
+  Button,
+  Table,
+  Tag
 } from "antd";
 import {Prompt} from "react-router-dom";
 import {
@@ -45,6 +47,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import listPlugin from "@fullcalendar/list";
+import {BACNET_OBJECT_TYPE} from '../../utils/BAC_DECODE_TEXT'
+import {getPropertyIdText} from '../../utils/util';
 import './index.scss'
 import "./calendar.scss";
 
@@ -121,7 +125,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
           );
           return (
             <TreeNode
-              selectable={item.children.length ? false : true}
+              selectable={!item.children.length}
               nodeData={nodeData}
               icon={
                 item.children.length ? (
@@ -136,7 +140,7 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
               }
               title={title}
               key={key}
-              isLeaf={!item.children.length ? true : false}
+              isLeaf={!item.children.length}
             >
               {RecursiveTree(item.children, key)}
             </TreeNode>
@@ -146,7 +150,6 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
       // prefix = null
       return null;
     };
-    
     return (
       <DirectoryTree
         switcherIcon={<Icon type="down"/>}
@@ -235,7 +238,7 @@ const EffectPeriod = inject(allStore => allStore.appstate)(
       }
       // 自定义
       setRadioVal(val);
-      setDisabled(val === 1 ? true : false);
+      setDisabled(val === 1);
     };
     
     // 日期改变事件
@@ -411,16 +414,13 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
   })
 );
 
-
 // 例外时间表
 const Execption = inject(allStore => allStore.appstate)(
   observer(props => {
-    const [event, setEvent] = useState([{
-      title: 'event1',
-      start: '2020-03-09T08:00:00',
-      end: '2020-03-09T12:30:00'
-    }]);
+    const [event, setEvent] = useState([]);
     const [dataRange, setDateRange] = useState([]);
+    const [selectedIndex, setSelEvent] = useState('');
+    const [isShowAttr, setShowAttr] = useState(false);
     const [repetitionType, setRepetitionType] = useState("costom");
     const {
       execptionTab,
@@ -431,7 +431,7 @@ const Execption = inject(allStore => allStore.appstate)(
     useEffect(() => {
       timeToView(getSeleExecpTabDate.segment1)
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [getSeleExecpTabDate]);
     
     const timeType = (dates) => {
       if (!dates.length) {
@@ -456,7 +456,7 @@ const Execption = inject(allStore => allStore.appstate)(
             text: 'custom'
           }]
       }
-      const weekStr = ['Sunday', 'Monday', 'Tuesday','Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekStr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       return [
         {
           type: 'disposable',
@@ -466,10 +466,10 @@ const Execption = inject(allStore => allStore.appstate)(
           text: 'everyday'
         }, {
           type: 'weekly',
-          text: 'weekly'
+          text: `${weekStr[dates[0].weekday()]} of the week`
         }, {
           type: 'monthly',
-          text: 'monthly'
+          text: `${dates[0].date()} a month`
         }, {
           type: 'monthlyOf',
           text: `The ${Math.ceil(dates[0].date() / 7)} (${weekStr[dates[0].weekday()]})of each month`
@@ -479,6 +479,25 @@ const Execption = inject(allStore => allStore.appstate)(
         }];
     };
     
+    // 时间单元格渲染, 利用穷举法显示法定节假日
+    const dateRangeRender = (current) => {
+      const style = {};
+      if (current.date() === 1) {
+        style.border = '1px solid #1890ff';
+        style.borderRadius = '50%';
+        return <div className="ant-calendar-date" style={style}>
+          <Badge color="#87d068">
+            {current.date()}
+          </Badge>
+        </div>
+      }
+      return (
+        <div className="ant-calendar-date" style={style}>
+          {current.date()}
+        </div>
+      );
+    };
+    
     // 根据时间类型生成不同的时间格式，用于返回后端
     const timeTypeTranstion = function (type, time) {
       const [start] = time;
@@ -486,7 +505,7 @@ const Execption = inject(allStore => allStore.appstate)(
         case "disposable":
           return time.map(date => {
             return {
-              val: `${date.year()}-${date.month()}-${date.date()}(${date.weekday()})`
+              val: `${date.year()}-${date.month() + 1}-${date.date()}(${date.weekday()})`
             }
           });
         case "everyday":
@@ -542,14 +561,14 @@ const Execption = inject(allStore => allStore.appstate)(
     // 时间范围选择
     const onChangeDateHandle = (date) => {
       setDateRange(date);
-      // setExecptioDate();
-      console.log(timeTypeTranstion(repetitionType, date))
+      props.schedulestate.setExecptioDate(timeTypeTranstion(repetitionType, date));
     };
     
     // 重复形式选择
     const repetitionHandle = type => {
       const transtionDate = timeTypeTranstion(type, dataRange);
       setRepetitionType(type);
+      props.schedulestate.setExecptioDate(transtionDate);
       console.log(transtionDate);
     };
     
@@ -578,6 +597,128 @@ const Execption = inject(allStore => allStore.appstate)(
       props.schedulestate.selectExecption = target;
     };
     
+    // 日历单元点击事件
+    const calendarDateClick = e => {
+      console.log(e)
+    };
+    
+    // 日历event改变事件
+    const calendarResize = info => {
+      const eventData = info.event;
+      const start = eventData.start;
+      const end = eventData.end;
+      const id = eventData.id;
+      const nowEvent = event.map(list => {
+        if (list.id === id) {
+          return {
+            ...list,
+            start,
+            end
+          };
+        }
+        return list;
+      });
+      setEvent(nowEvent);
+    };
+    
+    // 日历event拖拽事件
+    const calendarDrop = info => {
+      const eventData = info.event;
+      const start = eventData.start;
+      const end = eventData.end;
+      const id = eventData.id;
+      const nowEvent = event.map(list => {
+        if (list.id === id) {
+          list.start = start;
+          list.end = end;
+        }
+        return list;
+      });
+      setEvent(nowEvent);
+    };
+    
+    // 日历event选择事件
+    const calendarDateSelect = info => {
+      const start = info.start;
+      const end = info.end;
+      // 自定义event 用当前时间戳作为唯一主键
+      const now = new Date();
+      const primaryKey = `${now.getTime()}`;
+      const newEvent = {
+        id: primaryKey,
+        primaryKey,
+        title: "Test",
+        type: "boolean",
+        value: true,
+        start,
+        end,
+        backgroundColor: "#e0edf9",
+        textColor: "#5392da",
+        description: "This is a cool event"
+      };
+      setEvent([...event, newEvent]);
+    };
+    
+    const eventRender = info => {
+      // info.el.oncontextmenu = e => props.onContextMenu(e, info);
+      info.el.ondblclick = e => eventDblClick(e, info);
+      info.el.onclick = e => eventOnClick(e, info);
+    };
+    
+    // 日历单机事件
+    const eventOnClick = (e, info) => {
+      const {extendedProps} = info.event;
+      const primaryKey = extendedProps.primaryKey;
+      addActiveEvent(primaryKey, event);
+    };
+    
+    // 添加选中样式
+    const addActiveEvent = (primaryKey, events) => {
+      // 删除所有event样式
+      const newEvent = events.map((item, ind) => {
+        if (item.primaryKey === primaryKey) {
+          if (item.className) {
+            setSelEvent('');
+            setShowAttr(false);
+            return {
+              ...item,
+              className: ""
+            };
+          }
+          setSelEvent(ind);
+          setShowAttr(true);
+          return {
+            ...item,
+            className: "e-event-selected"
+          };
+        }
+        return {
+          ...item,
+          className: ""
+        };
+      });
+      setEvent(newEvent);
+    };
+    
+    // 日历event双击事件
+    const eventDblClick = (e, info) => {
+      const primaryKey = info.event.extendedProps.primaryKey;
+      setEvent(event.filter(list => list.primaryKey !== primaryKey));
+    };
+    
+    // 时间改变事件
+    const timeChangeHandle = (moment, node) => {
+      setEvent(event.map((item, ind) => {
+        if (Number(selectedIndex) === ind) {
+          return {
+            ...item,
+            [node]: moment.toDate()
+          };
+        }
+        return item
+      }))
+    };
+    
     return (
       <Descriptions bordered>
         <Descriptions.Item label="Select Table" span={3}>
@@ -601,6 +742,7 @@ const Execption = inject(allStore => allStore.appstate)(
           <RangePicker
             onChange={onChangeDateHandle}
             defaultValue={dataRange}
+            dateRender={dateRangeRender}
             value={dataRange}
             ranges={{
               Today: [moment(), moment()],
@@ -619,7 +761,7 @@ const Execption = inject(allStore => allStore.appstate)(
               timeType(dataRange)
                 .map(
                   (item, key) =>
-                  <Select.Option key={key} value={item.type}>{item.text}</Select.Option>
+                    <Select.Option key={key} value={item.type}>{item.text}</Select.Option>
                 )
             }
           </Select>
@@ -628,33 +770,157 @@ const Execption = inject(allStore => allStore.appstate)(
           {readpriority(getSeleExecpTabDate.segment3)}
         </Descriptions.Item>
         <Descriptions.Item label="Config Info">
+          {
+            isShowAttr ? (
+              <InputGroup compact>
+                <TimePicker onChange={(val) => timeChangeHandle(val, "start")} format="HH:mm" placeholder="Start Time"
+                            value={moment(event[selectedIndex] ? event[selectedIndex].start : '0-0', 'HH:mm')}/>
+                <TimePicker onChange={(val) => timeChangeHandle(val, "end")} format="HH:mm" placeholder="end Time"
+                            value={moment(event[selectedIndex] ? event[selectedIndex].end : '0-0', 'HH:mm')}/>
+                <Select defaultValue={1}>
+                  <Select.Option value={1}>Open</Select.Option>
+                  <Select.Option value={0}>Shut down</Select.Option>
+                </Select>
+              </InputGroup>
+            ) : null
+          }
           <FullCalendar
             defaultView="timeGridDay"
             events={event}
             eventLimit="true"
             nowIndicator="true"
+            views={{
+              timeGrid: {
+                eventLimit: 6 // adjust to 6 only for timeGridWeek/timeGridDay
+              }
+            }}
             plugins={[
-              timeGridPlugin
+              timeGridPlugin,
+              interactionPlugin
             ]}
             editable={true}
+            selectable={true}
             timeZone="local"
             scrollTime="08:00:00"
-            businessHours={{
-              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-              startTime: "8:00", // a start time (10am in this example)
-              endTime: "22:00"
-            }}
+            dateClick={calendarDateClick}
+            eventResize={calendarResize}
+            eventDrop={calendarDrop}
+            select={calendarDateSelect}
             header={{
               left: " ",
               center: " ",
               right: " "
             }}
             themeSystem="bootstrap"
-            selectable={true}
+            eventRender={eventRender}
           />
         </Descriptions.Item>
       </Descriptions>
     );
+  })
+);
+
+// 绑定的对象列表
+const BindObject = inject(allStore => allStore.appstate)(
+  observer(props => {
+    const {selectKey} = props;
+    const {setBindObject, bindObjects} = props.schedulestate;
+    const [selObj, setSelObj] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false);
+    const deviceName = selectKey[0].split(':')[0];
+    
+    // 增加绑定对象
+    const addObjHandle = (e) => {
+      setModalVisible(true);
+    };
+    
+    // modal确认
+    const modalOkHandle = e => {
+      setBindObject([...bindObjects, {
+        key: bindObjects.length,
+        propertyVal: 85,
+        propertyName: "PRESENT_VALUE",
+        objectType: Number(selObj.split(":")[1]),
+        objectInstance: Number(selObj.split(":")[2]),
+        objectName: getPropertyIdText(BACNET_OBJECT_TYPE, Number(selObj.split(":")[1]))
+      }]);
+      setModalVisible(false);
+      setSelObj(null);
+    };
+    
+    // 删除对象
+    const deleteObjHandl = (e, record) => {
+      setBindObject(bindObjects.filter(item => item.key !== record.key))
+    };
+    
+    const columns = [
+      {
+        title: 'objectName',
+        dataIndex: 'objectName',
+        key: 'objectName',
+        render: text => <a>{text}</a>,
+      },
+      {
+        title: 'Value',
+        dataIndex: 'propertyVal',
+        key: 'propertyVal',
+        render: text => <a>{text}</a>,
+      },
+      {
+        title: 'Action',
+        key: 'action',
+        render: (text, record) => <span onClick={(e) => deleteObjHandl(e, record)}><a>Delete</a></span>,
+      },
+    ];
+    
+    // 对象选择框change事件
+    const selObjHandle = (val) => {
+      setSelObj(val)
+    };
+    
+    const renderSelObj = (data) => {
+      if (!data.length) {
+        return null
+      }
+      return data.map((item, key) => {
+        const objType = Number(item.split(":")[1]);
+        const objInstance = Number(item.split(":")[2]);
+        const objTypeText = getPropertyIdText(BACNET_OBJECT_TYPE, objType);
+        // 查找匹配, 不能重复添加，添加过的对象将被禁用
+        const isExist = bindObjects.findIndex(ele => ((ele.objectType === objType) && (ele.objectInstance === objInstance)));
+        if (isExist !== -1) {
+          return <Select.Option disabled key={key} value={item}>{objTypeText} {objInstance}</Select.Option>
+        }
+        return <Select.Option key={key} value={item}>{objTypeText} {objInstance}</Select.Option>
+      })
+    };
+    
+    return (
+      <React.Fragment>
+        <Button onClick={addObjHandle} type="primary" style={{marginBottom: 16}}>
+          Add
+        </Button>
+        <Modal
+          title="Select the object"
+          visible={modalVisible}
+          onOk={modalOkHandle}
+          onCancel={() => setModalVisible(false)}
+        >
+          <span style={{marginRight: 10}}>Select Object</span>
+          <Select placeholder="Please select object" value={selObj} style={{width: "80%"}} onChange={selObjHandle}>
+            {
+              renderSelObj(props.equipmentstate.getDeviceObjKey(deviceName, {
+                "1": true,
+                "2": true,
+                "4": true,
+                "5": true,
+              }))
+            }
+          </Select>
+        </Modal>
+        <Table columns={columns} dataSource={bindObjects}/>
+      </React.Fragment>
+    )
   })
 );
 
@@ -776,6 +1042,17 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
           key="4"
         >
           <Execption/>
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <Icon type="container"/>
+               Object of property
+            </span>
+          }
+          key="5"
+        >
+          <BindObject selectKey={props.selectKey}/>
         </TabPane>
       </Tabs>
     );
@@ -1017,6 +1294,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
             setLoading(false);
             setPanesData([{title: deviceKey, key: "1"}]);
             setSelDevice(deviceKey);
+            props.schedulestate.selectDevice = deviceId;
             return;
           }
           searchSchedule({
@@ -1043,6 +1321,19 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                     props.schedulestate.effectPeriod.push(effectDate);
                   }
                   props.schedulestate.infoSchedule.data[attrName] = list.val;
+                });
+              }
+              // 绑定的对象列表
+              if (pram.value === 54) {
+                props.schedulestate.bindObjects = data.listOfResult.map((item, key) => {
+                  return {
+                    key,
+                    propertyVal: item.Property,
+                    propertyName: item.object_type_text,
+                    objectType: item.Object.object_type,
+                    objectInstance: item.Object.value,
+                    objectName: item.Object.object_type_text
+                  }
                 });
               }
               // 例外时间表
@@ -1233,6 +1524,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         {
           propertyid: 38,
           data: props.schedulestate.execption
+        },
+        {
+          propertyid: 54,
+          data: props.schedulestate.bindObjects
         }
       ];
       
@@ -1276,7 +1571,6 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           })
           .catch(err => {
             console.log(err);
-            return;
           });
       };
     };

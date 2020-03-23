@@ -1,11 +1,10 @@
 // 通过value获取对象key
 export function getPropertyIdText(obj, id, compare = (a, b) => a === b) {
-  let val = Object.keys(obj)
+  return Object.keys(obj)
     .flat()
     .find(k => {
       return compare(obj[k], id);
     });
-  return val;
 }
 
 // 对象转数组
@@ -50,8 +49,7 @@ export function formateXml(xmlStr) {
   text = text
     .replace(/\n/g, "\r")
     .replace(/<!--(.+?)-->/g, function($0, text) {
-      var ret = "<!--" + escape(text) + "-->";
-      return ret;
+      return "<!--" + escape(text) + "-->";
     })
     .replace(/\r/g, "\n");
   //调整格式  以压栈方式递归调整缩进
@@ -89,8 +87,7 @@ export function formateXml(xmlStr) {
         prefix = setPrefix(nodeStack.length);
       }
     }
-    var ret = "\n" + prefix + all;
-    return ret;
+    return "\n" + prefix + all;
   });
   var outputText = output.substring(1);
   //还原注释内容
@@ -99,8 +96,7 @@ export function formateXml(xmlStr) {
     .replace(/(\s*)<!--(.+?)-->/g, function($0, prefix, text) {
       if (prefix.charAt(0) === "\r") prefix = prefix.substring(1);
       text = unescape(text).replace(/\r/g, "\n");
-      var ret = "\n" + prefix + "<!--" + text.replace(/^\s*/gm, prefix) + "-->";
-      return ret;
+      return "\n" + prefix + "<!--" + text.replace(/^\s*/gm, prefix) + "-->";
     });
   outputText = outputText.replace(/\s+$/g, "").replace(/\r/g, "\r\n");
   return outputText;

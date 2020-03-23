@@ -159,6 +159,7 @@ export function readDataBaseField(params) {
     method: "GET"
   })
 }
+
 // 清空数据库
 export function delAllRedisData() {
   return request({
