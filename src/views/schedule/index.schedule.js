@@ -22,8 +22,7 @@ import {
   InputNumber,
   Radio,
   Button,
-  Table,
-  Tag
+  Table
 } from "antd";
 import {Prompt} from "react-router-dom";
 import {
@@ -425,11 +424,12 @@ const Execption = inject(allStore => allStore.appstate)(
     const {
       execptionTab,
       selectExecption,
-      getSeleExecpTabDate
+      getSeleExecpTabDate,
+      getExecptionTimes
     } = props.schedulestate;
     
     useEffect(() => {
-      timeToView(getSeleExecpTabDate.segment1)
+      timeToView(getSeleExecpTabDate.segment1);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getSeleExecpTabDate]);
     
@@ -786,9 +786,7 @@ const Execption = inject(allStore => allStore.appstate)(
           }
           <FullCalendar
             defaultView="timeGridDay"
-            events={event}
-            eventLimit="true"
-            nowIndicator="true"
+            events={getExecptionTimes}
             views={{
               timeGrid: {
                 eventLimit: 6 // adjust to 6 only for timeGridWeek/timeGridDay
@@ -801,7 +799,6 @@ const Execption = inject(allStore => allStore.appstate)(
             editable={true}
             selectable={true}
             timeZone="local"
-            scrollTime="08:00:00"
             dateClick={calendarDateClick}
             eventResize={calendarResize}
             eventDrop={calendarDrop}
@@ -1337,8 +1334,14 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                 });
               }
               // 例外时间表
-              if (pram.value === 38 && Object.keys(data.listOfResult).length) {
-                props.schedulestate.execption = data.listOfResult;
+              if (pram.value === 38) {
+                props.schedulestate.execption = Object.keys(data.listOfResult).length ? data.listOfResult : {
+                  table1: {
+                    segment1: [{tag: 10, val: "2020-1-1(255)"}, {tag: 10, val: "2020-3-2(0)"}],
+                    segment2: [],
+                    segment3: [{tag: 2, val: 5}]
+                  }
+                };
               }
               readSchedule(iter.next());
             })

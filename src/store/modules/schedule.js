@@ -1,4 +1,5 @@
 import {BaseState} from "../modules/appstore";
+import moment from "moment";
 import {observable, action, computed} from "mobx";
 
 class ScheduleState extends BaseState {
@@ -39,12 +40,59 @@ class ScheduleState extends BaseState {
   @observable defaultType = "0";
   
   // 例外时间表
-  @observable execption = {
-    table1: {
-      segment1: [{tag: 10, val: "2020-1-1(255)"}, {tag: 10, val: "2020-3-2(0)"}],
-      segment2: [],
-      segment3: [{tag: 2, val: 5}]
+  @observable execption = {};
+  
+  // 计算例外时间表时间点
+  @computed get getExecptionTimes() {
+    const event = [];
+    
+    // 没有数据直接return
+    if (!this.execption[this.selectExecption].segment2.length) {
+      return []
     }
+    
+    // 将一维数组转二维数组
+    this.execption[this.selectExecption].segment2
+      .reduce(
+        (a, c, i, s) => {
+          if ((i + 1) % 2) {
+            return a.concat([[c]])
+          }
+          a[Math.floor(i / 2)].push(c);
+          return a
+        },
+        []
+      ) // 处理成视图可以使用的数据
+      .forEach((item, index, source) => {
+        const isStart = !!((index + 1) % 2);
+        if (isStart) {
+          const [time, action] = item;
+          const now = new Date();
+          const primaryKey = `${now.getTime()}`;
+          const end = source[index + 1] ?
+            moment(source[index + 1][0].val, 'h:m:s').toDate() :
+            moment("24:00:00", "hh:mm:ss").toDate();
+          
+          event.push({
+            id: primaryKey,
+            primaryKey,
+            title: 'test',
+            type: 'boolean',
+            value: action.val,
+            start: moment(time.val, 'h:m:s').toDate(),
+            end,
+            backgroundColor: "#e0edf9",
+            textColor: "#5392da",
+            description: "This is a cool event"
+          })
+        }
+      });
+    return event;
+  }
+  
+  // 更改例外事件表时间点
+  @action setExecptionTimes = (times) => {
+    this.execption[this.selectExecption].segment2 = []
   };
   
   // 新增例外时间表
