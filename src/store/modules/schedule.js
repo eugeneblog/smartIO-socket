@@ -43,12 +43,17 @@ class ScheduleState extends BaseState {
   @observable execption = {};
   
   // 计算例外时间表时间点
-  @computed get getExecptionTimes() {
+  @computed get execptionEvent() {
     const event = [];
     
     // 没有数据直接return
     if (!this.execption[this.selectExecption].segment2.length) {
       return []
+    }
+    
+    // 判断是否是原始数据，原始数据需要计算，否则直接返回
+    if (this.execption[this.selectExecption].segment2[0].primaryKey) {
+      return this.execption[this.selectExecption].segment2;
     }
     
     // 将一维数组转二维数组
@@ -68,7 +73,7 @@ class ScheduleState extends BaseState {
         if (isStart) {
           const [time, action] = item;
           const now = new Date();
-          const primaryKey = `${now.getTime()}`;
+          const primaryKey = `${now.getTime() * Math.random()}`;
           const end = source[index + 1] ?
             moment(source[index + 1][0].val, 'h:m:s').toDate() :
             moment("24:00:00", "hh:mm:ss").toDate();
@@ -90,10 +95,38 @@ class ScheduleState extends BaseState {
     return event;
   }
   
-  // 更改例外事件表时间点
-  @action setExecptionTimes = (times) => {
-    this.execption[this.selectExecption].segment2 = []
-  };
+  // 应用到设备, 后续需要将api迁移到这
+  @action applidToDevice() {
+    const event = [];
+    this.execptionEvent.forEach(item => {
+      const tuple = [{
+        tag: 11,
+        val: `${item.start.getHours()}:${item.start.getMinutes()}:${item.start.getSeconds()}`
+      }, {
+        tag: 9,
+        val: item.value
+      }, {
+        tag: 11,
+        val: `${item.end.getHours()}:${item.end.getMinutes()}:${item.end.getSeconds()}`
+      }, {
+        tag: 9,
+        val: item.value
+      }];
+      event.push(...tuple)
+    });
+    const result = {
+      ...this.execption
+    };
+    
+    result[this.selectExecption].segment2 = event;
+    
+    return result;
+  }
+  
+  // 逆向衍生
+  set execptionEvent(events) {
+    this.execption[this.selectExecption].segment2 = events;
+  }
   
   // 新增例外时间表
   @action createExecption() {

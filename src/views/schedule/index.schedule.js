@@ -1,43 +1,32 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, {useState, useEffect} from "react";
-import {observer, inject} from "mobx-react";
+import React, {useEffect, useState} from "react";
+import {inject, observer} from "mobx-react";
 import {
-  PageHeader,
-  Row,
-  Col,
-  Icon,
-  Tree,
-  Tabs,
-  Spin,
-  Empty,
-  Descriptions,
-  TimePicker,
-  message,
-  DatePicker,
-  Select,
   Badge,
-  Input,
-  Progress,
-  Modal,
-  InputNumber,
-  Radio,
   Button,
-  Table
+  Col,
+  DatePicker,
+  Descriptions,
+  Empty,
+  Icon,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  PageHeader,
+  Progress,
+  Radio,
+  Row,
+  Select,
+  Spin,
+  Table,
+  Tabs,
+  TimePicker,
+  Tree
 } from "antd";
 import {Prompt} from "react-router-dom";
-import {
-  readDataBaseField,
-  searchSchedule,
-  writeShedule
-} from "../../api/index.api";
-import {
-  Menu,
-  Item,
-  contextMenu,
-  theme,
-  animation,
-  Separator
-} from "react-contexify";
+import {readDataBaseField, searchSchedule, writeShedule} from "../../api/index.api";
+import {animation, contextMenu, Item, Menu, Separator, theme} from "react-contexify";
 import Moment from "moment";
 import {extendMoment} from "moment-range";
 import FullCalendar from "@fullcalendar/react";
@@ -416,22 +405,22 @@ const ScheduleBase = inject(allStore => allStore.appstate)(
 // 例外时间表
 const Execption = inject(allStore => allStore.appstate)(
   observer(props => {
-    const [event, setEvent] = useState([]);
     const [dataRange, setDateRange] = useState([]);
-    const [selectedIndex, setSelEvent] = useState('');
+    const [selectedEvent, setSelEvent] = useState('');
     const [isShowAttr, setShowAttr] = useState(false);
     const [repetitionType, setRepetitionType] = useState("costom");
     const {
       execptionTab,
       selectExecption,
       getSeleExecpTabDate,
-      getExecptionTimes
+      execptionEvent
     } = props.schedulestate;
     
     useEffect(() => {
       timeToView(getSeleExecpTabDate.segment1);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getSeleExecpTabDate]);
+    
     
     const timeType = (dates) => {
       if (!dates.length) {
@@ -580,6 +569,7 @@ const Execption = inject(allStore => allStore.appstate)(
     
     // 读取优先级
     const readpriority = (segment) => {
+      console.log(segment);
       const priorityData = [1, 2, 3, 4, 5];
       const selectPriorityChange = val => {
         // props
@@ -608,7 +598,7 @@ const Execption = inject(allStore => allStore.appstate)(
       const start = eventData.start;
       const end = eventData.end;
       const id = eventData.id;
-      const nowEvent = event.map(list => {
+      props.schedulestate.execptionEvent = execptionEvent.map(list => {
         if (list.id === id) {
           return {
             ...list,
@@ -617,8 +607,7 @@ const Execption = inject(allStore => allStore.appstate)(
           };
         }
         return list;
-      });
-      setEvent(nowEvent);
+      })
     };
     
     // 日历event拖拽事件
@@ -627,14 +616,13 @@ const Execption = inject(allStore => allStore.appstate)(
       const start = eventData.start;
       const end = eventData.end;
       const id = eventData.id;
-      const nowEvent = event.map(list => {
+      props.schedulestate.execptionEvent = execptionEvent.map(list => {
         if (list.id === id) {
           list.start = start;
           list.end = end;
         }
         return list;
-      });
-      setEvent(nowEvent);
+      })
     };
     
     // 日历event选择事件
@@ -656,7 +644,13 @@ const Execption = inject(allStore => allStore.appstate)(
         textColor: "#5392da",
         description: "This is a cool event"
       };
-      setEvent([...event, newEvent]);
+      props.schedulestate.execptionEvent = execptionEvent.concat([newEvent])
+    };
+  
+    // 日历event双击事件
+    const eventDblClick = (e, info) => {
+      const primaryKey = info.event.extendedProps.primaryKey;
+      props.schedulestate.execptionEvent = execptionEvent.filter(list => list.primaryKey !== primaryKey)
     };
     
     const eventRender = info => {
@@ -669,13 +663,13 @@ const Execption = inject(allStore => allStore.appstate)(
     const eventOnClick = (e, info) => {
       const {extendedProps} = info.event;
       const primaryKey = extendedProps.primaryKey;
-      addActiveEvent(primaryKey, event);
+      addActiveEvent(primaryKey, execptionEvent);
     };
     
     // 添加选中样式
     const addActiveEvent = (primaryKey, events) => {
       // 删除所有event样式
-      const newEvent = events.map((item, ind) => {
+      props.schedulestate.execptionEvent = events.map((item, ind) => {
         if (item.primaryKey === primaryKey) {
           if (item.className) {
             setSelEvent('');
@@ -685,7 +679,7 @@ const Execption = inject(allStore => allStore.appstate)(
               className: ""
             };
           }
-          setSelEvent(ind);
+          setSelEvent(item);
           setShowAttr(true);
           return {
             ...item,
@@ -697,26 +691,19 @@ const Execption = inject(allStore => allStore.appstate)(
           className: ""
         };
       });
-      setEvent(newEvent);
-    };
-    
-    // 日历event双击事件
-    const eventDblClick = (e, info) => {
-      const primaryKey = info.event.extendedProps.primaryKey;
-      setEvent(event.filter(list => list.primaryKey !== primaryKey));
     };
     
     // 时间改变事件
     const timeChangeHandle = (moment, node) => {
-      setEvent(event.map((item, ind) => {
-        if (Number(selectedIndex) === ind) {
-          return {
-            ...item,
-            [node]: moment.toDate()
-          };
-        }
-        return item
-      }))
+      // setEvent(event.map((item, ind) => {
+      //   if (Number(selectedEvent) === ind) {
+      //     return {
+      //       ...item,
+      //       [node]: moment.toDate()
+      //     };
+      //   }
+      //   return item
+      // }))
     };
     
     return (
@@ -767,16 +754,16 @@ const Execption = inject(allStore => allStore.appstate)(
           </Select>
         </Descriptions.Item>
         <Descriptions.Item label="priority" span={3}>
-          {readpriority(getSeleExecpTabDate.segment3)}
+          {readpriority(execptionEvent)}
         </Descriptions.Item>
         <Descriptions.Item label="Config Info">
           {
             isShowAttr ? (
               <InputGroup compact>
                 <TimePicker onChange={(val) => timeChangeHandle(val, "start")} format="HH:mm" placeholder="Start Time"
-                            value={moment(event[selectedIndex] ? event[selectedIndex].start : '0-0', 'HH:mm')}/>
+                            value={moment(selectedEvent ? selectedEvent.start : '0-0', 'HH:mm')}/>
                 <TimePicker onChange={(val) => timeChangeHandle(val, "end")} format="HH:mm" placeholder="end Time"
-                            value={moment(event[selectedIndex] ? event[selectedIndex].end : '0-0', 'HH:mm')}/>
+                            value={moment(selectedEvent ? selectedEvent.end : '0-0', 'HH:mm')}/>
                 <Select defaultValue={1}>
                   <Select.Option value={1}>Open</Select.Option>
                   <Select.Option value={0}>Shut down</Select.Option>
@@ -786,7 +773,7 @@ const Execption = inject(allStore => allStore.appstate)(
           }
           <FullCalendar
             defaultView="timeGridDay"
-            events={getExecptionTimes}
+            events={execptionEvent}
             views={{
               timeGrid: {
                 eventLimit: 6 // adjust to 6 only for timeGridWeek/timeGridDay
@@ -802,6 +789,7 @@ const Execption = inject(allStore => allStore.appstate)(
             dateClick={calendarDateClick}
             eventResize={calendarResize}
             eventDrop={calendarDrop}
+            eventOverlap={false}
             select={calendarDateSelect}
             header={{
               left: " ",
@@ -1526,7 +1514,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         },
         {
           propertyid: 38,
-          data: props.schedulestate.execption
+          data: props.schedulestate.applidToDevice()
         },
         {
           propertyid: 54,
