@@ -569,7 +569,6 @@ const Execption = inject(allStore => allStore.appstate)(
     
     // 读取优先级
     const readpriority = (segment) => {
-      console.log(segment);
       const priorityData = [1, 2, 3, 4, 5];
       const selectPriorityChange = val => {
         // props
@@ -646,7 +645,7 @@ const Execption = inject(allStore => allStore.appstate)(
       };
       props.schedulestate.execptionEvent = execptionEvent.concat([newEvent])
     };
-  
+    
     // 日历event双击事件
     const eventDblClick = (e, info) => {
       const primaryKey = info.event.extendedProps.primaryKey;
@@ -654,6 +653,11 @@ const Execption = inject(allStore => allStore.appstate)(
     };
     
     const eventRender = info => {
+      // const val = info.event.extendedProps.value;
+      // const start = info.event.start;
+      // const end = info.event.end;
+      // info.el.text = `${moment(start).format('h:m')}  ${val} \r\n
+      //  ${moment(end).format("h:m")}  ${val}`;
       // info.el.oncontextmenu = e => props.onContextMenu(e, info);
       info.el.ondblclick = e => eventDblClick(e, info);
       info.el.onclick = e => eventOnClick(e, info);
@@ -679,7 +683,7 @@ const Execption = inject(allStore => allStore.appstate)(
               className: ""
             };
           }
-          setSelEvent(item);
+          setSelEvent(item.primaryKey);
           setShowAttr(true);
           return {
             ...item,
@@ -695,15 +699,32 @@ const Execption = inject(allStore => allStore.appstate)(
     
     // 时间改变事件
     const timeChangeHandle = (moment, node) => {
-      // setEvent(event.map((item, ind) => {
-      //   if (Number(selectedEvent) === ind) {
-      //     return {
-      //       ...item,
-      //       [node]: moment.toDate()
-      //     };
-      //   }
-      //   return item
-      // }))
+      props.schedulestate.execptionEvent = execptionEvent.map((item) => {
+        if (selectedEvent === item.primaryKey) {
+          return {
+            ...item,
+            [node]: moment.toDate()
+          }
+        }
+        return item
+      })
+    };
+    
+    // 时间点属性选项
+    const TimesAttribute = (props) => {
+      const value = execptionEvent.find(e => e.primaryKey === selectedEvent);
+      return isShowAttr ?
+        <InputGroup compact>
+          <TimePicker onChange={(val) => timeChangeHandle(val, "start")} format="HH:mm" placeholder="Start Time"
+                      value={moment(value ? value.start : '0-0', 'HH:mm')}/>
+          <TimePicker onChange={(val) => timeChangeHandle(val, "end")} format="HH:mm" placeholder="end Time"
+                      value={moment(value ? value.end : '0-0', 'HH:mm')}/>
+          <Select defaultValue={1}>
+            <Select.Option value={1}>Open</Select.Option>
+            <Select.Option value={0}>Shut down</Select.Option>
+          </Select>
+        </InputGroup>
+        : null;
     };
     
     return (
@@ -754,23 +775,10 @@ const Execption = inject(allStore => allStore.appstate)(
           </Select>
         </Descriptions.Item>
         <Descriptions.Item label="priority" span={3}>
-          {readpriority(execptionEvent)}
+          {readpriority(getSeleExecpTabDate.segment3)}
         </Descriptions.Item>
         <Descriptions.Item label="Config Info">
-          {
-            isShowAttr ? (
-              <InputGroup compact>
-                <TimePicker onChange={(val) => timeChangeHandle(val, "start")} format="HH:mm" placeholder="Start Time"
-                            value={moment(selectedEvent ? selectedEvent.start : '0-0', 'HH:mm')}/>
-                <TimePicker onChange={(val) => timeChangeHandle(val, "end")} format="HH:mm" placeholder="end Time"
-                            value={moment(selectedEvent ? selectedEvent.end : '0-0', 'HH:mm')}/>
-                <Select defaultValue={1}>
-                  <Select.Option value={1}>Open</Select.Option>
-                  <Select.Option value={0}>Shut down</Select.Option>
-                </Select>
-              </InputGroup>
-            ) : null
-          }
+          <TimesAttribute/>
           <FullCalendar
             defaultView="timeGridDay"
             events={execptionEvent}
@@ -821,13 +829,16 @@ const BindObject = inject(allStore => allStore.appstate)(
     
     // modal确认
     const modalOkHandle = e => {
+      const objectType = Number(selObj.split(":")[1]);
+      const objectInstance = Number(selObj.split(":")[2]);
+      const objectName = `${getPropertyIdText(BACNET_OBJECT_TYPE, Number(selObj.split(":")[1]))} ${Number(selObj.split(":")[2])}`;
       setBindObject([...bindObjects, {
-        key: bindObjects.length,
+        key: bindObjects.length + 1,
         propertyVal: 85,
         propertyName: "PRESENT_VALUE",
-        objectType: Number(selObj.split(":")[1]),
-        objectInstance: Number(selObj.split(":")[2]),
-        objectName: getPropertyIdText(BACNET_OBJECT_TYPE, Number(selObj.split(":")[1]))
+        objectType,
+        objectInstance,
+        objectName
       }]);
       setModalVisible(false);
       setSelObj(null);
@@ -844,6 +855,12 @@ const BindObject = inject(allStore => allStore.appstate)(
         dataIndex: 'objectName',
         key: 'objectName',
         render: text => <a>{text}</a>,
+      },
+      {
+        title: 'propertyName',
+        dataIndex: 'propertyName',
+        key: 'propertyName',
+        render: text => <a>{text}</a>
       },
       {
         title: 'Value',
@@ -1268,6 +1285,9 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         const deviceId = deviceKey.split(":")[0];
         const objType = deviceKey.split(":")[1];
         const objNum = deviceKey.split(":")[2];
+        // 设定当前选定的设备
+        setSelDevice(deviceKey);
+        props.schedulestate.selectDevice = deviceId;
         let propertyIdArr = [123, 38, 54, 105]; // 38, 54
         let iter = propertyIdArr[Symbol.iterator]();
         let values = iter.next();
@@ -1278,8 +1298,6 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           if (pram.done) {
             setLoading(false);
             setPanesData([{title: deviceKey, key: "1"}]);
-            setSelDevice(deviceKey);
-            props.schedulestate.selectDevice = deviceId;
             return;
           }
           searchSchedule({
@@ -1311,15 +1329,20 @@ const ScheduleView = inject(allStore => allStore.appstate)(
               // 绑定的对象列表
               if (pram.value === 54) {
                 props.schedulestate.bindObjects = data.listOfResult.map((item, key) => {
+                  const objectType = item.Object.object_type;
+                  const objectInstance = item.Object.value;
+                  const objectName = `${item.Object.object_type_text} ${objectInstance}`;
                   return {
                     key,
                     propertyVal: item.Property,
                     propertyName: item.object_type_text,
-                    objectType: item.Object.object_type,
-                    objectInstance: item.Object.value,
-                    objectName: item.Object.object_type_text
+                    objectType,
+                    objectInstance,
+                    objectName
                   }
                 });
+                // 从数据库读取对象名称并且写入
+                props.schedulestate.fetchObjName();
               }
               // 例外时间表
               if (pram.value === 38) {

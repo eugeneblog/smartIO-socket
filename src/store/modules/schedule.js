@@ -1,6 +1,7 @@
 import {BaseState} from "../modules/appstore";
 import moment from "moment";
-import {observable, action, computed} from "mobx";
+import {action, computed, observable} from "mobx";
+import {readDataBaseField} from "../../api/index.api";
 
 class ScheduleState extends BaseState {
   // 当前读取的设备
@@ -20,6 +21,35 @@ class ScheduleState extends BaseState {
   
   // 绑定的对象
   @observable bindObjects = [];
+  
+  
+  @action
+  async fetchObjName() {
+    if (!this.bindObjects.length) {
+      console.log('fuck you')
+    }
+    const bindObjs = this.bindObjects.map(item => {
+      const device = this.selectDevice;
+      const objType = item.objectType;
+      const objInstance = item.objectInstance;
+      return readDataBaseField({
+        key: `${device}:${objType}:${objInstance}`,
+        subKey: "OBJECT_NAME"
+      });
+    });
+    
+    try {
+      const results = await Promise.all(bindObjs);
+      this.bindObjects = results.map((e, i) => {
+        return {
+          ...this.bindObjects[i],
+          objectName: e.data.value
+        }
+      })
+    } catch (e) {
+      console.log(e)
+    }
+  };
   
   @action setBindObject = (newArr) => {
     this.bindObjects = newArr

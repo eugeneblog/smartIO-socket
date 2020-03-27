@@ -15,7 +15,7 @@ const baseURL =
 
 const service = axios.create({
   baseURL,
-  timeout: 10000
+  timeout: 8000
 });
 
 // 请求拦截器
