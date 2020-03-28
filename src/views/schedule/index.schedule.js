@@ -21,6 +21,7 @@ import {
   Spin,
   Table,
   Tabs,
+  Tag,
   TimePicker,
   Tree
 } from "antd";
@@ -193,6 +194,7 @@ const ScheduleAttribute = props => {
 // 有效周期
 const EffectPeriod = inject(allStore => allStore.appstate)(
   observer(props => {
+    const { effectPeriod } = props.schedulestate;
     const [startTime, setStartTime] = useState(
       moment(new Date(Date.now()), "HH:mm:ss")
     );
@@ -201,6 +203,17 @@ const EffectPeriod = inject(allStore => allStore.appstate)(
     );
     const [radioVal, setRadioVal] = useState(1);
     const [disabled, setDisabled] = useState(true);
+    
+    useEffect(() => {
+      const pattern = /^(2155)-(255)-(255)/;
+      if (pattern.test(effectPeriod[0])) {
+        setRadioVal(1);
+        setDisabled(true);
+      } else {
+        setRadioVal(2);
+        setDisabled(false);
+      }
+    }, [effectPeriod]);
     
     // 更新props有效周期数据
     const setPropsEffectPeriod = () => {
@@ -818,6 +831,7 @@ const BindObject = inject(allStore => allStore.appstate)(
   observer(props => {
     const {selectKey} = props;
     const {setBindObject, bindObjects} = props.schedulestate;
+    const [allObj, setAllObj] = useState([]);
     const [selObj, setSelObj] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const deviceName = selectKey[0].split(':')[0];
@@ -825,6 +839,70 @@ const BindObject = inject(allStore => allStore.appstate)(
     // 增加绑定对象
     const addObjHandle = (e) => {
       setModalVisible(true);
+      const currentDeviceObjectKeys = props.equipmentstate.getDeviceObjKey(deviceName, {
+        "1": true,
+        "2": true,
+        "4": true,
+        "5": true,
+      });
+      
+      const assembleGetNameReq = currentDeviceObjectKeys.map(key => {
+        return readDataBaseField({
+          key,
+          subKey: "OBJECT_NAME"
+        });
+      });
+      
+      Promise.all(assembleGetNameReq).then(res => {
+        setAllObj(res.map((result, i) => {
+          const objType = currentDeviceObjectKeys[i].split(":")[1];
+          const objInstance = currentDeviceObjectKeys[i].split(":")[2];
+          const isDisabled = bindObjects.findIndex(
+            e => (
+              (Number(e.objectType) === Number(objType)) &&
+              (Number(e.objectInstance) === Number(objInstance))
+            )
+          ) !== -1;
+          
+          return {
+            text: result.data.value,
+            value: currentDeviceObjectKeys[i],
+            isDisabled
+          }
+        }))
+      })
+    };
+    
+    // allObj 对象分组, 根据对象类型定义不同分组
+    const addGroupObject = (objs = []) => {
+      if (!objs.length) {
+        return objs
+      }
+      
+      // 排序
+      const orderedObj = objs.sort(function (a, b) {
+        return (
+          (a.value.split(":")[1] + a.value.split(":")[2]) -
+          (b.value.split(":")[1] + b.value.split(":")[2])
+        )
+      });
+      
+      // 分组
+      return orderedObj.reduce((accumulator, currentValue) => {
+        const type = currentValue.value.split(":")[1];
+        const equalityInd = accumulator.findIndex(e => e.groupId === type);
+        if (equalityInd !== -1) {
+          accumulator[equalityInd].children.push(currentValue);
+        } else {
+          accumulator.push({
+            key: accumulator.length + 1,
+            groupId: type,
+            groupName: getPropertyIdText(BACNET_OBJECT_TYPE, Number(type)),
+            children: [currentValue]
+          })
+        }
+        return accumulator
+      }, [])
     };
     
     // modal确认
@@ -836,6 +914,7 @@ const BindObject = inject(allStore => allStore.appstate)(
         key: bindObjects.length + 1,
         propertyVal: 85,
         propertyName: "PRESENT_VALUE",
+        tag: objectName,
         objectType,
         objectInstance,
         objectName
@@ -857,16 +936,22 @@ const BindObject = inject(allStore => allStore.appstate)(
         render: text => <a>{text}</a>,
       },
       {
+        title: 'Tag',
+        key: 'tag',
+        dataIndex: 'tag',
+        render: text => (
+          <span>
+            <Tag color={'volcano'} key={text}>
+              {text.toUpperCase()}
+            </Tag>
+          </span>
+        )
+      },
+      {
         title: 'propertyName',
         dataIndex: 'propertyName',
         key: 'propertyName',
         render: text => <a>{text}</a>
-      },
-      {
-        title: 'Value',
-        dataIndex: 'propertyVal',
-        key: 'propertyVal',
-        render: text => <a>{text}</a>,
       },
       {
         title: 'Action',
@@ -878,23 +963,6 @@ const BindObject = inject(allStore => allStore.appstate)(
     // 对象选择框change事件
     const selObjHandle = (val) => {
       setSelObj(val)
-    };
-    
-    const renderSelObj = (data) => {
-      if (!data.length) {
-        return null
-      }
-      return data.map((item, key) => {
-        const objType = Number(item.split(":")[1]);
-        const objInstance = Number(item.split(":")[2]);
-        const objTypeText = getPropertyIdText(BACNET_OBJECT_TYPE, objType);
-        // 查找匹配, 不能重复添加，添加过的对象将被禁用
-        const isExist = bindObjects.findIndex(ele => ((ele.objectType === objType) && (ele.objectInstance === objInstance)));
-        if (isExist !== -1) {
-          return <Select.Option disabled key={key} value={item}>{objTypeText} {objInstance}</Select.Option>
-        }
-        return <Select.Option key={key} value={item}>{objTypeText} {objInstance}</Select.Option>
-      })
     };
     
     return (
@@ -911,12 +979,14 @@ const BindObject = inject(allStore => allStore.appstate)(
           <span style={{marginRight: 10}}>Select Object</span>
           <Select placeholder="Please select object" value={selObj} style={{width: "80%"}} onChange={selObjHandle}>
             {
-              renderSelObj(props.equipmentstate.getDeviceObjKey(deviceName, {
-                "1": true,
-                "2": true,
-                "4": true,
-                "5": true,
-              }))
+              addGroupObject(allObj).map((g) => (
+                <Select.OptGroup label={g.groupName} key={g.key}>
+                  {
+                    g.children.map((o, k) => <Select.Option disabled={o.isDisabled} value={o.value}
+                                                            key={k}>{o.text}</Select.Option>)
+                  }
+                </Select.OptGroup>
+              ))
             }
           </Select>
         </Modal>
@@ -953,10 +1023,43 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
           tab={
             <span>
               <Icon type="calendar"/>
-              Weekly Schedule
+              The basic information
             </span>
           }
           key="1"
+        >
+          <ScheduleBase/>
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <Icon type="carry-out"/>
+              Effect Period
+            </span>
+          }
+          key="2"
+        >
+          <EffectPeriod selectKey={props.selectKey}/>
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <Icon type="container"/>
+              Object of property
+            </span>
+          }
+          key="3"
+        >
+          <BindObject selectKey={props.selectKey}/>
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <Icon type="container"/>
+              Weekly Schedule
+            </span>
+          }
+          key="4"
         >
           <Row>
             <Col span={20}>
@@ -1015,46 +1118,13 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
         <TabPane
           tab={
             <span>
-              <Icon type="carry-out"/>
-              Effect Period
-            </span>
-          }
-          key="2"
-        >
-          <EffectPeriod selectKey={props.selectKey}/>
-        </TabPane>
-        <TabPane
-          tab={
-            <span>
-              <Icon type="container"/>
-              The basic information
-            </span>
-          }
-          key="3"
-        >
-          <ScheduleBase/>
-        </TabPane>
-        <TabPane
-          tab={
-            <span>
               <Icon type="container"/>
               Execption
             </span>
           }
-          key="4"
-        >
-          <Execption/>
-        </TabPane>
-        <TabPane
-          tab={
-            <span>
-              <Icon type="container"/>
-               Object of property
-            </span>
-          }
           key="5"
         >
-          <BindObject selectKey={props.selectKey}/>
+          <Execption/>
         </TabPane>
       </Tabs>
     );
@@ -1336,6 +1406,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                     key,
                     propertyVal: item.Property,
                     propertyName: item.object_type_text,
+                    tag: objectName,
                     objectType,
                     objectInstance,
                     objectName
@@ -1453,15 +1524,6 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         return;
       }
       
-      const startDate = props.schedulestate.effectPeriod[0].split("-");
-      const endDate = props.schedulestate.effectPeriod[1].split("-");
-      const startYear = startDate[0];
-      const startMonth = startDate[1];
-      const startDay = startDate[2];
-      const endYear = endDate[0];
-      const endMonth = endDate[1];
-      const endDay = endDate[2];
-      
       const modal = Modal.info({
         title: "Click the start button to apply to the device",
         okText: "Start",
@@ -1526,14 +1588,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
         {
           // 有效周期
           propertyid: 32,
-          data: {
-            startYear,
-            startMonth,
-            startDay,
-            endYear,
-            endMonth,
-            endDay
-          }
+          data: props.schedulestate.applidEffectPeriodToDevice()
         },
         {
           propertyid: 38,

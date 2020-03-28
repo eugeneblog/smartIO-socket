@@ -19,6 +19,26 @@ class ScheduleState extends BaseState {
   // 有效周期
   @observable effectPeriod = [];
   
+  // 应用有效周期到设备
+  @action applidEffectPeriodToDevice = () => {
+    const startDate = this.effectPeriod[0].split("-");
+    const endDate = this.effectPeriod[1].split("-");
+    const startYear = startDate[0];
+    const startMonth = startDate[1];
+    const startDay = startDate[2];
+    const endYear = endDate[0];
+    const endMonth = endDate[1];
+    const endDay = endDate[2];
+    return {
+      startYear,
+      startMonth,
+      startDay,
+      endYear,
+      endMonth,
+      endDay
+    };
+  };
+  
   // 绑定的对象
   @observable bindObjects = [];
   
