@@ -37,7 +37,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import listPlugin from "@fullcalendar/list";
 import {BACNET_OBJECT_TYPE} from '../../utils/BAC_DECODE_TEXT'
-import {getPropertyIdText} from '../../utils/util';
+import {getPropertyIdText, objTypeToDataType, debounce} from '../../utils/util';
 import './index.scss'
 import "./calendar.scss";
 
@@ -51,10 +51,10 @@ const {TextArea} = Input;
 
 const MyAwesomeMenu = props => (
   <Menu id="scheduleMenu" theme={theme.dark} animation={animation.zoom}>
-    <Item onClick={props.deleteEventHandle}>Delete</Item>
+    <Item disabled={!props.isDisabled} onClick={props.deleteEventHandle}>Delete</Item>
     <Separator/>
-    <Item onClick={props.copyEventHandle}>Copy</Item>
-    <Item onClick={props.pasteEventHandle}>Paste</Item>
+    <Item disabled={!props.isDisabled} onClick={props.copyEventHandle}>Copy</Item>
+    <Item disabled={!props.isDisabled} onClick={props.pasteEventHandle}>Paste</Item>
   </Menu>
 );
 
@@ -154,47 +154,84 @@ const RenderTreeNode = inject(allStore => allStore.appstate)(
 );
 
 // 属性视图
-const ScheduleAttribute = props => {
-  const {visible, attrData} = props;
-  const {start, end} = attrData;
-  return visible ? (
-    <Descriptions
-      title={`${props.title} ${attrData.id ? attrData.id : ""}`}
-      bordered
-      size="small"
-      layout="vertical"
-      column={1}
-    >
-      <Descriptions.Item label="Start time">
-        <TimePicker
-          allowClear={false}
-          onChange={(time, timeString) =>
-            props.timeChangeHandle(time, timeString, "start", props.attrData)
-          }
-          format={"HH:mm"}
-          id="startTime"
-          value={moment(start, "HH:mm:ss")}
-        />
-      </Descriptions.Item>
-      <Descriptions.Item label="End time">
-        <TimePicker
-          onChange={(time, timeString) =>
-            props.timeChangeHandle(time, timeString, "end", props.attrData)
-          }
-          allowClear={false}
-          format={"HH:mm"}
-          id="endTime"
-          value={moment(end, "HH:mm:ss")}
-        />
-      </Descriptions.Item>
-    </Descriptions>
-  ) : null;
-};
+const ScheduleAttribute = inject(allStore => allStore.appstate)(
+  observer(
+    props => {
+      const {visible, attrData} = props;
+      const {start, end, startVal} = attrData;
+      const ValInput = (props) => {
+        const type = props.type;
+        if (type === 'int') {
+          let valChange = (e) => {
+            const val = e.target.value;
+            props.timeChangeHandle(moment(start, "HH:mm:ss"), "start", val, null, props.attrData)
+          };
+          return (
+            <Radio.Group onChange={valChange} name="radiogroup" value={startVal}>
+              <Radio value={1}>Open</Radio>
+              <Radio value={0}>Shut down</Radio>
+            </Radio.Group>
+          )
+        }
+        if (type === 'float') {
+          let valChange = (val) => {
+            // 防抖, 将多次点击合并成一次执行
+            debounce(function() {
+              props.timeChangeHandle(moment(start, "HH:mm:ss"), "start", val, null, props.attrData)
+            }, 1500, false)();
+          };
+          return <InputNumber
+            defaultValue={startVal}
+            value={startVal}
+            step={0.1}
+            parser={value => value.replace(/\$\s?|(,*)/g, '')}
+            onChange={valChange}
+          />
+        }
+      };
+      return visible ? (
+        <Descriptions
+          title={`${props.title} ${attrData.id ? attrData.id : ""}`}
+          bordered
+          size="small"
+          layout="vertical"
+          column={1}
+        >
+          <Descriptions.Item label="Start time">
+            <TimePicker
+              allowClear={false}
+              onChange={(time) =>
+                props.timeChangeHandle(time, "start", startVal, null, props.attrData)
+              }
+              format={"HH:mm"}
+              id="startTime"
+              value={moment(start, "HH:mm:ss")}
+            />
+          </Descriptions.Item>
+          <Descriptions.Item label="End time">
+            <TimePicker
+              onChange={(time) =>
+                props.timeChangeHandle(time, "end", startVal, null, props.attrData)
+              }
+              allowClear={false}
+              format={"HH:mm"}
+              id="endTime"
+              value={moment(end, "HH:mm:ss")}
+            />
+          </Descriptions.Item>
+          <Descriptions.Item label="Value">
+            <ValInput {...props} type={props.schedulestate.inputCensorship}/>
+          </Descriptions.Item>
+        </Descriptions>
+      ) : null;
+    }
+  )
+);
 
 // 有效周期
 const EffectPeriod = inject(allStore => allStore.appstate)(
   observer(props => {
-    const { effectPeriod } = props.schedulestate;
+    const {effectPeriod} = props.schedulestate;
     const [startTime, setStartTime] = useState(
       moment(new Date(Date.now()), "HH:mm:ss")
     );
@@ -1079,7 +1116,7 @@ const ScheduleContent = inject(allStore => allStore.appstate)(
                   timeGridPlugin,
                   listPlugin
                 ]}
-                editable={true}
+                editable={props.schedulestate.isEdit}
                 timeZone="local"
                 scrollTime="08:00:00"
                 dateClick={props.handleDateClick}
@@ -1142,6 +1179,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     const [cache, setCache] = useState({});
     const [isShowAttr, setShowAttr] = useState(false);
     const [selectDevice, setSelDevice] = useState(undefined);
+    
     // 获取指定周的时间
     const getWeekTime = day => {
       if (day === 7) {
@@ -1168,7 +1206,6 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     
     // 时间点击
     const handleDateClick = arg => {
-      return;
       // setVisible(true);
     };
     
@@ -1177,9 +1214,9 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       const eventData = info.event;
       const start = eventData.start;
       const end = eventData.end;
-      const id = eventData.id;
+      const primaryKey = eventData.extendedProps.primaryKey;
       const nowEvent = event.map(list => {
-        if (list.id === id) {
+        if (list.primaryKey === primaryKey) {
           return {
             ...list,
             start,
@@ -1224,6 +1261,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     
     // event DblClick
     const onDblClickHandle = (e, info) => {
+      if (!props.schedulestate.isEdit) {
+        message.warn('Bind the event first');
+        return
+      }
       const primaryKey = info.event.extendedProps.primaryKey;
       setEvent(event.filter(list => list.primaryKey !== primaryKey));
       props.appstate.isBlocking = true;
@@ -1233,6 +1274,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     
     // event Click
     const eventOnClickHandle = (e, info) => {
+      if (!props.schedulestate.isEdit) {
+        message.warn('Bind the event first');
+        return
+      }
       const {extendedProps} = info.event;
       const primaryKey = extendedProps.primaryKey;
       addActiveEvent(primaryKey, event);
@@ -1240,6 +1285,10 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     
     // 时间选择
     const handleDateSelect = info => {
+      if (!props.schedulestate.isEdit) {
+        message.warn('Bind the event first');
+        return
+      }
       const start = info.start;
       const end = info.end;
       // 自定义event 用当前时间戳作为唯一主键
@@ -1404,7 +1453,8 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                   const objectName = `${item.Object.object_type_text} ${objectInstance}`;
                   return {
                     key,
-                    propertyVal: item.Property,
+                    propertyId: item.Property,
+                    propertyVal: item.Object.value,
                     propertyName: item.object_type_text,
                     tag: objectName,
                     objectType,
@@ -1441,13 +1491,15 @@ const ScheduleView = inject(allStore => allStore.appstate)(
     };
     
     // 右侧选项改变事件
-    const timeChangeHandle = (time, timeStr, point, allData) => {
+    const timeChangeHandle = (time, point, startVal, endVal = null, allData) => {
       const newTime = time.toString();
       setEvent(
         event.map(item => {
-          if (item.id === allData.id) {
+          if (item.primaryKey === allData.primaryKey) {
             const newEvent = {
               ...item,
+              startVal,
+              endVal,
               [point]: new Date(newTime)
             };
             setSelEvent(newEvent);
@@ -1546,17 +1598,13 @@ const ScheduleView = inject(allStore => allStore.appstate)(
       });
       let now = 0;
       const originalKey = e.props.deviceId.split(":");
-      const scheduleData = Array.from([1, 2, 3, 4, 5, 6, 7], x => [{}]);
+      const scheduleData = Array.from([1, 2, 3, 4, 5, 6, 7], x => []);
       event.forEach(item => {
         if (!item.start) {
           return;
         }
         const week = item.start.getDay() === 0 ? 6 : item.start.getDay() - 1;
-        if (scheduleData[week] && Object.keys(scheduleData[week][0]).length) {
-          scheduleData[week].push({...item});
-          return;
-        }
-        scheduleData[week] = [{...item}];
+        scheduleData[week].push({...item, tag: objTypeToDataType(props.schedulestate.bindObjects[0].objectType)});
       });
       
       const datas = [
@@ -1728,6 +1776,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
           deleteEventHandle={deleteEventHandle}
           copyEventHandle={copyEventHandle}
           pasteEventHandle={pasteEventHandle}
+          isDisabled={props.schedulestate.isEdit}
         />
         <TreeRightMenu
           applidToDevice={applidToDeviceHandle}

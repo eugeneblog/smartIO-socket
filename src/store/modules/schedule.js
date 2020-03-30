@@ -4,6 +4,7 @@ import {action, computed, observable} from "mobx";
 import {readDataBaseField} from "../../api/index.api";
 
 class ScheduleState extends BaseState {
+  @observable isEdit = true;
   // 当前读取的设备
   @observable selectDevice = '';
   @observable scheduleData = [];
@@ -42,12 +43,29 @@ class ScheduleState extends BaseState {
   // 绑定的对象
   @observable bindObjects = [];
   
+  // 事件值的输入关口，控制事件的值域
+  @computed get inputCensorship() {
+    if (!this.bindObjects.length) {
+      // 没有绑定的对象不允许编辑
+      return null;
+    }
+    const objType = this.bindObjects[0].objectType;
+    const objTypeEnum = {
+      "1": "float",
+      "2": "float",
+      "4": "int",
+      "5": "int"
+    };
+    return objTypeEnum[objType]
+  }
   
+  // 从数据库读取对象名称
   @action
   async fetchObjName() {
     if (!this.bindObjects.length) {
       console.log('fuck you')
     }
+    
     const bindObjs = this.bindObjects.map(item => {
       const device = this.selectDevice;
       const objType = item.objectType;

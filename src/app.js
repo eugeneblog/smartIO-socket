@@ -21,7 +21,7 @@ const AppLoading = () => {
           transform: " translate(-50%, -50%)"
         }}
       >
-        <div className="spinner spinnerTwo"><span></span></div>
+        <div className="spinner spinnerTwo"><span/></div>
         <div>Loading...</div>
       </div>
     </div>
