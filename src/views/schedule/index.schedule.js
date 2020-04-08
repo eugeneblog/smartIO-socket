@@ -471,7 +471,6 @@ const Execption = inject(allStore => allStore.appstate)(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getSeleExecpTabDate]);
     
-    
     const timeType = (dates) => {
       if (!dates.length) {
         return [
@@ -586,6 +585,7 @@ const Execption = inject(allStore => allStore.appstate)(
     // 根据时间格式改变视图
     const timeToView = function (segment) {
       // 区分有时间范围的时间格式和其他格式
+	    console.log(segment);
       if (segment.length < 2) {
         const date = segment[0].val;
         setDateRange([moment(Date.now()), moment(Date.now())]);
@@ -776,7 +776,6 @@ const Execption = inject(allStore => allStore.appstate)(
         </InputGroup>
         : null;
     };
-    
     return (
       <Descriptions bordered>
         <Descriptions.Item label="Select Table" span={3}>
@@ -1462,7 +1461,7 @@ const ScheduleView = inject(allStore => allStore.appstate)(
                     objectName
                   }
                 });
-                // 从数据库读取对象名称并且写入
+                // 从数据库读取对象名称并且
                 props.schedulestate.fetchObjName();
               }
               // 例外时间表

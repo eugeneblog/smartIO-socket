@@ -115,6 +115,7 @@ class ScheduleState extends BaseState {
     const event = [];
     
     // 没有数据直接return
+	  console.log(this.execption[this.selectExecption].segment2);
     if (!this.execption[this.selectExecption].segment2.length) {
       return []
     }
@@ -151,7 +152,7 @@ class ScheduleState extends BaseState {
             primaryKey,
             title: 'test',
             type: 'boolean',
-            value: action.val,
+            value: action ? action.val : 'null',
             start: moment(time.val, 'h:m:s').toDate(),
             end,
             backgroundColor: "#e0edf9",
